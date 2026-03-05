@@ -34,15 +34,5 @@ The program generates `portfolio-report.html`.
 - `transaction_files/transactions_example.csv` contains realistic sample transactions with both gains and losses.
 - To run only the sample dataset, temporarily rename the file to something like `transactions_demo.csv`.
 
-## Portfolio View Example
-PDF example file:
-
-[Open PDF example](portfolio_report_example.pdf)
-
-Embedded PDF preview (works in viewers that support embedded PDF in Markdown/HTML):
-
-<object data="portfolio_report_example.pdf" type="application/pdf" width="100%" height="720">
-	<p>PDF preview is not supported in this viewer. Open the file directly: <a href="portfolio_report_example.pdf">portfolio_report_example.pdf</a></p>
-</object>
-
-Tip: If embedded preview does not render, click the link above to open the PDF directly.
+## Portfolio PDF Example
+[Open PDF](portfolio_report_example.pdf)
