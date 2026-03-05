@@ -11,7 +11,7 @@ A Java program that analyzes your investment transactions and calculates compreh
 ## How to Use
 1. Export transaction history from one or more banks as CSV files
 2. Place all transaction CSV files inside `transaction_files/`
-3. Run `PortfolioTracker` to generate `portfolio.csv` with a combined overview
+3. Run `PortfolioTracker` to generate `portfolio-report.html` with separate tables in one file
 
 Example run:
 ```bash

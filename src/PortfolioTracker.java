@@ -13,9 +13,8 @@ import java.util.Locale;
 import java.util.Map;
 
 public class PortfolioTracker {
-    private static final String CSV_SEPARATOR = ";";
     private static final String INPUT_DIRECTORY = "transaction_files";
-    private static final String OUTPUT_FILE = "portfolio.csv";
+    private static final String OUTPUT_FILE = "portfolio-report.html";
 
     private static final ArrayList<Security> securities = new ArrayList<>();
     private static final Map<String, Security> securitiesByKey = new LinkedHashMap<>();
@@ -31,7 +30,7 @@ public class PortfolioTracker {
             System.out.println("Loaded " + filesProcessed + " CSV file(s) from '" + INPUT_DIRECTORY + "'.");
         }
 
-        writeToCsv();
+        writeHtmlReport();
     }
 
     private static void ensureInputDirectoryExists() {
@@ -368,124 +367,142 @@ public class PortfolioTracker {
         return StandardCharsets.UTF_8;
     }
 
-    private static void writeToCsv() {
+    private static void writeHtmlReport() {
         File file = new File(OUTPUT_FILE);
         try (FileWriter writer = new FileWriter(file)) {
-            writeOverviewAsCsv(writer);
-            writer.write("\n\n");
-            writeRealizedSummaryAsCsv(writer);
-            writer.write("\n\n");
-            writeSaleTradesPerSecurityAsCsv(writer);
+            writeHtmlHeader(writer);
+            writeOverviewTableHtml(writer);
+            writeRealizedSummaryTableHtml(writer);
+            writeSaleTradesTablesHtml(writer);
+            writeHtmlFooter(writer);
             new ProcessBuilder("open", OUTPUT_FILE).start();
         } catch (IOException e) {
-            System.out.println("Failed to write CSV: " + e.getMessage());
+            System.out.println("Failed to write report: " + e.getMessage());
         }
     }
 
-    private static void writeSectionTitle(FileWriter writer, String title) throws IOException {
-        writer.write(title);
-        writer.write("\n");
+    private static void writeHtmlHeader(FileWriter writer) throws IOException {
+        writer.write("<!DOCTYPE html>\n");
+        writer.write("<html lang=\"no\">\n");
+        writer.write("<head>\n");
+        writer.write("  <meta charset=\"utf-8\">\n");
+        writer.write("  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n");
+        writer.write("  <title>Portfolio Report</title>\n");
+        writer.write("  <style>\n");
+        writer.write("    body { font-family: -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif; margin: 24px; color: #111; }\n");
+        writer.write("    h1 { margin: 0 0 20px 0; font-size: 26px; }\n");
+        writer.write("    h2 { margin: 28px 0 8px 0; font-size: 18px; }\n");
+        writer.write("    table { border-collapse: collapse; width: 100%; margin: 8px 0 18px 0; table-layout: auto; }\n");
+        writer.write("    th, td { border: 1px solid #d0d0d0; padding: 6px 8px; font-size: 13px; text-align: left; }\n");
+        writer.write("    th { background: #f3f3f3; font-weight: 600; }\n");
+        writer.write("    tr.total-row td { font-weight: 700; background: #fafafa; }\n");
+        writer.write("    .muted { color: #666; font-size: 12px; margin-top: -8px; }\n");
+        writer.write("  </style>\n");
+        writer.write("</head>\n");
+        writer.write("<body>\n");
+        writer.write("  <h1>Portfolio Report</h1>\n");
+        writer.write("  <div class=\"muted\">Generated from all CSV files in transaction_files/</div>\n");
     }
 
-    private static String escapeCsvCell(String value) {
+    private static void writeHtmlFooter(FileWriter writer) throws IOException {
+        writer.write("</body>\n");
+        writer.write("</html>\n");
+    }
+
+    private static String escapeHtml(String value) {
         String text = value == null ? "" : value;
-        return "\"" + text.replace("\"", "\"\"") + "\"";
+        return text
+                .replace("&", "&amp;")
+                .replace("<", "&lt;")
+                .replace(">", "&gt;")
+                .replace("\"", "&quot;")
+                .replace("'", "&#39;");
     }
 
-    private static void writeCsvRow(FileWriter writer, String... fields) throws IOException {
+    private static void writeHtmlRow(FileWriter writer, boolean header, String... fields) throws IOException {
+        writer.write("<tr>");
         for (int i = 0; i < fields.length; i++) {
-            if (i > 0) {
-                writer.write(CSV_SEPARATOR);
+            if (header) {
+                writer.write("<th>" + escapeHtml(fields[i]) + "</th>");
+            } else {
+                writer.write("<td>" + escapeHtml(fields[i]) + "</td>");
             }
-            writer.write(escapeCsvCell(fields[i]));
         }
-        writer.write("\n");
+        writer.write("</tr>\n");
     }
 
-    private static void writeOverviewAsCsv(FileWriter writer) throws IOException {
-        writeSectionTitle(writer, "PORTEFOLJEOVERSIKT - NAVAERENDE BEHOLDNING");
-        writeCsvRow(
-            writer,
-            "Ticker",
-            "Verdipapir",
-            "Antall",
-            "GAV",
-            "Kurs",
-            "Kostpris",
-            "Markedsverdi",
-            "Urealisert Avkastning (%)",
-            "Urealisert Avkastning",
-            "Realisert Avkastning (%)",
-            "Realisert Avkastning",
-            "Utbytte",
-            "Avkastning (%)",
-            "Avkastning"
+    private static void writeOverviewTableHtml(FileWriter writer) throws IOException {
+        writer.write("<h2>PORTEFOLJEOVERSIKT - NAVAERENDE BEHOLDNING</h2>\n");
+        writer.write("<table>\n");
+        writeHtmlRow(writer, true,
+                "Ticker",
+                "Verdipapir",
+                "Type",
+                "Antall",
+                "GAV",
+                "Kostpris",
+                "Realisert Avkastning (%)",
+                "Realisert Avkastning",
+                "Utbytte",
+                "Avkastning",
+                "Avkastning (%)"
         );
 
-        int row = 2;
-        int startRow = row;
-
+        double totalCostBasis = 0.0;
+        double totalRealized = 0.0;
+        double totalDividends = 0.0;
         for (Security security : getSortedSecuritiesForOverview()) {
             String ticker = security.getTicker();
-            String name = security.getName();
+            String tickerText = (ticker == null || ticker.isBlank()) ? "-" : ticker;
+            double units = parseDoubleOrZero(security.getUnitsOwnedAsText());
+            double averageCost = parseDoubleOrZero(security.getAverageCostAsText());
+            double positionCostBasis = units * averageCost;
+            double realized = parseDoubleOrZero(security.getRealizedGainAsText());
+            double dividends = parseDoubleOrZero(security.getDividendsAsText());
+            double totalReturn = realized + dividends;
+            double totalReturnPct = positionCostBasis > 0 ? (totalReturn / positionCostBasis) * 100.0 : 0.0;
 
-            String tickerCell = ticker.isEmpty() ? name : "=HVISFEIL(AKSJE(\"" + ticker + "\";25);\"-\")";
-            String nameCell = ticker.isEmpty() ? name : "=HVISFEIL(AKSJE(A" + row + ";1);\"" + name + "\")";
+            totalCostBasis += positionCostBasis;
+            totalRealized += realized;
+            totalDividends += dividends;
 
-            String marketPriceFormula = "=HVISFEIL(AKSJE(A" + row + ";0);0)";
-
-            String costBasisFormula = "VERDI(C" + row + ")*VERDI(D" + row + ")";
-            String marketValueFormula = "VERDI(C" + row + ")*VERDI(E" + row + ")";
-
-            String unrealizedGainFormula = "=" + marketValueFormula + "-" + costBasisFormula;
-            String unrealizedGainPctFormula = "=AVRUND(HVISFEIL(((" + marketValueFormula + ")-(" + costBasisFormula + "))/(" + costBasisFormula + "); 0); 2)";
-
-            String totalGainFormula = "I" + row + "+K" + row + "+L" + row;
-            String totalGainPctFormula = "=AVRUND(HVISFEIL((" + totalGainFormula + ")/F" + row + "; 0); 2)";
-
-            writeCsvRow(
+            writeHtmlRow(
                 writer,
-                tickerCell,
-                nameCell,
+                false,
+                tickerText,
+                security.getName(),
+                security.getAssetType().name(),
                 security.getUnitsOwnedAsText(),
                 security.getAverageCostAsText(),
-                marketPriceFormula,
-                "=" + costBasisFormula,
-                "=" + marketValueFormula,
-                unrealizedGainPctFormula,
-                unrealizedGainFormula,
+                formatNumber(positionCostBasis, 2),
                 security.getRealizedReturnPctAsText(),
                 security.getRealizedGainAsText(),
                 security.getDividendsAsText(),
-                totalGainPctFormula,
-                "=" + totalGainFormula
+                formatNumber(totalReturn, 2),
+                formatNumber(totalReturnPct, 2)
             );
-
-            row++;
         }
 
-        writeCsvRow(
-            writer,
-            "",
-            "",
-            "",
-            "",
-            "",
-            "=SUMMER(F" + startRow + ":F" + (row - 1) + ")",
-            "=SUMMER(G" + startRow + ":G" + (row - 1) + ")",
-            "=SUMMER(H" + startRow + ":H" + (row - 1) + ")",
-            "=SUMMER(I" + startRow + ":I" + (row - 1) + ")",
-            "=SUMMER(J" + startRow + ":J" + (row - 1) + ")",
-            "=SUMMER(K" + startRow + ":K" + (row - 1) + ")",
-            "=SUMMER(L" + startRow + ":L" + (row - 1) + ")",
-            "=SUMMER(M" + startRow + ":M" + (row - 1) + ")",
-            "=SUMMER(N" + startRow + ":N" + (row - 1) + ")"
+        double totalReturn = totalRealized + totalDividends;
+        double totalReturnPct = totalCostBasis > 0 ? (totalReturn / totalCostBasis) * 100.0 : 0.0;
+        writer.write("<tr class=\"total-row\">"
+                + "<td></td><td>TOTALT</td><td></td><td></td><td></td>"
+                + "<td>" + escapeHtml(formatNumber(totalCostBasis, 2)) + "</td>"
+                + "<td></td>"
+                + "<td>" + escapeHtml(formatNumber(totalRealized, 2)) + "</td>"
+                + "<td>" + escapeHtml(formatNumber(totalDividends, 2)) + "</td>"
+                + "<td>" + escapeHtml(formatNumber(totalReturn, 2)) + "</td>"
+                + "<td>" + escapeHtml(formatNumber(totalReturnPct, 2)) + "</td>"
+                + "</tr>\n"
         );
+
+        writer.write("</table>\n\n");
     }
 
-    private static void writeRealizedSummaryAsCsv(FileWriter writer) throws IOException {
-        writeSectionTitle(writer, "TOTALOVERSIKT - ALLE SALG");
-        writeCsvRow(writer, "Verdipapir", "Salgssum", "Kostnad", "Realisert gevinst/tap", "Avkastning (%)");
+    private static void writeRealizedSummaryTableHtml(FileWriter writer) throws IOException {
+        writer.write("<h2>TOTALOVERSIKT - ALLE SALG</h2>\n");
+        writer.write("<table>\n");
+        writeHtmlRow(writer, true, "Verdipapir", "Salgssum", "Kostnad", "Realisert gevinst/tap", "Avkastning (%)");
 
         ArrayList<Security> soldSecurities = getSortedSoldSecurities();
 
@@ -503,8 +520,9 @@ public class PortfolioTracker {
             totalCostBasis += costBasis;
             totalRealizedGain += gain;
 
-            writeCsvRow(
+            writeHtmlRow(
                 writer,
+                false,
                 security.getName(),
                 formatNumber(salesValue, 2),
                 formatNumber(costBasis, 2),
@@ -514,22 +532,25 @@ public class PortfolioTracker {
         }
 
         double totalReturnPct = totalCostBasis > 0 ? (totalRealizedGain / totalCostBasis) * 100.0 : 0.0;
-        writeCsvRow(
-            writer,
-            "TOTALT",
-            formatNumber(totalSalesValue, 2),
-            formatNumber(totalCostBasis, 2),
-            formatNumber(totalRealizedGain, 2),
-            formatNumber(totalReturnPct, 2)
+        writer.write("<tr class=\"total-row\">"
+                + "<td>TOTALT</td>"
+                + "<td>" + escapeHtml(formatNumber(totalSalesValue, 2)) + "</td>"
+                + "<td>" + escapeHtml(formatNumber(totalCostBasis, 2)) + "</td>"
+                + "<td>" + escapeHtml(formatNumber(totalRealizedGain, 2)) + "</td>"
+                + "<td>" + escapeHtml(formatNumber(totalReturnPct, 2)) + "</td>"
+                + "</tr>\n"
         );
+
+        writer.write("</table>\n\n");
     }
 
-    private static void writeSaleTradesPerSecurityAsCsv(FileWriter writer) throws IOException {
+    private static void writeSaleTradesTablesHtml(FileWriter writer) throws IOException {
         ArrayList<Security> soldSecurities = getSortedSoldSecurities();
 
         for (Security security : soldSecurities) {
-            writeSectionTitle(writer, "SALGSTRADES - " + security.getName());
-            writeCsvRow(writer, "Salgsdato", "Andeler", "Pris/andel", "Salgssum", "Kostnad", "Gevinst/Tap", "Avkastning (%)");
+            writer.write("<h2>SALGSTRADES - " + escapeHtml(security.getName()) + "</h2>\n");
+            writer.write("<table>\n");
+            writeHtmlRow(writer, true, "Salgsdato", "Andeler", "Pris/andel", "Salgssum", "Kostnad", "Gevinst/Tap", "Avkastning (%)");
 
             double totalUnits = 0.0;
             double totalSalesValue = 0.0;
@@ -542,8 +563,9 @@ public class PortfolioTracker {
                 totalCostBasis += trade.getCostBasis();
                 totalGain += trade.getGainLoss();
 
-                writeCsvRow(
+                writeHtmlRow(
                     writer,
+                    false,
                     trade.getTradeDateAsCsv(),
                     formatNumber(trade.getUnits(), 4),
                     formatNumber(trade.getUnitPrice(), 2),
@@ -555,18 +577,18 @@ public class PortfolioTracker {
             }
 
             double totalReturnPct = totalCostBasis > 0 ? (totalGain / totalCostBasis) * 100.0 : 0.0;
-            writeCsvRow(
-                writer,
-                "TOTALT",
-                formatNumber(totalUnits, 4),
-                "",
-                formatNumber(totalSalesValue, 2),
-                formatNumber(totalCostBasis, 2),
-                formatNumber(totalGain, 2),
-                formatNumber(totalReturnPct, 2)
+            writer.write("<tr class=\"total-row\">"
+                    + "<td>TOTALT</td>"
+                    + "<td>" + escapeHtml(formatNumber(totalUnits, 4)) + "</td>"
+                    + "<td></td>"
+                    + "<td>" + escapeHtml(formatNumber(totalSalesValue, 2)) + "</td>"
+                    + "<td>" + escapeHtml(formatNumber(totalCostBasis, 2)) + "</td>"
+                    + "<td>" + escapeHtml(formatNumber(totalGain, 2)) + "</td>"
+                    + "<td>" + escapeHtml(formatNumber(totalReturnPct, 2)) + "</td>"
+                    + "</tr>\n"
             );
 
-            writer.write("\n\n");
+            writer.write("</table>\n\n");
         }
     }
 
