@@ -3,10 +3,10 @@ import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Comparator;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
+import java.net.URI;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLEncoder;
@@ -31,12 +31,10 @@ public class Verdipapir {
     private double realizedSalesValue = 0.0;
 
     private static class BuyLot {
-        LocalDate tradeDate;
         double remainingUnits;
         double unitCost;
 
-        BuyLot(LocalDate tradeDate, double remainingUnits, double unitCost) {
-            this.tradeDate = tradeDate;
+        BuyLot(double remainingUnits, double unitCost) {
             this.remainingUnits = remainingUnits;
             this.unitCost = unitCost;
         }
@@ -143,7 +141,7 @@ public class Verdipapir {
         LocalDate tradeDate = parseDate(tradeDateText);
 
         if (isBuy) {
-            registerBuy(tradeDate, units, amount, price, totalFees);
+            registerBuy(units, amount, price, totalFees);
         } else {
             registerSale(tradeDate, units, amount, price, totalFees);
         }
@@ -161,14 +159,14 @@ public class Verdipapir {
         return amount < 0;
     }
 
-    private void registerBuy(LocalDate tradeDate, double units, double amount, double price, double totalFees) {
+    private void registerBuy(double units, double amount, double price, double totalFees) {
         double cashOut = Math.abs(amount);
         if (cashOut < EPSILON && price > 0) {
             cashOut = units * price + Math.max(totalFees, 0.0);
         }
 
         double unitCost = cashOut / units;
-        buyLots.addLast(new BuyLot(tradeDate, units, unitCost));
+        buyLots.addLast(new BuyLot(units, unitCost));
         unitsOwned += units;
     }
 
@@ -299,7 +297,8 @@ public class Verdipapir {
     }
 
     private String httpGetRequest(String urlString) throws Exception {
-        HttpURLConnection conn = (HttpURLConnection) new URL(urlString).openConnection();
+        URL url = URI.create(urlString).toURL();
+        HttpURLConnection conn = (HttpURLConnection) url.openConnection();
         conn.setRequestMethod("GET");
         conn.setRequestProperty("User-Agent", "Mozilla/5.0");
         conn.setConnectTimeout(5000);
