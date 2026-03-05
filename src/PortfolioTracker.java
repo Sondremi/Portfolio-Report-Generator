@@ -594,7 +594,7 @@ public class PortfolioTracker {
     }
 
     private static String formatNumber(double value, int decimals) {
-        String pattern = "%." + decimals + "f";
-        return String.format(Locale.US, pattern, value);
+        String pattern = "%,." + decimals + "f";
+        return String.format(Locale.US, pattern, value).replace(',', ' ');
     }
 }

@@ -4,6 +4,8 @@ import java.time.format.DateTimeParseException;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.text.DecimalFormat;
+import java.text.DecimalFormatSymbols;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.net.URI;
@@ -12,6 +14,7 @@ import java.net.URL;
 import java.net.URLEncoder;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.Locale;
 
 public class Security {
     private static final DateTimeFormatter CSV_DATE_OUTPUT = DateTimeFormatter.ofPattern("dd.MM.yyyy");
@@ -88,19 +91,32 @@ public class Security {
     public String getIsin() { return isin; }
     public AssetType getAssetType() { return assetType; }
 
-    public String getAverageCostAsText() { return String.format("%.2f", getAverageCost()); }
-    public String getUnitsOwnedAsText() { return String.format("%.2f", unitsOwned); }
+    public String getAverageCostAsText() { return formatNumber(getAverageCost(), 2); }
+    public String getUnitsOwnedAsText() { return formatNumber(unitsOwned, 2); }
 
-    public String getDividendsAsText() { return String.format("%.2f", dividends); }
+    public String getDividendsAsText() { return formatNumber(dividends, 2); }
 
-    public String getRealizedGainAsText() { return String.format("%.2f", realizedGain); }
+    public String getRealizedGainAsText() { return formatNumber(realizedGain, 2); }
 
     public String getRealizedReturnPctAsText() {
         if (Math.abs(realizedCostBasis) < EPSILON) {
-            return String.format("%.2f", 0.0);
+            return formatNumber(0.0, 2);
         }
         double percent = (realizedGain / realizedCostBasis) * 100.0;
-        return String.format("%.2f", percent);
+        return formatNumber(percent, 2);
+    }
+
+    private static String formatNumber(double value, int decimals) {
+        DecimalFormatSymbols symbols = DecimalFormatSymbols.getInstance(Locale.US);
+        symbols.setGroupingSeparator(' ');
+        symbols.setDecimalSeparator('.');
+
+        DecimalFormat format = new DecimalFormat();
+        format.setDecimalFormatSymbols(symbols);
+        format.setGroupingUsed(true);
+        format.setMinimumFractionDigits(decimals);
+        format.setMaximumFractionDigits(decimals);
+        return format.format(value);
     }
 
     public double getRealizedSalesValue() { return realizedSalesValue; }
