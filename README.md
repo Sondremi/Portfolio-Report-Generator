@@ -1,23 +1,48 @@
 # Portfolio Performance Tracker
 
-A Java program that analyzes your investment transactions and calculates comprehensive performance metrics across all your stocks and funds.
+A Java program that reads investment transactions from CSV files and generates a browser-based portfolio report.
+
+Useful when you want to combine transactions from multiple banks or brokers in one overview.
 
 ## Key Features
-- Calculates both realized and unrealized returns
-- Tracks performance across multiple transactions
-- Handles dividends, buys, and sells
-- Generates a Numbers-ready CSV with automatic stock price lookups
+- Reads all supported `.csv` files from `transaction_files/`
+- Supports comma, semicolon, and tab-separated exports
+- Handles UTF-8 and UTF-16 encoded files
+- Tracks buys, sells, and dividends across stocks and funds
+- Calculates FIFO-based realized gain/loss and return percentages
+- Generates `portfolio-report.html` with overview and sale-trade tables
+- Report can be exported to PDF from the browser
 
-## How to Use
-1. Export transaction history from one or more banks as CSV files
-2. Place all transaction CSV files inside `transaction_files/`
-3. Run `PortfolioTracker` to generate `portfolio-report.html` with separate tables in one file
+## Quick Start
+1. Export transaction history from your broker/bank as CSV files.
+2. Put the files in `transaction_files/`.
+3. Compile and run:
 
-Example run:
 ```bash
 javac src/*.java
 java -cp src PortfolioTracker
 ```
 
-## Example on portfolio
-![](portfolio_example.png)
+The program generates `portfolio-report.html`.
+
+## CSV Notes
+- All `.csv` files in `transaction_files/` are loaded.
+- Files with `example` in the filename are ignored by default.
+- Required columns in supported exports are `Verdipapir` and `Transaksjonstype`.
+
+## Example Data
+- `transaction_files/transactions_example.csv` contains realistic sample transactions with both gains and losses.
+- To run only the sample dataset, temporarily rename the file to something like `transactions_demo.csv`.
+
+## Portfolio View Example
+PDF example file:
+
+[Open PDF example](portfolio_report_example.pdf)
+
+Embedded PDF preview (works in viewers that support embedded PDF in Markdown/HTML):
+
+<object data="portfolio_report_example.pdf" type="application/pdf" width="100%" height="720">
+	<p>PDF preview is not supported in this viewer. Open the file directly: <a href="portfolio_report_example.pdf">portfolio_report_example.pdf</a></p>
+</object>
+
+Tip: If embedded preview does not render, click the link above to open the PDF directly.
