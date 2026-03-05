@@ -5,6 +5,9 @@ import java.io.IOException;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
@@ -169,6 +172,7 @@ public class PortfolioTracker {
     }
 
     private static class HeaderIndexes {
+        int transactionId;
         int securityName;
         int securityType;
         int isin;
@@ -181,7 +185,7 @@ public class PortfolioTracker {
         int tradeDate;
 
         HeaderIndexes() {
-            securityName = securityType = isin = transactionType = amount = quantity = price = result = totalFees = tradeDate = -1;
+            transactionId = securityName = securityType = isin = transactionType = amount = quantity = price = result = totalFees = tradeDate = -1;
         }
 
         boolean hasRequiredColumns() {
@@ -195,6 +199,7 @@ public class PortfolioTracker {
         for (int i = 0; i < headerColumns.size(); i++) {
             String column = normalizeHeader(headerColumns.get(i));
             switch (column) {
+                case "id", "transaksjon" -> indexes.transactionId = i;
                 case "verdipapir" -> indexes.securityName = i;
                 case "verdipapirtype" -> indexes.securityType = i;
                 case "isin" -> indexes.isin = i;
@@ -213,12 +218,10 @@ public class PortfolioTracker {
         return indexes;
     }
 
-    private static void processLine(String line, char delimiter, HeaderIndexes indexes) {
-        if (line == null || line.isBlank()) {
+    private static void processRow(ArrayList<String> row, HeaderIndexes indexes) {
+        if (row == null || row.isEmpty()) {
             return;
         }
-
-        ArrayList<String> row = parseDelimitedLine(line.replace("−", "-"), delimiter);
 
         String securityName = getCell(row, indexes.securityName);
         if (securityName.isEmpty()) {
@@ -237,6 +240,40 @@ public class PortfolioTracker {
         processTransaction(security, row, indexes);
     }
 
+    private static LocalDate parseTradeDateForSort(String tradeDateText) {
+        if (tradeDateText == null || tradeDateText.isBlank()) {
+            return LocalDate.MIN;
+        }
+
+        String value = tradeDateText.trim();
+        DateTimeFormatter[] formats = new DateTimeFormatter[] {
+            DateTimeFormatter.ISO_LOCAL_DATE,
+            DateTimeFormatter.ofPattern("dd.MM.yyyy")
+        };
+
+        for (DateTimeFormatter formatter : formats) {
+            try {
+                return LocalDate.parse(value, formatter);
+            } catch (DateTimeParseException ignored) {
+                // Try next format.
+            }
+        }
+
+        return LocalDate.MIN;
+    }
+
+    private static long parseSortIdOrDefault(String value) {
+        if (value == null || value.isBlank()) {
+            return Long.MAX_VALUE;
+        }
+
+        try {
+            return Long.parseLong(value.trim());
+        } catch (NumberFormatException ignored) {
+            return Long.MAX_VALUE;
+        }
+    }
+
     private static int getAssetPriority(Security security) {
         return switch (security.getAssetType()) {
             case STOCK -> 0;
@@ -246,7 +283,13 @@ public class PortfolioTracker {
     }
 
     private static ArrayList<Security> getSortedSecuritiesForOverview() {
-        ArrayList<Security> sorted = new ArrayList<>(securities);
+        ArrayList<Security> sorted = new ArrayList<>();
+        for (Security security : securities) {
+            if (security.getUnitsOwned() > 0.0000001) {
+                sorted.add(security);
+            }
+        }
+
         sorted.sort(
                 Comparator.comparingInt(PortfolioTracker::getAssetPriority)
                         .thenComparing(Security::getName, String.CASE_INSENSITIVE_ORDER)
@@ -322,8 +365,25 @@ public class PortfolioTracker {
                 return false;
             }
 
+            ArrayList<ArrayList<String>> rows = new ArrayList<>();
             for (int i = 1; i < lines.length; i++) {
-                processLine(lines[i], delimiter, indexes);
+                String line = lines[i];
+                if (line == null || line.isBlank()) {
+                    continue;
+                }
+                rows.add(parseDelimitedLine(line.replace("−", "-"), delimiter));
+            }
+
+            if (indexes.tradeDate >= 0) {
+                rows.sort(
+                    Comparator
+                        .comparing((ArrayList<String> row) -> parseTradeDateForSort(getCell(row, indexes.tradeDate)))
+                        .thenComparingLong(row -> parseSortIdOrDefault(getCell(row, indexes.transactionId)))
+                );
+            }
+
+            for (ArrayList<String> row : rows) {
+                processRow(row, indexes);
             }
             return true;
         } catch (FileNotFoundException e) {
@@ -457,8 +517,8 @@ public class PortfolioTracker {
         for (Security security : getSortedSecuritiesForOverview()) {
             String ticker = security.getTicker();
             String tickerText = (ticker == null || ticker.isBlank()) ? "-" : ticker;
-            double units = parseDoubleOrZero(security.getUnitsOwnedAsText());
-            double averageCost = parseDoubleOrZero(security.getAverageCostAsText());
+            double units = security.getUnitsOwned();
+            double averageCost = security.getAverageCost();
             double latestPrice = security.getLatestPrice();
             double positionCostBasis = units * averageCost;
             double marketValue = latestPrice > 0.0 ? units * latestPrice : 0.0;
@@ -478,8 +538,8 @@ public class PortfolioTracker {
                 tickerText,
                 security.getName(),
                 security.getAssetType().name(),
-                security.getUnitsOwnedAsText(),
-                security.getAverageCostAsText(),
+                formatNumber(units, 4),
+                formatNumber(averageCost, 2),
                 security.getLatestPriceAsText(),
                 latestPrice > 0.0 ? formatNumber(marketValue, 2) : "-",
                 formatNumber(positionCostBasis, 2),

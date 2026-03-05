@@ -268,7 +268,7 @@ public class Security {
         saleTrades.add(new SaleTrade(tradeDate, units, price, saleValue, costBasis, gainLoss, returnPct));
 
         unitsOwned -= units;
-        if (unitsOwned < EPSILON) {
+        if (Math.abs(unitsOwned) < EPSILON) {
             unitsOwned = 0.0;
         }
 
