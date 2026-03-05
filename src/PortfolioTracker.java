@@ -383,7 +383,7 @@ public class PortfolioTracker {
 
     private static void writeHtmlHeader(FileWriter writer) throws IOException {
         writer.write("<!DOCTYPE html>\n");
-        writer.write("<html lang=\"no\">\n");
+        writer.write("<html lang=\"en\">\n");
         writer.write("<head>\n");
         writer.write("  <meta charset=\"utf-8\">\n");
         writer.write("  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n");
@@ -432,20 +432,20 @@ public class PortfolioTracker {
     }
 
     private static void writeOverviewTableHtml(FileWriter writer) throws IOException {
-        writer.write("<h2>PORTEFOLJEOVERSIKT - NAVAERENDE BEHOLDNING</h2>\n");
+        writer.write("<h2>PORTFOLIO OVERVIEW - CURRENT HOLDINGS</h2>\n");
         writer.write("<table>\n");
         writeHtmlRow(writer, true,
                 "Ticker",
-                "Verdipapir",
+                "Security",
                 "Type",
-                "Antall",
-                "GAV",
-                "Kostpris",
-                "Realisert Avkastning (%)",
-                "Realisert Avkastning",
-                "Utbytte",
-                "Avkastning",
-                "Avkastning (%)"
+                "Units",
+                "Avg Cost",
+                "Cost Basis",
+                "Realized Return (%)",
+                "Realized Return",
+                "Dividends",
+                "Total Return",
+                "Total Return (%)"
         );
 
         double totalCostBasis = 0.0;
@@ -487,7 +487,7 @@ public class PortfolioTracker {
         double totalRealizedPct = totalCostBasis > 0 ? (totalRealized / totalCostBasis) * 100.0 : 0.0;
         double totalReturnPct = totalCostBasis > 0 ? (totalReturn / totalCostBasis) * 100.0 : 0.0;
         writer.write("<tr class=\"total-row\">"
-                + "<td></td><td>TOTALT</td><td></td><td></td><td></td>"
+            + "<td></td><td>TOTAL</td><td></td><td></td><td></td>"
                 + "<td>" + escapeHtml(formatNumber(totalCostBasis, 2)) + "</td>"
             + "<td>" + escapeHtml(formatNumber(totalRealizedPct, 2)) + "</td>"
                 + "<td>" + escapeHtml(formatNumber(totalRealized, 2)) + "</td>"
@@ -501,9 +501,9 @@ public class PortfolioTracker {
     }
 
     private static void writeRealizedSummaryTableHtml(FileWriter writer) throws IOException {
-        writer.write("<h2>TOTALOVERSIKT - ALLE SALG</h2>\n");
+        writer.write("<h2>REALIZED OVERVIEW - ALL SALES</h2>\n");
         writer.write("<table>\n");
-        writeHtmlRow(writer, true, "Verdipapir", "Salgssum", "Kostnad", "Realisert gevinst/tap", "Avkastning (%)");
+        writeHtmlRow(writer, true, "Security", "Sales Value", "Cost Basis", "Realized Gain/Loss", "Return (%)");
 
         ArrayList<Security> soldSecurities = getSortedSoldSecurities();
 
@@ -534,7 +534,7 @@ public class PortfolioTracker {
 
         double totalReturnPct = totalCostBasis > 0 ? (totalRealizedGain / totalCostBasis) * 100.0 : 0.0;
         writer.write("<tr class=\"total-row\">"
-                + "<td>TOTALT</td>"
+            + "<td>TOTAL</td>"
                 + "<td>" + escapeHtml(formatNumber(totalSalesValue, 2)) + "</td>"
                 + "<td>" + escapeHtml(formatNumber(totalCostBasis, 2)) + "</td>"
                 + "<td>" + escapeHtml(formatNumber(totalRealizedGain, 2)) + "</td>"
@@ -549,9 +549,9 @@ public class PortfolioTracker {
         ArrayList<Security> soldSecurities = getSortedSoldSecurities();
 
         for (Security security : soldSecurities) {
-            writer.write("<h2>SALGSTRADES - " + escapeHtml(security.getName()) + "</h2>\n");
+            writer.write("<h2>SALE TRADES - " + escapeHtml(security.getName()) + "</h2>\n");
             writer.write("<table>\n");
-            writeHtmlRow(writer, true, "Salgsdato", "Andeler", "Pris/andel", "Salgssum", "Kostnad", "Gevinst/Tap", "Avkastning (%)");
+            writeHtmlRow(writer, true, "Sale Date", "Units", "Price/Unit", "Sale Value", "Cost Basis", "Gain/Loss", "Return (%)");
 
             double totalUnits = 0.0;
             double totalSalesValue = 0.0;
@@ -579,7 +579,7 @@ public class PortfolioTracker {
 
             double totalReturnPct = totalCostBasis > 0 ? (totalGain / totalCostBasis) * 100.0 : 0.0;
             writer.write("<tr class=\"total-row\">"
-                    + "<td>TOTALT</td>"
+                    + "<td>TOTAL</td>"
                     + "<td>" + escapeHtml(formatNumber(totalUnits, 4)) + "</td>"
                     + "<td></td>"
                     + "<td>" + escapeHtml(formatNumber(totalSalesValue, 2)) + "</td>"
