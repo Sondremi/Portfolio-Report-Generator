@@ -48,8 +48,9 @@ public class PortfolioTracker {
         }
 
         File[] csvFiles = directory.listFiles((dir, name) ->
-                name.toLowerCase(Locale.ROOT).endsWith(".csv")
-                        && !name.equalsIgnoreCase(OUTPUT_FILE));
+            name.toLowerCase(Locale.ROOT).endsWith(".csv")
+                && !name.equalsIgnoreCase(OUTPUT_FILE)
+                && !name.toLowerCase(Locale.ROOT).contains("example"));
 
         if (csvFiles == null || csvFiles.length == 0) {
             return 0;
@@ -402,6 +403,7 @@ public class PortfolioTracker {
     }
 
     private static void writeOverviewAsCsv(FileWriter writer) throws IOException {
+        writeSectionTitle(writer, "PORTEFOLJEOVERSIKT - NAVAERENDE BEHOLDNING");
         writeCsvRow(
             writer,
             "Ticker",
