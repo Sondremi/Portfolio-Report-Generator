@@ -39,6 +39,7 @@ public class Security {
     private double realizedGain = 0.0;
     private double realizedCostBasis = 0.0;
     private double realizedSalesValue = 0.0;
+    private double latestPrice = 0.0;
 
     private static class BuyLot {
         double remainingUnits;
@@ -95,6 +96,12 @@ public class Security {
     public String getUnitsOwnedAsText() { return formatNumber(unitsOwned, 2); }
 
     public String getDividendsAsText() { return formatNumber(dividends, 2); }
+    public String getLatestPriceAsText() {
+        if (latestPrice <= EPSILON) {
+            return "-";
+        }
+        return formatNumber(latestPrice, 2);
+    }
 
     public String getRealizedGainAsText() { return formatNumber(realizedGain, 2); }
 
@@ -122,6 +129,13 @@ public class Security {
     public double getRealizedSalesValue() { return realizedSalesValue; }
     public double getRealizedCostBasis() { return realizedCostBasis; }
     public double getRealizedGain() { return realizedGain; }
+    public double getUnitsOwned() { return unitsOwned; }
+    public double getDividends() { return dividends; }
+    public double getLatestPrice() { return latestPrice; }
+
+    public boolean isFullyRealized() {
+        return Math.abs(unitsOwned) < EPSILON;
+    }
 
     public boolean hasSales() {
         return !saleTrades.isEmpty();
@@ -310,6 +324,7 @@ public class Security {
     private void setTicker() {
         if (isin == null || isin.isEmpty()) {
             ticker = "";
+            latestPrice = 0.0;
             return;
         }
 
@@ -322,6 +337,7 @@ public class Security {
             String symbol = extractValue(response, "symbol");
             String exchange = extractValue(response, "exchange");
             String quoteType = extractValue(response, "quoteType");
+            double searchMarketPrice = extractNumericValue(response, "regularMarketPrice");
 
             if (symbol != null && !symbol.isEmpty()) {
                 if ("ETF".equals(quoteType) || "MUTUALFUND".equals(quoteType)) {
@@ -341,12 +357,36 @@ public class Security {
                         assetType = AssetType.STOCK;
                     }
                 }
+                latestPrice = searchMarketPrice > EPSILON ? searchMarketPrice : fetchLatestPrice(ticker);
             } else {
                 ticker = "";
+                latestPrice = 0.0;
             }
         } catch (Exception e) {
             System.err.println("Yahoo Finance ISIN lookup failed: " + e.getMessage());
             ticker = "";
+            latestPrice = 0.0;
+        }
+    }
+
+    private double fetchLatestPrice(String symbol) {
+        if (symbol == null || symbol.isBlank()) {
+            return 0.0;
+        }
+
+        try {
+            String quoteUrl = "https://query1.finance.yahoo.com/v8/finance/chart/"
+                    + URLEncoder.encode(symbol, "UTF-8")
+                    + "?interval=1d&range=1d";
+            String quoteResponse = httpGetRequest(quoteUrl);
+            double regularMarketPrice = extractNumericValue(quoteResponse, "regularMarketPrice");
+            if (regularMarketPrice > EPSILON) {
+                return regularMarketPrice;
+            }
+
+            return extractNumericValue(quoteResponse, "chartPreviousClose");
+        } catch (Exception ignored) {
+            return 0.0;
         }
     }
 
@@ -374,6 +414,19 @@ public class Security {
             return value.equals("null") ? null : value;
         }
         return null;
+    }
+
+    private double extractNumericValue(String json, String key) {
+        Pattern pattern = Pattern.compile("\\\"" + key + "\\\":(-?\\d+(?:\\.\\d+)?)");
+        Matcher matcher = pattern.matcher(json);
+        if (matcher.find()) {
+            try {
+                return Double.parseDouble(matcher.group(1));
+            } catch (NumberFormatException ignored) {
+                return 0.0;
+            }
+        }
+        return 0.0;
     }
 
     private String httpGetRequest(String urlString) throws Exception {

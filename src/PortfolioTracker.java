@@ -440,6 +440,8 @@ public class PortfolioTracker {
                 "Type",
                 "Units",
                 "Avg Cost",
+            "Last Price",
+            "Market Value",
                 "Cost Basis",
                 "Realized Return (%)",
                 "Realized Return",
@@ -449,6 +451,7 @@ public class PortfolioTracker {
         );
 
         double totalCostBasis = 0.0;
+        double totalMarketValue = 0.0;
         double totalRealized = 0.0;
         double totalDividends = 0.0;
         for (Security security : getSortedSecuritiesForOverview()) {
@@ -456,13 +459,16 @@ public class PortfolioTracker {
             String tickerText = (ticker == null || ticker.isBlank()) ? "-" : ticker;
             double units = parseDoubleOrZero(security.getUnitsOwnedAsText());
             double averageCost = parseDoubleOrZero(security.getAverageCostAsText());
+            double latestPrice = security.getLatestPrice();
             double positionCostBasis = units * averageCost;
+            double marketValue = latestPrice > 0.0 ? units * latestPrice : 0.0;
             double realized = parseDoubleOrZero(security.getRealizedGainAsText());
             double dividends = parseDoubleOrZero(security.getDividendsAsText());
             double totalReturn = realized + dividends;
             double totalReturnPct = positionCostBasis > 0 ? (totalReturn / positionCostBasis) * 100.0 : 0.0;
 
             totalCostBasis += positionCostBasis;
+            totalMarketValue += marketValue;
             totalRealized += realized;
             totalDividends += dividends;
 
@@ -474,6 +480,8 @@ public class PortfolioTracker {
                 security.getAssetType().name(),
                 security.getUnitsOwnedAsText(),
                 security.getAverageCostAsText(),
+                security.getLatestPriceAsText(),
+                latestPrice > 0.0 ? formatNumber(marketValue, 2) : "-",
                 formatNumber(positionCostBasis, 2),
                 security.getRealizedReturnPctAsText(),
                 security.getRealizedGainAsText(),
@@ -487,7 +495,8 @@ public class PortfolioTracker {
         double totalRealizedPct = totalCostBasis > 0 ? (totalRealized / totalCostBasis) * 100.0 : 0.0;
         double totalReturnPct = totalCostBasis > 0 ? (totalReturn / totalCostBasis) * 100.0 : 0.0;
         writer.write("<tr class=\"total-row\">"
-            + "<td></td><td>TOTAL</td><td></td><td></td><td></td>"
+            + "<td></td><td>TOTAL</td><td></td><td></td><td></td><td></td>"
+                + "<td>" + escapeHtml(formatNumber(totalMarketValue, 2)) + "</td>"
                 + "<td>" + escapeHtml(formatNumber(totalCostBasis, 2)) + "</td>"
             + "<td>" + escapeHtml(formatNumber(totalRealizedPct, 2)) + "</td>"
                 + "<td>" + escapeHtml(formatNumber(totalRealized, 2)) + "</td>"
@@ -503,23 +512,26 @@ public class PortfolioTracker {
     private static void writeRealizedSummaryTableHtml(FileWriter writer) throws IOException {
         writer.write("<h2>REALIZED OVERVIEW - ALL SALES</h2>\n");
         writer.write("<table>\n");
-        writeHtmlRow(writer, true, "Security", "Sales Value", "Cost Basis", "Realized Gain/Loss", "Return (%)");
+        writeHtmlRow(writer, true, "Security", "Sales Value", "Cost Basis", "Realized Gain/Loss", "Dividends", "Return (%)");
 
         ArrayList<Security> soldSecurities = getSortedSoldSecurities();
 
         double totalSalesValue = 0.0;
         double totalCostBasis = 0.0;
         double totalRealizedGain = 0.0;
+        double totalRealizedDividends = 0.0;
 
         for (Security security : soldSecurities) {
             double salesValue = security.getRealizedSalesValue();
             double costBasis = security.getRealizedCostBasis();
             double gain = security.getRealizedGain();
+            double realizedDividends = security.isFullyRealized() ? security.getDividends() : 0.0;
             double returnPct = costBasis > 0 ? (gain / costBasis) * 100.0 : 0.0;
 
             totalSalesValue += salesValue;
             totalCostBasis += costBasis;
             totalRealizedGain += gain;
+            totalRealizedDividends += realizedDividends;
 
             writeHtmlRow(
                 writer,
@@ -528,6 +540,7 @@ public class PortfolioTracker {
                 formatNumber(salesValue, 2),
                 formatNumber(costBasis, 2),
                 formatNumber(gain, 2),
+                formatNumber(realizedDividends, 2),
                 formatNumber(returnPct, 2)
             );
         }
@@ -538,6 +551,7 @@ public class PortfolioTracker {
                 + "<td>" + escapeHtml(formatNumber(totalSalesValue, 2)) + "</td>"
                 + "<td>" + escapeHtml(formatNumber(totalCostBasis, 2)) + "</td>"
                 + "<td>" + escapeHtml(formatNumber(totalRealizedGain, 2)) + "</td>"
+                + "<td>" + escapeHtml(formatNumber(totalRealizedDividends, 2)) + "</td>"
                 + "<td>" + escapeHtml(formatNumber(totalReturnPct, 2)) + "</td>"
                 + "</tr>\n"
         );
