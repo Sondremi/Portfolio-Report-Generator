@@ -20,6 +20,22 @@ public class Security {
     private static final DateTimeFormatter CSV_DATE_OUTPUT = DateTimeFormatter.ofPattern("dd.MM.yyyy");
     private static final double EPSILON = 0.0000001;
 
+    private static class SearchCandidate {
+        final String symbol;
+        final String exchange;
+        final String quoteType;
+        final String currency;
+        final double regularMarketPrice;
+
+        SearchCandidate(String symbol, String exchange, String quoteType, String currency, double regularMarketPrice) {
+            this.symbol = symbol;
+            this.exchange = exchange;
+            this.quoteType = quoteType;
+            this.currency = currency;
+            this.regularMarketPrice = regularMarketPrice;
+        }
+    }
+
     public enum AssetType {
         STOCK,
         FUND,
@@ -343,34 +359,27 @@ public class Security {
 
         try {
             String url = "https://query2.finance.yahoo.com/v1/finance/search?q=" +
-                         URLEncoder.encode(isin, "UTF-8") + "&quotesCount=1";
+                         URLEncoder.encode(isin, "UTF-8") + "&quotesCount=10";
 
             String response = httpGetRequest(url);
 
-            String symbol = extractValue(response, "symbol");
-            String exchange = extractValue(response, "exchange");
-            String quoteType = extractValue(response, "quoteType");
-            double searchMarketPrice = extractNumericValue(response, "regularMarketPrice");
+            ArrayList<SearchCandidate> candidates = extractSearchCandidates(response);
+            SearchCandidate candidate = chooseBestCandidate(candidates);
+            candidate = refineCandidateBySymbolListings(candidate);
+            candidate = preferOsloListingWhenAvailable(candidate);
 
-            if (symbol != null && !symbol.isEmpty()) {
-                if ("ETF".equals(quoteType) || "MUTUALFUND".equals(quoteType)) {
-                    ticker = symbol;
-                    if (assetType == AssetType.UNKNOWN) {
-                        assetType = AssetType.FUND;
-                    }
-                } else if (exchange != null && !exchange.isEmpty()) {
-                    String exchangeSuffix = getExchangeSuffix(exchange);
-                    ticker = symbol + (exchangeSuffix.isEmpty() ? "" : "." + exchangeSuffix);
-                    if (assetType == AssetType.UNKNOWN) {
-                        assetType = AssetType.STOCK;
-                    }
-                } else {
-                    ticker = symbol;
-                    if (assetType == AssetType.UNKNOWN) {
-                        assetType = AssetType.STOCK;
-                    }
+            if (candidate != null && candidate.symbol != null && !candidate.symbol.isBlank()) {
+                String candidateTicker = candidate.symbol;
+                if (!candidateTicker.contains(".") && candidate.exchange != null && !candidate.exchange.isBlank()) {
+                    String exchangeSuffix = getExchangeSuffix(candidate.exchange);
+                    candidateTicker = candidateTicker + (exchangeSuffix.isEmpty() ? "" : "." + exchangeSuffix);
                 }
-                latestPrice = searchMarketPrice > EPSILON ? searchMarketPrice : fetchLatestPrice(ticker);
+
+                ticker = candidateTicker;
+                updateAssetTypeFromQuoteType(candidate.quoteType);
+                latestPrice = candidate.regularMarketPrice > EPSILON
+                        ? candidate.regularMarketPrice
+                        : fetchLatestPrice(ticker);
             } else {
                 ticker = "";
                 latestPrice = 0.0;
@@ -380,6 +389,258 @@ public class Security {
             ticker = "";
             latestPrice = 0.0;
         }
+    }
+
+    private SearchCandidate preferOsloListingWhenAvailable(SearchCandidate baseCandidate) {
+        if (baseCandidate == null || baseCandidate.symbol == null || baseCandidate.symbol.isBlank()) {
+            return baseCandidate;
+        }
+
+        String quoteType = baseCandidate.quoteType == null ? "" : baseCandidate.quoteType.toUpperCase(Locale.ROOT);
+        if (!(quoteType.contains("EQUITY") || quoteType.contains("STOCK") || assetType == AssetType.STOCK)) {
+            return baseCandidate;
+        }
+
+        if (baseCandidate.symbol.contains(".") || baseCandidate.symbol.contains("=")) {
+            return baseCandidate;
+        }
+
+        String osloSymbol = baseCandidate.symbol + ".OL";
+        double osloPrice = fetchLatestPrice(osloSymbol);
+        if (osloPrice <= EPSILON) {
+            return baseCandidate;
+        }
+
+        return new SearchCandidate(osloSymbol, "oslo", baseCandidate.quoteType, "NOK", osloPrice);
+    }
+
+    private SearchCandidate refineCandidateBySymbolListings(SearchCandidate baseCandidate) {
+        if (baseCandidate == null || baseCandidate.symbol == null || baseCandidate.symbol.isBlank()) {
+            return baseCandidate;
+        }
+
+        String baseSymbol = baseCandidate.symbol.split("\\.")[0].trim();
+        if (baseSymbol.isBlank() || baseSymbol.contains("=")) {
+            return baseCandidate;
+        }
+
+        try {
+            String url = "https://query2.finance.yahoo.com/v1/finance/search?q="
+                    + URLEncoder.encode(baseSymbol, "UTF-8")
+                    + "&quotesCount=20";
+
+            String response = httpGetRequest(url);
+            ArrayList<SearchCandidate> listingCandidates = extractSearchCandidates(response);
+            if (listingCandidates.isEmpty()) {
+                return baseCandidate;
+            }
+
+            ArrayList<SearchCandidate> symbolMatches = new ArrayList<>();
+            String baseUpper = baseSymbol.toUpperCase(Locale.ROOT);
+            for (SearchCandidate candidate : listingCandidates) {
+                if (candidate == null || candidate.symbol == null || candidate.symbol.isBlank()) {
+                    continue;
+                }
+
+                String candidateSymbol = candidate.symbol.toUpperCase(Locale.ROOT);
+                if (candidateSymbol.equals(baseUpper) || candidateSymbol.startsWith(baseUpper + ".")) {
+                    symbolMatches.add(candidate);
+                }
+            }
+
+            if (symbolMatches.isEmpty()) {
+                return baseCandidate;
+            }
+
+            SearchCandidate refinedCandidate = chooseBestCandidate(symbolMatches);
+            if (refinedCandidate == null) {
+                return baseCandidate;
+            }
+
+            return scoreCandidate(refinedCandidate) > scoreCandidate(baseCandidate)
+                    ? refinedCandidate
+                    : baseCandidate;
+        } catch (Exception ignored) {
+            return baseCandidate;
+        }
+    }
+
+    private void updateAssetTypeFromQuoteType(String quoteType) {
+        if (quoteType == null || quoteType.isBlank()) {
+            return;
+        }
+
+        String normalized = quoteType.toUpperCase(Locale.ROOT);
+        if (normalized.contains("ETF") || normalized.contains("MUTUAL") || normalized.contains("FUND")) {
+            if (assetType == AssetType.UNKNOWN) {
+                assetType = AssetType.FUND;
+            }
+            return;
+        }
+
+        if (normalized.contains("EQUITY") || normalized.contains("STOCK")) {
+            if (assetType == AssetType.UNKNOWN) {
+                assetType = AssetType.STOCK;
+            }
+        }
+    }
+
+    private ArrayList<SearchCandidate> extractSearchCandidates(String response) {
+        ArrayList<SearchCandidate> candidates = new ArrayList<>();
+        if (response == null || response.isBlank()) {
+            return candidates;
+        }
+
+        String marker = "\"quotes\":";
+        int quotesIndex = response.indexOf(marker);
+        if (quotesIndex < 0) {
+            return candidates;
+        }
+
+        int arrayStart = response.indexOf('[', quotesIndex + marker.length());
+        if (arrayStart < 0) {
+            return candidates;
+        }
+
+        int depth = 0;
+        int objectStart = -1;
+        boolean inString = false;
+        boolean escaped = false;
+
+        for (int i = arrayStart + 1; i < response.length(); i++) {
+            char ch = response.charAt(i);
+
+            if (inString) {
+                if (escaped) {
+                    escaped = false;
+                } else if (ch == '\\') {
+                    escaped = true;
+                } else if (ch == '"') {
+                    inString = false;
+                }
+                continue;
+            }
+
+            if (ch == '"') {
+                inString = true;
+                continue;
+            }
+
+            if (ch == '{') {
+                if (depth == 0) {
+                    objectStart = i;
+                }
+                depth++;
+                continue;
+            }
+
+            if (ch == '}') {
+                if (depth > 0) {
+                    depth--;
+                }
+                if (depth == 0 && objectStart >= 0) {
+                    String object = response.substring(objectStart, i + 1);
+                    SearchCandidate candidate = parseSearchCandidate(object);
+                    if (candidate != null) {
+                        candidates.add(candidate);
+                    }
+                    objectStart = -1;
+                }
+                continue;
+            }
+
+            if (ch == ']' && depth == 0) {
+                break;
+            }
+        }
+
+        return candidates;
+    }
+
+    private SearchCandidate parseSearchCandidate(String quoteObject) {
+        String symbol = extractValue(quoteObject, "symbol");
+        if (symbol == null || symbol.isBlank()) {
+            return null;
+        }
+
+        String exchange = extractValue(quoteObject, "exchange");
+        String quoteType = extractValue(quoteObject, "quoteType");
+        String currency = extractValue(quoteObject, "currency");
+        double regularMarketPrice = extractNumericValue(quoteObject, "regularMarketPrice");
+
+        return new SearchCandidate(symbol, exchange, quoteType, currency, regularMarketPrice);
+    }
+
+    private SearchCandidate chooseBestCandidate(ArrayList<SearchCandidate> candidates) {
+        SearchCandidate bestCandidate = null;
+        int bestScore = Integer.MIN_VALUE;
+
+        for (SearchCandidate candidate : candidates) {
+            int score = scoreCandidate(candidate);
+            if (score > bestScore) {
+                bestScore = score;
+                bestCandidate = candidate;
+            }
+        }
+
+        return bestCandidate;
+    }
+
+    private int scoreCandidate(SearchCandidate candidate) {
+        if (candidate == null || candidate.symbol == null || candidate.symbol.isBlank()) {
+            return Integer.MIN_VALUE;
+        }
+
+        int score = 0;
+        String quoteType = candidate.quoteType == null ? "" : candidate.quoteType.toUpperCase(Locale.ROOT);
+        String currency = candidate.currency == null ? "" : candidate.currency.toUpperCase(Locale.ROOT);
+        String symbol = candidate.symbol.toUpperCase(Locale.ROOT);
+        String exchangeSuffix = getExchangeSuffix(candidate.exchange == null ? "" : candidate.exchange);
+
+        if (symbol.contains("=")) {
+            score -= 100;
+        }
+
+        if (assetType == AssetType.FUND) {
+            if (quoteType.contains("ETF") || quoteType.contains("MUTUAL") || quoteType.contains("FUND")) {
+                score += 60;
+            }
+            if (quoteType.contains("EQUITY") || quoteType.contains("STOCK")) {
+                score -= 20;
+            }
+        } else if (assetType == AssetType.STOCK) {
+            if (quoteType.contains("EQUITY") || quoteType.contains("STOCK")) {
+                score += 40;
+            }
+            if (quoteType.contains("ETF") || quoteType.contains("MUTUAL") || quoteType.contains("FUND")) {
+                score -= 25;
+            }
+        } else {
+            if (quoteType.contains("EQUITY") || quoteType.contains("STOCK")) {
+                score += 20;
+            }
+            if (quoteType.contains("ETF") || quoteType.contains("MUTUAL") || quoteType.contains("FUND")) {
+                score += 15;
+            }
+        }
+
+        if ("NOK".equals(currency)) {
+            score += 30;
+        }
+
+        if ("OL".equals(exchangeSuffix)) {
+            score += 25;
+        }
+
+        if (symbol.endsWith(".OL")) {
+            score += 20;
+        }
+
+        if (candidate.regularMarketPrice > EPSILON) {
+            score += 5;
+        }
+
+        return score;
     }
 
     private double fetchLatestPrice(String symbol) {
