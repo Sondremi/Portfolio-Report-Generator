@@ -185,6 +185,14 @@ public class Security {
         }
     }
 
+    public void addZeroCostUnits(double quantity) {
+        double units = Math.abs(quantity);
+        if (units < EPSILON) {
+            return;
+        }
+        registerBuy(units, 0.0, 0.0, 0.0);
+    }
+
     public void updateAssetTypeFromHint(String securityTypeHint, String securityNameHint) {
         String fromType = securityTypeHint == null ? "" : securityTypeHint.trim().toUpperCase();
         String fromName = securityNameHint == null ? "" : securityNameHint.trim().toUpperCase();
@@ -243,18 +251,23 @@ public class Security {
             saleValue = units * price - Math.max(totalFees, 0.0);
         }
 
+        double availableUnitsBeforeSale = buyLots.stream().mapToDouble(lot -> lot.remainingUnits).sum();
+        boolean fifoCoveredSale = availableUnitsBeforeSale + EPSILON >= units;
+
         double costBasis = consumeLotsUsingFifo(units);
         double gainLoss = saleValue - costBasis;
+        boolean zeroCostFifoSale = fifoCoveredSale && costBasis <= EPSILON;
 
         // Broker-provided sale result is usually the most accurate source across partial histories.
-        if (Math.abs(reportedResult) > EPSILON) {
+        if (Math.abs(reportedResult) > EPSILON && !zeroCostFifoSale) {
             gainLoss = reportedResult;
             costBasis = saleValue - gainLoss;
         }
 
         // If we cannot resolve cost basis from FIFO and broker did not provide result,
         // keep gain/loss neutral instead of treating full sale value as profit.
-        if (Math.abs(reportedResult) <= EPSILON && costBasis <= EPSILON && saleValue > EPSILON) {
+        // If FIFO fully covered the sale, a zero cost basis can be valid (e.g. corporate action allotment).
+        if (Math.abs(reportedResult) <= EPSILON && costBasis <= EPSILON && saleValue > EPSILON && !fifoCoveredSale) {
             costBasis = saleValue;
             gainLoss = 0.0;
         }
@@ -263,7 +276,7 @@ public class Security {
             costBasis = 0.0;
         }
 
-        double returnPct = costBasis > EPSILON ? (gainLoss / costBasis) * 100.0 : 0.0;
+        double returnPct = costBasis > EPSILON ? (gainLoss / costBasis) * 100.0 : (gainLoss > EPSILON ? 100.0 : 0.0);
 
         saleTrades.add(new SaleTrade(tradeDate, units, price, saleValue, costBasis, gainLoss, returnPct));
 

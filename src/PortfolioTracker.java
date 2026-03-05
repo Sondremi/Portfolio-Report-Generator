@@ -288,7 +288,9 @@ public class PortfolioTracker {
     private static ArrayList<Security> getSortedSecuritiesForOverview() {
         ArrayList<Security> sorted = new ArrayList<>();
         for (Security security : securities) {
-            if (security.getUnitsOwned() > 0.0000001 && !isReplacedSecurity(security)) {
+            if (security.getUnitsOwned() > 0.0000001
+                    && !isReplacedSecurity(security)
+                    && !isTemporaryRightsSecurity(security)) {
                 sorted.add(security);
             }
         }
@@ -308,6 +310,16 @@ public class PortfolioTracker {
 
         Security replacement = securitiesByKey.get(replacementIsin);
         return replacement != null && replacement.getUnitsOwned() > 0.0000001;
+    }
+
+    private static boolean isTemporaryRightsSecurity(Security security) {
+        String name = security.getName();
+        if (name == null || name.isBlank()) {
+            return false;
+        }
+
+        String normalized = name.toUpperCase(Locale.ROOT);
+        return normalized.contains("T-RETT") || normalized.contains("TEGNINGSRETT");
     }
 
     private static ArrayList<Security> getSortedSoldSecurities() {
@@ -343,6 +355,11 @@ public class PortfolioTracker {
         switch (transactionType) {
             case "SALG", "SELL", "KJØPT", "KJOPT", "KJØP", "KJOP", "BUY", "REINVESTERT UTBYTTE", "REINVESTERTUTBYTTE" ->
                     security.addTransaction(tradeDate, transactionType, amount, quantity, price, result, totalFees);
+            case "UTBYTTE INNLEGG VP", "BYTTE INNLEGG VP", "MAK BYTTE INNLEGG VP", "TILDELING INNLEGG RE" -> {
+                if (!isTemporaryRightsSecurity(security)) {
+                    security.addZeroCostUnits(quantity);
+                }
+            }
             case "UTBYTTE", "DIVIDEND" -> security.addDividend(amount);
             case "INNSKUDD", "UTTAK INTERNET", "PLATTFORMAVGIFT", "TILBAKEBET. FOND AVG",
                     "OVERBELÅNINGSRENTE", "TILBAKEBETALING", "OVERFØRING VIA TRUSTLY", "OVERFORING VIA TRUSTLY" -> {
@@ -615,7 +632,7 @@ public class PortfolioTracker {
             double costBasis = security.getRealizedCostBasis();
             double gain = security.getRealizedGain();
             double realizedDividends = security.isFullyRealized() ? security.getDividends() : 0.0;
-            double returnPct = costBasis > 0 ? (gain / costBasis) * 100.0 : 0.0;
+            double returnPct = costBasis > 0 ? (gain / costBasis) * 100.0 : (gain > 0 ? 100.0 : 0.0);
 
             totalSalesValue += salesValue;
             totalCostBasis += costBasis;
@@ -634,7 +651,7 @@ public class PortfolioTracker {
             );
         }
 
-        double totalReturnPct = totalCostBasis > 0 ? (totalRealizedGain / totalCostBasis) * 100.0 : 0.0;
+        double totalReturnPct = totalCostBasis > 0 ? (totalRealizedGain / totalCostBasis) * 100.0 : (totalRealizedGain > 0 ? 100.0 : 0.0);
         writer.write("<tr class=\"total-row\">"
             + "<td>TOTAL</td>"
                 + "<td>" + escapeHtml(formatNumber(totalSalesValue, 2)) + "</td>"
@@ -680,7 +697,7 @@ public class PortfolioTracker {
                 );
             }
 
-            double totalReturnPct = totalCostBasis > 0 ? (totalGain / totalCostBasis) * 100.0 : 0.0;
+            double totalReturnPct = totalCostBasis > 0 ? (totalGain / totalCostBasis) * 100.0 : (totalGain > 0 ? 100.0 : 0.0);
             writer.write("<tr class=\"total-row\">"
                     + "<td>TOTAL</td>"
                     + "<td>" + escapeHtml(formatNumber(totalUnits, 4)) + "</td>"
