@@ -577,7 +577,7 @@ public class PortfolioTracker {
                 writer,
                 false,
                 tickerText,
-                security.getName(),
+                security.getDisplayName(),
                 security.getAssetType().name(),
                 formatNumber(units, 4),
                 formatNumber(averageCost, 2),

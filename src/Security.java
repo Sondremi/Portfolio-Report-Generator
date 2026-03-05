@@ -25,13 +25,18 @@ public class Security {
         final String exchange;
         final String quoteType;
         final String currency;
+        final String shortName;
+        final String longName;
         final double regularMarketPrice;
 
-        SearchCandidate(String symbol, String exchange, String quoteType, String currency, double regularMarketPrice) {
+        SearchCandidate(String symbol, String exchange, String quoteType, String currency,
+                        String shortName, String longName, double regularMarketPrice) {
             this.symbol = symbol;
             this.exchange = exchange;
             this.quoteType = quoteType;
             this.currency = currency;
+            this.shortName = shortName;
+            this.longName = longName;
             this.regularMarketPrice = regularMarketPrice;
         }
     }
@@ -44,6 +49,7 @@ public class Security {
 
     private final String name;
     private final String isin;
+    private String resolvedSecurityName = "";
     private String ticker = "";
     private AssetType assetType = AssetType.UNKNOWN;
 
@@ -104,6 +110,9 @@ public class Security {
     }
 
     public String getName() { return name; }
+    public String getDisplayName() {
+        return resolvedSecurityName == null || resolvedSecurityName.isBlank() ? name : resolvedSecurityName;
+    }
     public String getTicker() { return ticker; }
     public String getIsin() { return isin; }
     public AssetType getAssetType() { return assetType; }
@@ -377,6 +386,7 @@ public class Security {
 
                 ticker = candidateTicker;
                 updateAssetTypeFromQuoteType(candidate.quoteType);
+                updateResolvedName(candidate);
                 latestPrice = candidate.regularMarketPrice > EPSILON
                         ? candidate.regularMarketPrice
                         : fetchLatestPrice(ticker);
@@ -411,7 +421,46 @@ public class Security {
             return baseCandidate;
         }
 
-        return new SearchCandidate(osloSymbol, "oslo", baseCandidate.quoteType, "NOK", osloPrice);
+        return new SearchCandidate(
+            osloSymbol,
+            "oslo",
+            baseCandidate.quoteType,
+            "NOK",
+            baseCandidate.shortName,
+            baseCandidate.longName,
+            osloPrice
+        );
+    }
+
+    private void updateResolvedName(SearchCandidate candidate) {
+        if (candidate == null) {
+            return;
+        }
+
+        String preferredName = candidate.longName;
+        if (preferredName == null || preferredName.isBlank()) {
+            preferredName = candidate.shortName;
+        }
+        if (preferredName == null || preferredName.isBlank()) {
+            return;
+        }
+
+        String normalized = preferredName.trim();
+        if (normalized.isBlank()) {
+            return;
+        }
+
+        if (candidate.symbol != null && normalized.equalsIgnoreCase(candidate.symbol)) {
+            return;
+        }
+        if (normalized.equalsIgnoreCase(name)) {
+            return;
+        }
+
+        // Favor exchange-derived names for stock-like instruments where CSV often has only symbol.
+        if (assetType == AssetType.STOCK || assetType == AssetType.UNKNOWN) {
+            resolvedSecurityName = normalized;
+        }
     }
 
     private SearchCandidate refineCandidateBySymbolListings(SearchCandidate baseCandidate) {
@@ -566,9 +615,11 @@ public class Security {
         String exchange = extractValue(quoteObject, "exchange");
         String quoteType = extractValue(quoteObject, "quoteType");
         String currency = extractValue(quoteObject, "currency");
+        String shortName = extractValue(quoteObject, "shortname");
+        String longName = extractValue(quoteObject, "longname");
         double regularMarketPrice = extractNumericValue(quoteObject, "regularMarketPrice");
 
-        return new SearchCandidate(symbol, exchange, quoteType, currency, regularMarketPrice);
+        return new SearchCandidate(symbol, exchange, quoteType, currency, shortName, longName, regularMarketPrice);
     }
 
     private SearchCandidate chooseBestCandidate(ArrayList<SearchCandidate> candidates) {
