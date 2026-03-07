@@ -930,13 +930,15 @@ public class PortfolioTracker {
         writer.write("    .overview-chart h3 { margin: 0 0 8px 0; font-size: 14px; font-weight: 600; }\n");
         writer.write("    .chart-svg { width: 100%; height: 350px; display: block; }\n");
         writer.write("    .overview-chart.total-return-chart .chart-svg { height: 430px; }\n");
-        writer.write("    .overview-chart.allocation-card { grid-column: 1 / -1; }\n");
+        writer.write("    .overview-chart.allocation-card { margin-top: 12px; }\n");
         writer.write("    .overview-chart.allocation-card .chart-svg { height: 230px; }\n");
-        writer.write("    .overview-chart.allocation-card .chart-svg.market-value-bar-chart { height: 300px; }\n");
-        writer.write("    .allocation-visuals { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }\n");
+        writer.write("    .overview-chart.allocation-card .chart-svg.market-value-bar-chart { height: 290px; }\n");
+        writer.write("    .allocation-visuals { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 10px; }\n");
         writer.write("    .allocation-panel { border: 1px solid #ececec; border-radius: 6px; padding: 6px; }\n");
         writer.write("    .allocation-panel-title { margin: 0 0 6px 0; font-size: 12px; color: #2b2b2b; font-weight: 600; }\n");
-        writer.write("    .allocation-panel.market-value-bar-panel { grid-column: 1 / -1; }\n");
+        writer.write("    .allocation-panel.asset-type-panel, .allocation-panel.sector-panel, .allocation-panel.region-panel { grid-column: span 2; }\n");
+        writer.write("    .allocation-panel.security-pie-panel { grid-column: span 2; }\n");
+        writer.write("    .allocation-panel.security-bar-panel { grid-column: span 4; }\n");
         writer.write("    .allocation-legend { margin: 8px 0 0 0; padding: 0; list-style: none; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 10px; row-gap: 4px; }\n");
         writer.write("    .allocation-legend li { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 12px; color: #333; }\n");
         writer.write("    .allocation-legend .name { display: inline-flex; align-items: center; gap: 6px; min-width: 0; }\n");
@@ -946,8 +948,8 @@ public class PortfolioTracker {
         writer.write("    @media (max-width: 980px) { .hero-grid { grid-template-columns: 1fr; } }\n");
         writer.write("    @media (max-width: 620px) { .hero-kpi-grid { grid-template-columns: 1fr; } }\n");
         writer.write("    @media (max-width: 700px) { .report-hero { padding: 14px; } .report-hero h1 { font-size: 22px; } }\n");
-        writer.write("    @media (max-width: 1200px) { .allocation-visuals { grid-template-columns: repeat(2, minmax(0, 1fr)); } }\n");
-        writer.write("    @media (max-width: 980px) { .allocation-visuals { grid-template-columns: 1fr; } }\n");
+        writer.write("    @media (max-width: 1200px) { .allocation-visuals { grid-template-columns: repeat(2, minmax(0, 1fr)); } .allocation-panel.asset-type-panel, .allocation-panel.sector-panel, .allocation-panel.region-panel, .allocation-panel.security-pie-panel, .allocation-panel.security-bar-panel { grid-column: span 1; } .allocation-panel.security-bar-panel { grid-column: span 2; } }\n");
+        writer.write("    @media (max-width: 980px) { .allocation-visuals { grid-template-columns: 1fr; } .allocation-panel.security-bar-panel { grid-column: span 1; } }\n");
         writer.write("    @media (max-width: 980px) { .overview-charts { grid-template-columns: 1fr; } }\n");
         writer.write("  </style>\n");
         writer.write("</head>\n");
@@ -1124,7 +1126,6 @@ public class PortfolioTracker {
         writer.write("<div class=\"overview-charts\">\n");
         writeOverviewChartCard(writer, "Total Return (NOK)", rows, false);
         writeOverviewChartCard(writer, "Total Return (%)", rows, true);
-        writeMarketValueAllocationCard(writer, rows);
         writer.write("</div>\n");
     }
 
@@ -1139,23 +1140,23 @@ public class PortfolioTracker {
         writer.write("<section class=\"overview-chart allocation-card\">\n");
         writer.write("<h3>Market Value Allocation</h3>\n");
         writer.write("<div class=\"allocation-visuals\">\n");
-        writer.write("<div class=\"allocation-panel\">\n");
-        writer.write("<h4 class=\"allocation-panel-title\">By Security</h4>\n");
-        writer.write(buildMarketValueAllocationSvg(rows));
-        writer.write("</div>\n");
-        writer.write("<div class=\"allocation-panel\">\n");
+        writer.write("<div class=\"allocation-panel asset-type-panel\">\n");
         writer.write("<h4 class=\"allocation-panel-title\">By Asset Type</h4>\n");
         writer.write(buildAssetTypeAllocationSvg(rows));
         writer.write("</div>\n");
-        writer.write("<div class=\"allocation-panel\">\n");
+        writer.write("<div class=\"allocation-panel sector-panel\">\n");
         writer.write("<h4 class=\"allocation-panel-title\">By Sector</h4>\n");
         writer.write(buildSectorAllocationSvg(rows));
         writer.write("</div>\n");
-        writer.write("<div class=\"allocation-panel\">\n");
+        writer.write("<div class=\"allocation-panel region-panel\">\n");
         writer.write("<h4 class=\"allocation-panel-title\">By Region</h4>\n");
         writer.write(buildRegionAllocationSvg(rows));
         writer.write("</div>\n");
-        writer.write("<div class=\"allocation-panel market-value-bar-panel\">\n");
+        writer.write("<div class=\"allocation-panel security-pie-panel\">\n");
+        writer.write("<h4 class=\"allocation-panel-title\">By Security (Pie)</h4>\n");
+        writer.write(buildMarketValueAllocationSvg(rows));
+        writer.write("</div>\n");
+        writer.write("<div class=\"allocation-panel security-bar-panel\">\n");
         writer.write("<h4 class=\"allocation-panel-title\">By Security (Bar)</h4>\n");
         writer.write(buildMarketValueBarChartSvg(rows));
         writer.write("</div>\n");
@@ -1311,7 +1312,6 @@ public class PortfolioTracker {
         final double centerX = width / 2.0;
         final double centerY = 142.0;
         final double radius = 112.0;
-        final double innerRadius = 72.0;
 
         ArrayList<OverviewRow> rowsWithValue = new ArrayList<>();
         double totalMarketValue = 0.0;
@@ -1363,11 +1363,10 @@ public class PortfolioTracker {
             currentAngle = endAngle;
         }
 
-        svg.append("<circle cx=\"").append(svgNumber(centerX)).append("\" cy=\"").append(svgNumber(centerY))
-            .append("\" r=\"").append(svgNumber(innerRadius)).append("\" fill=\"#fff\"/>\n");
-        svg.append("<text x=\"").append(svgNumber(centerX)).append("\" y=\"").append(svgNumber(centerY - 4.0))
-            .append("\" text-anchor=\"middle\" font-size=\"11\" fill=\"#666\">Market Value</text>\n");
-        svg.append("<text x=\"").append(svgNumber(centerX)).append("\" y=\"").append(svgNumber(centerY + 14.0))
+        double summaryY = centerY + radius + 18.0;
+        svg.append("<text x=\"").append(svgNumber(centerX)).append("\" y=\"").append(svgNumber(summaryY))
+            .append("\" text-anchor=\"middle\" font-size=\"11\" fill=\"#666\">Market Value Total</text>\n");
+        svg.append("<text x=\"").append(svgNumber(centerX)).append("\" y=\"").append(svgNumber(summaryY + 16.0))
             .append("\" text-anchor=\"middle\" font-size=\"12\" fill=\"#222\" font-weight=\"600\">")
             .append(escapeHtml(formatNumber(totalMarketValue, 0) + " kr"))
             .append("</text>\n");
@@ -1480,7 +1479,6 @@ public class PortfolioTracker {
         final double centerX = width / 2.0;
         final double centerY = 142.0;
         final double radius = 112.0;
-        final double innerRadius = 72.0;
 
         double stockValue = 0.0;
         double fundValue = 0.0;
@@ -1582,26 +1580,24 @@ public class PortfolioTracker {
             }
         }
 
-        svg.append("<circle cx=\"").append(svgNumber(centerX)).append("\" cy=\"").append(svgNumber(centerY))
-            .append("\" r=\"").append(svgNumber(innerRadius)).append("\" fill=\"#fff\"/>\n");
-
         double stockPct = totalValue > 0.0 ? (stockValue / totalValue) * 100.0 : 0.0;
         double fundPct = totalValue > 0.0 ? (fundValue / totalValue) * 100.0 : 0.0;
         double otherPct = totalValue > 0.0 ? (otherValue / totalValue) * 100.0 : 0.0;
 
-        svg.append("<text x=\"").append(svgNumber(centerX)).append("\" y=\"").append(svgNumber(centerY - 14.0))
+        double summaryY = centerY + radius + 14.0;
+        svg.append("<text x=\"").append(svgNumber(centerX)).append("\" y=\"").append(svgNumber(summaryY))
             .append("\" text-anchor=\"middle\" font-size=\"10\" fill=\"#666\">Asset Mix</text>\n");
-        svg.append("<text x=\"").append(svgNumber(centerX)).append("\" y=\"").append(svgNumber(centerY))
+        svg.append("<text x=\"").append(svgNumber(centerX)).append("\" y=\"").append(svgNumber(summaryY + 14.0))
             .append("\" text-anchor=\"middle\" font-size=\"11\" fill=\"#222\" font-weight=\"600\">")
             .append(escapeHtml("Stocks: " + stockCount + " (" + formatNumber(stockPct, 1) + "%)"))
             .append("</text>\n");
-        svg.append("<text x=\"").append(svgNumber(centerX)).append("\" y=\"").append(svgNumber(centerY + 14.0))
+        svg.append("<text x=\"").append(svgNumber(centerX)).append("\" y=\"").append(svgNumber(summaryY + 28.0))
             .append("\" text-anchor=\"middle\" font-size=\"11\" fill=\"#222\" font-weight=\"600\">")
             .append(escapeHtml("Funds: " + fundCount + " (" + formatNumber(fundPct, 1) + "%)"))
             .append("</text>\n");
 
         if (otherCount > 0) {
-            svg.append("<text x=\"").append(svgNumber(centerX)).append("\" y=\"").append(svgNumber(centerY + 28.0))
+            svg.append("<text x=\"").append(svgNumber(centerX)).append("\" y=\"").append(svgNumber(summaryY + 42.0))
                 .append("\" text-anchor=\"middle\" font-size=\"9\" fill=\"#555\">")
                 .append(escapeHtml("Other: " + otherCount + " (" + formatNumber(otherPct, 1) + "%)"))
                 .append("</text>\n");
@@ -1626,7 +1622,6 @@ public class PortfolioTracker {
         final double centerX = width / 2.0;
         final double centerY = 126.0;
         final double radius = 98.0;
-        final double innerRadius = 62.0;
 
         LinkedHashMap<String, Double> valueByCategory = new LinkedHashMap<>();
         double totalMarketValue = 0.0;
@@ -1685,21 +1680,19 @@ public class PortfolioTracker {
             currentAngle = endAngle;
         }
 
-        svg.append("<circle cx=\"").append(svgNumber(centerX)).append("\" cy=\"").append(svgNumber(centerY))
-            .append("\" r=\"").append(svgNumber(innerRadius)).append("\" fill=\"#fff\"/>\n");
-
         AllocationBucket topBucket = buckets.get(0);
         double topPct = (topBucket.value / totalMarketValue) * 100.0;
-        svg.append("<text x=\"").append(svgNumber(centerX)).append("\" y=\"").append(svgNumber(centerY - 8.0))
+        double summaryY = centerY + radius + 12.0;
+        svg.append("<text x=\"").append(svgNumber(centerX)).append("\" y=\"").append(svgNumber(summaryY))
             .append("\" text-anchor=\"middle\" font-size=\"10\" fill=\"#666\">")
             .append(escapeHtml(centerTitle))
             .append("</text>\n");
-        svg.append("<text x=\"").append(svgNumber(centerX)).append("\" y=\"").append(svgNumber(centerY + 8.0))
+        svg.append("<text x=\"").append(svgNumber(centerX)).append("\" y=\"").append(svgNumber(summaryY + 14.0))
             .append("\" text-anchor=\"middle\" font-size=\"11\" fill=\"#222\" font-weight=\"600\">")
             .append(escapeHtml(topBucket.label + " " + formatNumber(topPct, 1) + "%"))
             .append("</text>\n");
 
-        double legendYStart = 238.0;
+        double legendYStart = 256.0;
         for (int i = 0; i < buckets.size(); i++) {
             AllocationBucket bucket = buckets.get(i);
             double pct = (bucket.value / totalMarketValue) * 100.0;
@@ -1963,6 +1956,8 @@ public class PortfolioTracker {
         );
 
         writer.write("</table>\n\n");
+
+        writeMarketValueAllocationCard(writer, overviewRows);
     }
 
     private static void writeRealizedSummaryTableHtml(FileWriter writer) throws IOException {
