@@ -557,6 +557,7 @@ public class PortfolioTracker {
         writer.write("    .overview-chart { border: 1px solid #d0d0d0; border-radius: 6px; background: #fff; padding: 10px; }\n");
         writer.write("    .overview-chart h3 { margin: 0 0 8px 0; font-size: 14px; font-weight: 600; }\n");
         writer.write("    .chart-svg { width: 100%; height: 350px; display: block; }\n");
+        writer.write("    .overview-chart.total-return-chart .chart-svg { height: 430px; }\n");
         writer.write("    .overview-chart.allocation-card { grid-column: 1 / -1; }\n");
         writer.write("    .overview-chart.allocation-card .chart-svg { height: 240px; }\n");
         writer.write("    .overview-chart.allocation-card .chart-svg.market-value-bar-chart { height: 350px; }\n");
@@ -692,7 +693,7 @@ public class PortfolioTracker {
     }
 
     private static void writeOverviewChartCard(FileWriter writer, String title, ArrayList<OverviewRow> rows, boolean percentChart) throws IOException {
-        writer.write("<section class=\"overview-chart\">\n");
+        writer.write("<section class=\"overview-chart total-return-chart\">\n");
         writer.write("<h3>" + escapeHtml(title) + "</h3>\n");
         writer.write(buildOverviewBarChartSvg(rows, percentChart));
         writer.write("</section>\n");
@@ -747,7 +748,7 @@ public class PortfolioTracker {
 
     private static String buildOverviewBarChartSvg(ArrayList<OverviewRow> rows, boolean percentChart) {
         final double width = 1100.0;
-        final double height = 360.0;
+        final double height = 430.0;
         final double left = 68.0;
         final double right = 22.0;
         final double top = 26.0;
@@ -779,7 +780,7 @@ public class PortfolioTracker {
                 .append(svgNumber(height))
                 .append("\" xmlns=\"http://www.w3.org/2000/svg\" role=\"img\">\n");
 
-        int tickCount = 5;
+        int tickCount = percentChart ? 7 : 5;
         for (int i = 0; i <= tickCount; i++) {
             double tickValue = maxValue - ((valueRange / tickCount) * i);
             double y = mapValueToY(tickValue, minValue, maxValue, top, plotHeight);
@@ -795,7 +796,7 @@ public class PortfolioTracker {
         }
 
         double slotWidth = rows.isEmpty() ? plotWidth : plotWidth / rows.size();
-        double barWidth = Math.max(6.0, slotWidth * 0.62);
+        double barWidth = Math.max(6.0, slotWidth * 0.48);
 
         for (int i = 0; i < rows.size(); i++) {
             OverviewRow row = rows.get(i);
@@ -843,8 +844,8 @@ public class PortfolioTracker {
         final double height = 330.0;
         final double centerX = width / 2.0;
         final double centerY = 142.0;
-        final double radius = 110.0;
-        final double innerRadius = 60.0;
+        final double radius = 112.0;
+        final double innerRadius = 72.0;
 
         ArrayList<OverviewRow> rowsWithValue = new ArrayList<>();
         double totalMarketValue = 0.0;
@@ -1007,12 +1008,12 @@ public class PortfolioTracker {
         }
 
         private static String buildAssetTypeAllocationSvg(ArrayList<OverviewRow> rows) {
-        final double width = 360.0;
+        final double width = 440.0;
         final double height = 330.0;
         final double centerX = width / 2.0;
         final double centerY = 142.0;
-        final double radius = 102.0;
-        final double innerRadius = 52.0;
+        final double radius = 112.0;
+        final double innerRadius = 72.0;
 
         double stockValue = 0.0;
         double fundValue = 0.0;
@@ -1124,11 +1125,11 @@ public class PortfolioTracker {
         svg.append("<text x=\"").append(svgNumber(centerX)).append("\" y=\"").append(svgNumber(centerY - 14.0))
             .append("\" text-anchor=\"middle\" font-size=\"10\" fill=\"#666\">Asset Mix</text>\n");
         svg.append("<text x=\"").append(svgNumber(centerX)).append("\" y=\"").append(svgNumber(centerY))
-            .append("\" text-anchor=\"middle\" font-size=\"9\" fill=\"#222\" font-weight=\"600\">")
+            .append("\" text-anchor=\"middle\" font-size=\"11\" fill=\"#222\" font-weight=\"600\">")
             .append(escapeHtml("Stocks: " + stockCount + " (" + formatNumber(stockPct, 1) + "%)"))
             .append("</text>\n");
         svg.append("<text x=\"").append(svgNumber(centerX)).append("\" y=\"").append(svgNumber(centerY + 14.0))
-            .append("\" text-anchor=\"middle\" font-size=\"9\" fill=\"#222\" font-weight=\"600\">")
+            .append("\" text-anchor=\"middle\" font-size=\"11\" fill=\"#222\" font-weight=\"600\">")
             .append(escapeHtml("Funds: " + fundCount + " (" + formatNumber(fundPct, 1) + "%)"))
             .append("</text>\n");
 
