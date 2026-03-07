@@ -352,6 +352,27 @@ public class PortfolioTracker {
         }
     }
 
+    private static final class PieSliceLabel {
+        private final boolean rightSide;
+        private final String color;
+        private final String text;
+        private final double anchorX;
+        private final double anchorY;
+        private final double bendX;
+        private double labelY;
+
+        private PieSliceLabel(boolean rightSide, String color, String text,
+                              double anchorX, double anchorY, double bendX, double labelY) {
+            this.rightSide = rightSide;
+            this.color = color;
+            this.text = text;
+            this.anchorX = anchorX;
+            this.anchorY = anchorY;
+            this.bendX = bendX;
+            this.labelY = labelY;
+        }
+    }
+
     private static final class HeaderSummary {
         private final String generatedDate;
         private final int fileCount;
@@ -1234,7 +1255,7 @@ public class PortfolioTracker {
         writer.write("    .muted { color: #666; font-size: 12px; margin-top: -8px; }\n");
         writer.write("    .overview-charts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; margin: 8px 0 14px 0; align-items: stretch; }\n");
         writer.write("    .overview-chart { border: 1px solid #d0d0d0; border-radius: 6px; background: #fff; padding: 10px; }\n");
-        writer.write("    .overview-chart h3 { margin: 0 0 8px 0; font-size: 14px; font-weight: 600; }\n");
+        writer.write("    .overview-chart h3 { margin: 0 0 8px 0; font-size: 15px; font-weight: 600; }\n");
         writer.write("    .chart-svg { width: 100%; height: 350px; display: block; }\n");
         writer.write("    .overview-chart.total-return-chart .chart-svg { height: 430px; }\n");
         writer.write("    .overview-chart.allocation-card { margin-top: 12px; }\n");
@@ -1246,12 +1267,6 @@ public class PortfolioTracker {
         writer.write("    .allocation-panel.asset-type-panel, .allocation-panel.sector-panel, .allocation-panel.region-panel { grid-column: span 2; }\n");
         writer.write("    .allocation-panel.security-pie-panel { grid-column: span 2; }\n");
         writer.write("    .allocation-panel.security-bar-panel { grid-column: span 4; }\n");
-        writer.write("    .allocation-legend { margin: 8px 0 0 0; padding: 0; list-style: none; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 10px; row-gap: 4px; }\n");
-        writer.write("    .allocation-legend li { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 12px; color: #333; }\n");
-        writer.write("    .allocation-legend .name { display: inline-flex; align-items: center; gap: 6px; min-width: 0; }\n");
-        writer.write("    .allocation-legend .name-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 150px; }\n");
-        writer.write("    .allocation-legend .dot { width: 9px; height: 9px; border-radius: 50%; flex: 0 0 auto; }\n");
-        writer.write("    .allocation-legend .value { font-variant-numeric: tabular-nums; color: #555; }\n");
         writer.write("    @media (max-width: 980px) { .hero-grid { grid-template-columns: 1fr; } }\n");
         writer.write("    @media (max-width: 620px) { .hero-kpi-grid { grid-template-columns: 1fr; } }\n");
         writer.write("    @media (max-width: 700px) { .report-hero { padding: 14px; } .report-hero h1 { font-size: 22px; } }\n");
@@ -1468,32 +1483,6 @@ public class PortfolioTracker {
         writer.write(buildMarketValueBarChartSvg(rows));
         writer.write("</div>\n");
         writer.write("</div>\n");
-
-        ArrayList<OverviewRow> rowsWithValue = new ArrayList<>();
-        double totalMarketValue = 0.0;
-        for (OverviewRow row : rows) {
-            if (row.marketValue > 0.0) {
-                rowsWithValue.add(row);
-                totalMarketValue += row.marketValue;
-            }
-        }
-
-        if (!rowsWithValue.isEmpty() && totalMarketValue > 0.0) {
-            writer.write("<ul class=\"allocation-legend\">\n");
-            for (int i = 0; i < rowsWithValue.size(); i++) {
-                OverviewRow row = rowsWithValue.get(i);
-                String label = (row.securityDisplayName == null || row.securityDisplayName.isBlank()) ? row.tickerText : row.securityDisplayName;
-                double pct = (row.marketValue / totalMarketValue) * 100.0;
-                String color = getAllocationColor(i);
-                writer.write("<li><span class=\"name\"><span class=\"dot\" style=\"background:" + color + "\"></span><span class=\"name-text\">"
-                        + escapeHtml(label)
-                        + "</span></span><span class=\"value\">"
-                        + escapeHtml(formatNumber(pct, 1))
-                        + "%</span></li>\n");
-            }
-            writer.write("</ul>\n");
-        }
-
         writer.write("</section>\n");
     }
 
@@ -1562,8 +1551,8 @@ public class PortfolioTracker {
                     .append("\" x2=\"").append(svgNumber(left + plotWidth)).append("\" y2=\"").append(svgNumber(y))
                     .append("\" stroke=\"#ececec\" stroke-width=\"1\"/>\n");
 
-            svg.append("<text x=\"").append(svgNumber(left - 8.0)).append("\" y=\"").append(svgNumber(y + 4.0))
-                    .append("\" text-anchor=\"end\" font-size=\"10\" fill=\"#666\">")
+                svg.append("<text x=\"").append(svgNumber(left - 8.0)).append("\" y=\"").append(svgNumber(y + 4.0))
+                    .append("\" text-anchor=\"end\" font-size=\"11\" fill=\"#666\">")
                     .append(escapeHtml(formatChartValue(tickValue, percentChart, true)))
                     .append("</text>\n");
         }
@@ -1597,7 +1586,7 @@ public class PortfolioTracker {
             double labelAnchorY = height - bottom + 16.0;
             svg.append("<text x=\"").append(svgNumber(labelAnchorX)).append("\" y=\"").append(svgNumber(labelAnchorY))
                     .append("\" transform=\"rotate(-38 ").append(svgNumber(labelAnchorX)).append(" ").append(svgNumber(labelAnchorY))
-                    .append(")\" text-anchor=\"end\" font-size=\"10\" font-weight=\"600\" fill=\"#1f2933\" paint-order=\"stroke\" stroke=\"#ffffff\" stroke-width=\"2\" stroke-linejoin=\"round\">")
+                    .append(")\" text-anchor=\"end\" font-size=\"11\" font-weight=\"600\" fill=\"#1f2933\" paint-order=\"stroke\" stroke=\"#ffffff\" stroke-width=\"2\" stroke-linejoin=\"round\">")
                     .append(escapeHtml(compactLabel))
                     .append("</text>\n");
         }
@@ -1618,7 +1607,7 @@ public class PortfolioTracker {
         final double height = 330.0;
         final double centerX = width / 2.0;
         final double centerY = 142.0;
-        final double radius = 112.0;
+        final double radius = 92.0;
 
         ArrayList<OverviewRow> rowsWithValue = new ArrayList<>();
         double totalMarketValue = 0.0;
@@ -1644,6 +1633,7 @@ public class PortfolioTracker {
         }
 
         double currentAngle = -Math.PI / 2.0;
+        ArrayList<PieSliceLabel> pieLabels = new ArrayList<>();
         for (int i = 0; i < rowsWithValue.size(); i++) {
             OverviewRow row = rowsWithValue.get(i);
             double fraction = row.marketValue / totalMarketValue;
@@ -1667,20 +1657,100 @@ public class PortfolioTracker {
                     + ": " + formatNumber(row.marketValue, 2) + " kr (" + formatNumber(fraction * 100.0, 2) + "%)"))
                 .append("</title></path>\n");
 
+            double midAngle = currentAngle + (sliceAngle / 2.0);
+            double anchorX = centerX + radius * Math.cos(midAngle);
+            double anchorY = centerY + radius * Math.sin(midAngle);
+            double bendX = centerX + (radius + 16.0) * Math.cos(midAngle);
+            double bendY = centerY + (radius + 10.0) * Math.sin(midAngle);
+            boolean rightSide = Math.cos(midAngle) >= 0.0;
+
+            String labelText = getCompactPieLabel(row)
+                    + " "
+                    + formatNumber(fraction * 100.0, 1)
+                    + "%";
+            pieLabels.add(new PieSliceLabel(rightSide, color, labelText, anchorX, anchorY, bendX, bendY));
+
             currentAngle = endAngle;
+        }
+
+        adjustPieLabelPositions(pieLabels, false, 18.0, 250.0, 18.0);
+        adjustPieLabelPositions(pieLabels, true, 18.0, 250.0, 18.0);
+
+        for (PieSliceLabel label : pieLabels) {
+            double textX = label.rightSide ? (336.0) : (104.0);
+            double lineEndX = label.rightSide ? (330.0) : (110.0);
+            String textAnchor = label.rightSide ? "start" : "end";
+
+            svg.append("<polyline points=\"")
+                .append(svgNumber(label.anchorX)).append(",").append(svgNumber(label.anchorY)).append(" ")
+                .append(svgNumber(label.bendX)).append(",").append(svgNumber(label.labelY)).append(" ")
+                .append(svgNumber(lineEndX)).append(",").append(svgNumber(label.labelY)).append("\"")
+                .append(" fill=\"none\" stroke=\"").append(label.color)
+                .append("\" stroke-width=\"0.9\" opacity=\"0.85\"/>\n");
+
+            svg.append("<text x=\"").append(svgNumber(textX)).append("\" y=\"").append(svgNumber(label.labelY))
+                .append("\" text-anchor=\"").append(textAnchor)
+                .append("\" dominant-baseline=\"middle\" font-size=\"12\" fill=\"#2f2f2f\" paint-order=\"stroke\" stroke=\"#ffffff\" stroke-width=\"2\" stroke-linejoin=\"round\">")
+                .append(escapeHtml(label.text))
+                .append("</text>\n");
         }
 
         double summaryY = centerY + radius + 18.0;
         svg.append("<text x=\"").append(svgNumber(centerX)).append("\" y=\"").append(svgNumber(summaryY))
-            .append("\" text-anchor=\"middle\" font-size=\"11\" fill=\"#666\">Market Value Total</text>\n");
+            .append("\" text-anchor=\"middle\" font-size=\"12\" fill=\"#666\">Market Value Total</text>\n");
         svg.append("<text x=\"").append(svgNumber(centerX)).append("\" y=\"").append(svgNumber(summaryY + 16.0))
-            .append("\" text-anchor=\"middle\" font-size=\"12\" fill=\"#222\" font-weight=\"600\">")
+            .append("\" text-anchor=\"middle\" font-size=\"14\" fill=\"#222\" font-weight=\"600\">")
             .append(escapeHtml(formatNumber(totalMarketValue, 0) + " kr"))
             .append("</text>\n");
 
         svg.append("</svg>\n");
         return svg.toString();
         }
+
+    private static String getCompactPieLabel(OverviewRow row) {
+        String label = getOverviewRowLabel(row);
+        if (label == null || label.isBlank()) {
+            return "-";
+        }
+
+        return label;
+    }
+
+    private static void adjustPieLabelPositions(ArrayList<PieSliceLabel> labels, boolean rightSide,
+                                                double minY, double maxY, double minGap) {
+        ArrayList<PieSliceLabel> sideLabels = new ArrayList<>();
+        for (PieSliceLabel label : labels) {
+            if (label.rightSide == rightSide) {
+                sideLabels.add(label);
+            }
+        }
+
+        sideLabels.sort(Comparator.comparingDouble(label -> label.labelY));
+        if (sideLabels.isEmpty()) {
+            return;
+        }
+
+        sideLabels.get(0).labelY = Math.max(minY, sideLabels.get(0).labelY);
+        for (int i = 1; i < sideLabels.size(); i++) {
+            PieSliceLabel current = sideLabels.get(i);
+            PieSliceLabel previous = sideLabels.get(i - 1);
+            current.labelY = Math.max(current.labelY, previous.labelY + minGap);
+        }
+
+        double overflow = sideLabels.get(sideLabels.size() - 1).labelY - maxY;
+        if (overflow > 0.0) {
+            for (PieSliceLabel label : sideLabels) {
+                label.labelY -= overflow;
+            }
+        }
+
+        double underflow = minY - sideLabels.get(0).labelY;
+        if (underflow > 0.0) {
+            for (PieSliceLabel label : sideLabels) {
+                label.labelY += underflow;
+            }
+        }
+    }
 
         private static String buildMarketValueBarChartSvg(ArrayList<OverviewRow> rows) {
         final double width = 860.0;
