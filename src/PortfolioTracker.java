@@ -29,10 +29,15 @@ public class PortfolioTracker {
     private static final ArrayList<Security> securities = new ArrayList<>();
     private static final Map<String, Security> securitiesByKey = new LinkedHashMap<>();
     private static final Map<String, String> canonicalSecurityNameByIsin = new LinkedHashMap<>();
+    private static int loadedCsvFileCount = 0;
+    private static int loadedTransactionRowCount = 0;
 
     public static void main(String[] args) throws IOException {
         ensureInputDirectoryExists();
+        loadedCsvFileCount = 0;
+        loadedTransactionRowCount = 0;
         int filesProcessed = readAllTransactionFiles();
+        loadedCsvFileCount = filesProcessed;
 
         if (filesProcessed == 0) {
             System.out.println("No CSV files found in '" + INPUT_DIRECTORY + "'.");
@@ -293,6 +298,57 @@ public class PortfolioTracker {
             this.totalReturn = totalReturn;
             this.totalReturnPct = totalReturnPct;
             this.hasPrice = hasPrice;
+        }
+    }
+
+    private static final class HeaderSummary {
+        private final String generatedDate;
+        private final int fileCount;
+        private final int transactionCount;
+        private final int holdingsCount;
+        private final String totalCurrencyCode;
+        private final double totalMarketValue;
+        private final double totalReturn;
+        private final double totalReturnPct;
+        private final String bestLabel;
+        private final double bestReturn;
+        private final double bestReturnPct;
+        private final String worstLabel;
+        private final double worstReturn;
+        private final double worstReturnPct;
+        private final String sparklineSvg;
+
+        private HeaderSummary(
+                String generatedDate,
+                int fileCount,
+                int transactionCount,
+                int holdingsCount,
+                String totalCurrencyCode,
+                double totalMarketValue,
+                double totalReturn,
+                double totalReturnPct,
+                String bestLabel,
+                double bestReturn,
+                double bestReturnPct,
+                String worstLabel,
+                double worstReturn,
+                double worstReturnPct,
+                String sparklineSvg) {
+            this.generatedDate = generatedDate;
+            this.fileCount = fileCount;
+            this.transactionCount = transactionCount;
+            this.holdingsCount = holdingsCount;
+            this.totalCurrencyCode = totalCurrencyCode;
+            this.totalMarketValue = totalMarketValue;
+            this.totalReturn = totalReturn;
+            this.totalReturnPct = totalReturnPct;
+            this.bestLabel = bestLabel;
+            this.bestReturn = bestReturn;
+            this.bestReturnPct = bestReturnPct;
+            this.worstLabel = worstLabel;
+            this.worstReturn = worstReturn;
+            this.worstReturnPct = worstReturnPct;
+            this.sparklineSvg = sparklineSvg;
         }
     }
 
@@ -570,6 +626,7 @@ public class PortfolioTracker {
                     continue;
                 }
                 rows.add(parseDelimitedLine(line.replace("−", "-"), delimiter));
+                loadedTransactionRowCount++;
             }
 
             if (indexes.tradeDate >= 0) {
@@ -628,8 +685,11 @@ public class PortfolioTracker {
     private static void writeHtmlReport() {
         File file = new File(OUTPUT_FILE);
         try (FileWriter writer = new FileWriter(file)) {
-            writeHtmlHeader(writer);
-            writeOverviewTableHtml(writer);
+            ArrayList<OverviewRow> overviewRows = buildOverviewRows();
+            HeaderSummary headerSummary = buildHeaderSummary(overviewRows);
+
+            writeHtmlHeader(writer, headerSummary);
+            writeOverviewTableHtml(writer, overviewRows);
             writeRealizedSummaryTableHtml(writer);
             writeSaleTradesTablesHtml(writer);
             writeHtmlFooter(writer);
@@ -639,8 +699,188 @@ public class PortfolioTracker {
         }
     }
 
-    private static void writeHtmlHeader(FileWriter writer) throws IOException {
+    private static ArrayList<OverviewRow> buildOverviewRows() {
+        ArrayList<OverviewRow> overviewRows = new ArrayList<>();
+        for (Security security : getSortedSecuritiesForOverview()) {
+            overviewRows.add(buildOverviewRow(security));
+        }
+        return overviewRows;
+    }
+
+    private static HeaderSummary buildHeaderSummary(ArrayList<OverviewRow> overviewRows) {
         String generatedDate = LocalDate.now().format(DateTimeFormatter.ofPattern("dd.MM.yyyy"));
+        int holdingsCount = overviewRows == null ? 0 : overviewRows.size();
+
+        double totalMarketValue = 0.0;
+        double totalReturn = 0.0;
+        double totalHistoricalCostBasis = 0.0;
+        String totalCurrencyCode = null;
+
+        OverviewRow best = null;
+        OverviewRow worst = null;
+
+        if (overviewRows != null) {
+            for (OverviewRow row : overviewRows) {
+                totalMarketValue += row.marketValue;
+                totalReturn += row.totalReturn;
+                totalHistoricalCostBasis += row.historicalCostBasis;
+                totalCurrencyCode = mergeCurrencyCodes(totalCurrencyCode, row.currencyCode);
+
+                if (best == null || row.totalReturn > best.totalReturn) {
+                    best = row;
+                }
+                if (worst == null || row.totalReturn < worst.totalReturn) {
+                    worst = row;
+                }
+            }
+        }
+
+        double totalReturnPct = totalHistoricalCostBasis > 0.0
+                ? (totalReturn / totalHistoricalCostBasis) * 100.0
+                : 0.0;
+
+        String bestLabel = best == null ? "-" : getOverviewRowLabel(best);
+        String worstLabel = worst == null ? "-" : getOverviewRowLabel(worst);
+        double bestReturn = best == null ? 0.0 : best.totalReturn;
+        double worstReturn = worst == null ? 0.0 : worst.totalReturn;
+        double bestReturnPct = best == null ? 0.0 : best.totalReturnPct;
+        double worstReturnPct = worst == null ? 0.0 : worst.totalReturnPct;
+
+        String sparklineSvg = buildHeaderSparklineSvg(overviewRows);
+
+        return new HeaderSummary(
+                generatedDate,
+                loadedCsvFileCount,
+                loadedTransactionRowCount,
+                holdingsCount,
+                totalCurrencyCode,
+                totalMarketValue,
+                totalReturn,
+                totalReturnPct,
+                bestLabel,
+                bestReturn,
+                bestReturnPct,
+                worstLabel,
+                worstReturn,
+                worstReturnPct,
+                sparklineSvg
+        );
+    }
+
+    private static String buildHeaderSparklineSvg(ArrayList<OverviewRow> overviewRows) {
+        final double width = 320.0;
+        final double height = 58.0;
+        final double left = 14.0;
+        final double right = 4.0;
+        final double top = 9.0;
+        final double bottom = 6.0;
+        final double plotWidth = width - left - right;
+        final double plotHeight = height - top - bottom;
+
+        StringBuilder svg = new StringBuilder();
+        svg.append("<svg class=\"hero-sparkline\" viewBox=\"0 0 ")
+                .append(svgNumber(width)).append(" ").append(svgNumber(height))
+            .append("\" preserveAspectRatio=\"xMinYMid meet\" xmlns=\"http://www.w3.org/2000/svg\" role=\"img\">\n");
+
+        if (overviewRows == null || overviewRows.isEmpty()) {
+            svg.append("<text x=\"").append(svgNumber(width / 2.0)).append("\" y=\"").append(svgNumber(height / 2.0 + 3.0))
+                .append("\" text-anchor=\"middle\" font-size=\"10\" fill=\"#5f6b7a\">No holdings yet</text>\n");
+            svg.append("</svg>\n");
+            return svg.toString();
+        }
+
+        double minValue = Double.POSITIVE_INFINITY;
+        double maxValue = Double.NEGATIVE_INFINITY;
+        for (OverviewRow row : overviewRows) {
+            minValue = Math.min(minValue, row.totalReturnPct);
+            maxValue = Math.max(maxValue, row.totalReturnPct);
+        }
+        if (!Double.isFinite(minValue) || !Double.isFinite(maxValue)) {
+            minValue = -1.0;
+            maxValue = 1.0;
+        }
+        if (Math.abs(maxValue - minValue) < 1e-9) {
+            maxValue += 1.0;
+            minValue -= 1.0;
+        }
+
+        double zeroY = mapValueToY(0.0, minValue, maxValue, top, plotHeight);
+        double chartZeroY = Math.max(top, Math.min(top + plotHeight, zeroY));
+
+        svg.append("<line x1=\"").append(svgNumber(left)).append("\" y1=\"").append(svgNumber(top))
+            .append("\" x2=\"").append(svgNumber(left)).append("\" y2=\"").append(svgNumber(top + plotHeight))
+            .append("\" stroke=\"#c7d2df\" stroke-width=\"1\"/>\n");
+        svg.append("<line x1=\"").append(svgNumber(left)).append("\" y1=\"").append(svgNumber(chartZeroY))
+                .append("\" x2=\"").append(svgNumber(left + plotWidth)).append("\" y2=\"").append(svgNumber(chartZeroY))
+            .append("\" stroke=\"#aab8ca\" stroke-width=\"1.2\" stroke-dasharray=\"3 3\"/>\n");
+        svg.append("<text x=\"").append(svgNumber(left - 3.0)).append("\" y=\"").append(svgNumber(chartZeroY))
+            .append("\" text-anchor=\"end\" dominant-baseline=\"middle\" font-size=\"3\" fill=\"#c7d2df\">0%</text>\n");
+
+        int count = overviewRows.size();
+        double[] xValues = new double[count];
+        double[] yValues = new double[count];
+        double[] pctValues = new double[count];
+        for (int i = 0; i < count; i++) {
+            OverviewRow row = overviewRows.get(i);
+            double x = count == 1
+                    ? left + (plotWidth / 2.0)
+                    : left + ((plotWidth / (count - 1.0)) * i);
+            double y = mapValueToY(row.totalReturnPct, minValue, maxValue, top, plotHeight);
+            xValues[i] = x;
+            yValues[i] = y;
+            pctValues[i] = row.totalReturnPct;
+        }
+
+        for (int i = 1; i < count; i++) {
+            double x1 = xValues[i - 1];
+            double y1 = yValues[i - 1];
+            double v1 = pctValues[i - 1];
+            double x2 = xValues[i];
+            double y2 = yValues[i];
+            double v2 = pctValues[i];
+
+            boolean above1 = v1 >= 0.0;
+            boolean above2 = v2 >= 0.0;
+
+            if (above1 == above2 || Math.abs(v2 - v1) < 1e-12) {
+            svg.append("<line x1=\"").append(svgNumber(x1)).append("\" y1=\"").append(svgNumber(y1))
+                .append("\" x2=\"").append(svgNumber(x2)).append("\" y2=\"").append(svgNumber(y2))
+                .append("\" stroke=\"").append(above1 ? "#2f9e44" : "#d94841")
+                .append("\" stroke-width=\"2.2\" stroke-linecap=\"round\"/>\n");
+            continue;
+            }
+
+            double t = (0.0 - v1) / (v2 - v1);
+            double crossX = x1 + ((x2 - x1) * t);
+            double crossY = chartZeroY;
+
+            svg.append("<line x1=\"").append(svgNumber(x1)).append("\" y1=\"").append(svgNumber(y1))
+                .append("\" x2=\"").append(svgNumber(crossX)).append("\" y2=\"").append(svgNumber(crossY))
+                .append("\" stroke=\"").append(above1 ? "#2f9e44" : "#d94841")
+                .append("\" stroke-width=\"2.2\" stroke-linecap=\"round\"/>\n");
+            svg.append("<line x1=\"").append(svgNumber(crossX)).append("\" y1=\"").append(svgNumber(crossY))
+                .append("\" x2=\"").append(svgNumber(x2)).append("\" y2=\"").append(svgNumber(y2))
+                .append("\" stroke=\"").append(above2 ? "#2f9e44" : "#d94841")
+                .append("\" stroke-width=\"2.2\" stroke-linecap=\"round\"/>\n");
+        }
+
+        for (int i = 0; i < count; i++) {
+            String dotColor = pctValues[i] >= 0.0 ? "#2f9e44" : "#d94841";
+            svg.append("<circle cx=\"").append(svgNumber(xValues[i])).append("\" cy=\"").append(svgNumber(yValues[i]))
+                .append("\" r=\"2.4\" fill=\"").append(dotColor).append("\"/>\n");
+        }
+
+        svg.append("</svg>\n");
+        return svg.toString();
+    }
+
+    private static void writeHtmlHeader(FileWriter writer, HeaderSummary summary) throws IOException {
+        String generatedDate = summary.generatedDate;
+        String totalMarketValueText = formatTotalMoney(summary.totalMarketValue, summary.totalCurrencyCode, 0);
+        String totalReturnText = formatTotalMoney(summary.totalReturn, summary.totalCurrencyCode, 0);
+        String totalReturnPctText = formatPercent(summary.totalReturnPct, 2);
+        String bestReturnText = formatTotalMoney(summary.bestReturn, summary.totalCurrencyCode, 0) + " (" + formatPercent(summary.bestReturnPct, 2) + ")";
+        String worstReturnText = formatTotalMoney(summary.worstReturn, summary.totalCurrencyCode, 0) + " (" + formatPercent(summary.worstReturnPct, 2) + ")";
 
         writer.write("<!DOCTYPE html>\n");
         writer.write("<html lang=\"en\">\n");
@@ -656,6 +896,15 @@ public class PortfolioTracker {
         writer.write("    .report-hero h1 { margin: 0; font-size: 26px; letter-spacing: 0.2px; }\n");
         writer.write("    .report-hero .meta { margin-top: 8px; display: flex; flex-wrap: wrap; gap: 10px 16px; font-size: 12px; opacity: 0.95; }\n");
         writer.write("    .report-hero .meta span { background: rgba(255, 255, 255, 0.14); border: 1px solid rgba(255, 255, 255, 0.22); border-radius: 999px; padding: 3px 10px; }\n");
+        writer.write("    .hero-grid { margin-top: 12px; display: grid; grid-template-columns: minmax(300px, 1fr) 2fr; gap: 12px; align-items: stretch; }\n");
+        writer.write("    .hero-kpi-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }\n");
+        writer.write("    .hero-card, .hero-spark-card { border: 1px solid rgba(255,255,255,0.28); border-radius: 8px; background: rgba(255,255,255,0.12); padding: 9px 10px; }\n");
+        writer.write("    .hero-card .label, .hero-spark-card .label { font-size: 11px; opacity: 0.9; }\n");
+        writer.write("    .hero-card .value { margin-top: 4px; font-size: 18px; font-weight: 700; letter-spacing: 0.2px; }\n");
+        writer.write("    .hero-card .name { font-size: 12px; font-weight: 600; margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }\n");
+        writer.write("    .hero-card .subvalue { font-size: 12px; opacity: 0.95; }\n");
+        writer.write("    .hero-spark-card { display: flex; flex-direction: column; justify-content: center; padding: 8px 9px; }\n");
+        writer.write("    .hero-sparkline { width: 100%; height: auto; display: block; }\n");
         writer.write("    table { border-collapse: collapse; width: 100%; margin: 8px 0 18px 0; table-layout: auto; }\n");
         writer.write("    th, td { border: 1px solid #d0d0d0; padding: 6px 8px; font-size: 13px; text-align: left; white-space: nowrap; }\n");
         writer.write("    .sale-trades-table { table-layout: fixed; }\n");
@@ -682,6 +931,8 @@ public class PortfolioTracker {
         writer.write("    .allocation-legend .name-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 150px; }\n");
         writer.write("    .allocation-legend .dot { width: 9px; height: 9px; border-radius: 50%; flex: 0 0 auto; }\n");
         writer.write("    .allocation-legend .value { font-variant-numeric: tabular-nums; color: #555; }\n");
+        writer.write("    @media (max-width: 980px) { .hero-grid { grid-template-columns: 1fr; } }\n");
+        writer.write("    @media (max-width: 620px) { .hero-kpi-grid { grid-template-columns: 1fr; } }\n");
         writer.write("    @media (max-width: 700px) { .report-hero { padding: 14px; } .report-hero h1 { font-size: 22px; } }\n");
         writer.write("    @media (max-width: 980px) { .allocation-visuals { grid-template-columns: 1fr; } }\n");
         writer.write("    @media (max-width: 980px) { .overview-charts { grid-template-columns: 1fr; } }\n");
@@ -690,7 +941,16 @@ public class PortfolioTracker {
         writer.write("<body>\n");
         writer.write("  <header class=\"report-hero\">\n");
         writer.write("    <h1>Portfolio Report</h1>\n");
-        writer.write("    <div class=\"meta\"><span>Date: " + escapeHtml(generatedDate) + "</span><span>Source: transaction_files/</span></div>\n");
+        writer.write("    <div class=\"meta\"><span>Date: " + escapeHtml(generatedDate) + "</span><span>Files: " + summary.fileCount + "</span><span>Transactions: " + summary.transactionCount + "</span><span>Holdings: " + summary.holdingsCount + "</span></div>\n");
+        writer.write("    <div class=\"hero-grid\">\n");
+        writer.write("      <div class=\"hero-kpi-grid\">\n");
+        writer.write("        <div class=\"hero-card\"><div class=\"label\">Market Value</div><div class=\"value\">" + escapeHtml(totalMarketValueText) + "</div></div>\n");
+        writer.write("        <div class=\"hero-card\"><div class=\"label\">Total Return</div><div class=\"value\">" + escapeHtml(totalReturnText) + "</div></div>\n");
+        writer.write("        <div class=\"hero-card\"><div class=\"label\">Best / Worst Holding</div><div class=\"name\">Best: " + escapeHtml(summary.bestLabel) + "</div><div class=\"subvalue\">" + escapeHtml(bestReturnText) + "</div><div class=\"name\" style=\"margin-top:6px;\">Worst: " + escapeHtml(summary.worstLabel) + "</div><div class=\"subvalue\">" + escapeHtml(worstReturnText) + "</div></div>\n");
+        writer.write("        <div class=\"hero-card\"><div class=\"label\">Total Return (%)</div><div class=\"value\">" + escapeHtml(totalReturnPctText) + "</div></div>\n");
+        writer.write("      </div>\n");
+        writer.write("      <div class=\"hero-spark-card\"><div class=\"label\">Return Spread</div>" + summary.sparklineSvg + "</div>\n");
+        writer.write("    </div>\n");
         writer.write("  </header>\n");
     }
 
@@ -1353,12 +1613,8 @@ public class PortfolioTracker {
         return formatMoney(value, "NOK", decimals);
     }
 
-    private static void writeOverviewTableHtml(FileWriter writer) throws IOException {
+    private static void writeOverviewTableHtml(FileWriter writer, ArrayList<OverviewRow> overviewRows) throws IOException {
         writer.write("<h2>PORTFOLIO OVERVIEW - CURRENT HOLDINGS</h2>\n");
-        ArrayList<OverviewRow> overviewRows = new ArrayList<>();
-        for (Security security : getSortedSecuritiesForOverview()) {
-            overviewRows.add(buildOverviewRow(security));
-        }
 
         writeOverviewChartsHtml(writer, overviewRows);
 
