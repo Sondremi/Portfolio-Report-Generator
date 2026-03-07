@@ -551,6 +551,7 @@ public class PortfolioTracker {
         writer.write("    td.num { text-align: right; font-variant-numeric: tabular-nums; }\n");
         writer.write("    td.text { text-align: left; }\n");
         writer.write("    tr.total-row td { font-weight: 700; background: #fafafa; }\n");
+        writer.write("    tr.asset-split td { border-top: 2px solid #9a9a9a; }\n");
         writer.write("    .muted { color: #666; font-size: 12px; margin-top: -8px; }\n");
         writer.write("    .overview-charts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; margin: 8px 0 14px 0; align-items: stretch; }\n");
         writer.write("    .overview-chart { border: 1px solid #d0d0d0; border-radius: 6px; background: #fff; padding: 10px; }\n");
@@ -618,6 +619,24 @@ public class PortfolioTracker {
             }
         }
         writer.write("</tr>\n");
+    }
+
+    private static void writeHtmlRowWithClass(FileWriter writer, String rowClass, String... fields) throws IOException {
+        String classAttribute = (rowClass == null || rowClass.isBlank()) ? "" : " class=\"" + escapeHtml(rowClass) + "\"";
+        writer.write("<tr" + classAttribute + ">");
+        for (int i = 0; i < fields.length; i++) {
+            writer.write(toDataCell(fields[i]));
+        }
+        writer.write("</tr>\n");
+    }
+
+    private static boolean isStockFundBoundary(String previousAssetType, String currentAssetType) {
+        if (previousAssetType == null || currentAssetType == null || previousAssetType.equals(currentAssetType)) {
+            return false;
+        }
+
+        return ("STOCK".equals(previousAssetType) && "FUND".equals(currentAssetType))
+                || ("FUND".equals(previousAssetType) && "STOCK".equals(currentAssetType));
     }
 
     private static OverviewRow buildOverviewRow(Security security) {
@@ -1169,6 +1188,7 @@ public class PortfolioTracker {
         double totalCostBasisWithPrice = 0.0;
         double totalRealized = 0.0;
         double totalDividends = 0.0;
+        String previousAssetType = null;
         for (OverviewRow row : overviewRows) {
             totalCostBasis += row.positionCostBasis;
             totalMarketValue += row.marketValue;
@@ -1179,9 +1199,11 @@ public class PortfolioTracker {
             totalRealized += row.realized;
             totalDividends += row.dividends;
 
-            writeHtmlRow(
+            String rowClass = isStockFundBoundary(previousAssetType, row.assetType) ? "asset-split" : null;
+
+            writeHtmlRowWithClass(
                 writer,
-                false,
+                rowClass,
                 row.tickerText,
                 row.securityDisplayName,
                 row.assetType,
@@ -1198,6 +1220,8 @@ public class PortfolioTracker {
                 formatNumber(row.totalReturn, 2),
                 formatNumber(row.totalReturnPct, 2)
             );
+
+            previousAssetType = row.assetType;
         }
 
         double totalReturn = totalUnrealized + totalRealized + totalDividends;
@@ -1237,6 +1261,7 @@ public class PortfolioTracker {
         double totalCostBasis = 0.0;
         double totalRealizedGain = 0.0;
         double totalRealizedDividends = 0.0;
+        String previousAssetType = null;
 
         for (Security security : soldSecurities) {
             double salesValue = security.getRealizedSalesValue();
@@ -1244,15 +1269,17 @@ public class PortfolioTracker {
             double gain = security.getRealizedGain();
             double realizedDividends = security.isFullyRealized() ? security.getDividends() : 0.0;
             double returnPct = costBasis > 0 ? (gain / costBasis) * 100.0 : (gain > 0 ? 100.0 : 0.0);
+            String currentAssetType = security.getAssetType().name();
+            String rowClass = isStockFundBoundary(previousAssetType, currentAssetType) ? "asset-split" : null;
 
             totalSalesValue += salesValue;
             totalCostBasis += costBasis;
             totalRealizedGain += gain;
             totalRealizedDividends += realizedDividends;
 
-            writeHtmlRow(
+            writeHtmlRowWithClass(
                 writer,
-                false,
+                rowClass,
                 security.getName(),
                 formatNumber(salesValue, 2),
                 formatNumber(costBasis, 2),
@@ -1260,6 +1287,8 @@ public class PortfolioTracker {
                 formatNumber(realizedDividends, 2),
                 formatNumber(returnPct, 2)
             );
+
+            previousAssetType = currentAssetType;
         }
 
         double totalReturnPct = totalCostBasis > 0 ? (totalRealizedGain / totalCostBasis) * 100.0 : (totalRealizedGain > 0 ? 100.0 : 0.0);
