@@ -843,8 +843,8 @@ public class PortfolioTracker {
         final double height = 330.0;
         final double centerX = width / 2.0;
         final double centerY = 142.0;
-        final double radius = 92.0;
-        final double innerRadius = 50.0;
+        final double radius = 110.0;
+        final double innerRadius = 60.0;
 
         ArrayList<OverviewRow> rowsWithValue = new ArrayList<>();
         double totalMarketValue = 0.0;
@@ -1011,8 +1011,8 @@ public class PortfolioTracker {
         final double height = 330.0;
         final double centerX = width / 2.0;
         final double centerY = 142.0;
-        final double radius = 86.0;
-        final double innerRadius = 44.0;
+        final double radius = 102.0;
+        final double innerRadius = 52.0;
 
         double stockValue = 0.0;
         double fundValue = 0.0;
