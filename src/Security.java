@@ -62,6 +62,7 @@ public class Security {
     private double realizedCostBasis = 0.0;
     private double realizedSalesValue = 0.0;
     private double latestPrice = 0.0;
+    private String currencyCode = "NOK";
 
     private static class BuyLot {
         double remainingUnits;
@@ -116,6 +117,7 @@ public class Security {
     public String getTicker() { return ticker; }
     public String getIsin() { return isin; }
     public AssetType getAssetType() { return assetType; }
+    public String getCurrencyCode() { return currencyCode == null || currencyCode.isBlank() ? "NOK" : currencyCode; }
 
     public String getAverageCostAsText() { return formatNumber(getAverageCost(), 2); }
     public String getUnitsOwnedAsText() { return formatNumber(unitsOwned, 2); }
@@ -352,6 +354,7 @@ public class Security {
         if (isin == null || isin.isEmpty()) {
             ticker = "";
             latestPrice = 0.0;
+            currencyCode = "NOK";
             return;
         }
 
@@ -374,6 +377,7 @@ public class Security {
                 }
 
                 ticker = candidateTicker;
+                currencyCode = normalizeCurrencyCode(candidate.currency, candidateTicker);
                 updateAssetTypeFromQuoteType(candidate.quoteType);
                 updateAssetTypeFromTicker(ticker);
                 updateResolvedName(candidate);
@@ -383,12 +387,58 @@ public class Security {
             } else {
                 ticker = "";
                 latestPrice = 0.0;
+                currencyCode = "NOK";
             }
         } catch (Exception e) {
             System.err.println("Yahoo Finance ISIN lookup failed: " + e.getMessage());
             ticker = "";
             latestPrice = 0.0;
+            currencyCode = "NOK";
         }
+    }
+
+    private String normalizeCurrencyCode(String candidateCurrency, String symbol) {
+        if (candidateCurrency != null && !candidateCurrency.isBlank()) {
+            return candidateCurrency.trim().toUpperCase(Locale.ROOT);
+        }
+
+        String inferred = inferCurrencyFromSymbol(symbol);
+        if (!inferred.isBlank()) {
+            return inferred;
+        }
+
+        return "NOK";
+    }
+
+    private String inferCurrencyFromSymbol(String symbol) {
+        if (symbol == null || symbol.isBlank()) {
+            return "";
+        }
+
+        String normalized = symbol.toUpperCase(Locale.ROOT);
+        if (normalized.endsWith(".OL") || normalized.endsWith(".IR")) {
+            return "NOK";
+        }
+        if (normalized.endsWith(".L")) {
+            return "GBP";
+        }
+        if (normalized.endsWith(".PA") || normalized.endsWith(".DE")) {
+            return "EUR";
+        }
+        if (normalized.endsWith(".TO")) {
+            return "CAD";
+        }
+        if (normalized.endsWith(".HK")) {
+            return "HKD";
+        }
+        if (normalized.endsWith(".AX")) {
+            return "AUD";
+        }
+        if (normalized.endsWith(".T")) {
+            return "JPY";
+        }
+
+        return "";
     }
 
     private SearchCandidate preferOsloListingWhenAvailable(SearchCandidate baseCandidate) {
