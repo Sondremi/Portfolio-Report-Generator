@@ -898,13 +898,31 @@ public class PortfolioTracker {
         return (row.securityDisplayName == null || row.securityDisplayName.isBlank()) ? row.tickerText : row.securityDisplayName;
     }
 
+    private static String getCompactBarLabel(OverviewRow row) {
+        String fullLabel = getOverviewRowLabel(row);
+        if (fullLabel == null || fullLabel.isBlank()) {
+            return "-";
+        }
+
+        if (fullLabel.length() <= 24) {
+            return fullLabel;
+        }
+
+        boolean hasTicker = row.tickerText != null && !row.tickerText.isBlank() && !"-".equals(row.tickerText);
+        if ("STOCK".equals(row.assetType) && hasTicker) {
+            return row.tickerText;
+        }
+
+        return fullLabel.substring(0, 21) + "...";
+    }
+
     private static String buildOverviewBarChartSvg(ArrayList<OverviewRow> rows, boolean percentChart) {
         final double width = 1100.0;
         final double height = 430.0;
         final double left = 68.0;
         final double right = 22.0;
         final double top = 26.0;
-        final double bottom = 114.0;
+        final double bottom = 92.0;
         final double plotWidth = width - left - right;
         final double plotHeight = height - top - bottom;
 
@@ -962,7 +980,8 @@ public class PortfolioTracker {
             }
 
             String barColor = value >= 0.0 ? "#2f9e44" : "#d94841";
-            String label = (row.securityDisplayName == null || row.securityDisplayName.isBlank()) ? row.tickerText : row.securityDisplayName;
+            String label = getOverviewRowLabel(row);
+            String compactLabel = getCompactBarLabel(row);
 
             svg.append("<rect x=\"").append(svgNumber(x)).append("\" y=\"").append(svgNumber(barY))
                     .append("\" width=\"").append(svgNumber(barWidth)).append("\" height=\"").append(svgNumber(barHeight))
@@ -972,11 +991,11 @@ public class PortfolioTracker {
                     .append("</title></rect>\n");
 
             double labelAnchorX = x + (barWidth / 2.0);
-            double labelAnchorY = height - bottom + 20.0;
+            double labelAnchorY = height - bottom + 16.0;
             svg.append("<text x=\"").append(svgNumber(labelAnchorX)).append("\" y=\"").append(svgNumber(labelAnchorY))
-                    .append("\" transform=\"rotate(-45 ").append(svgNumber(labelAnchorX)).append(" ").append(svgNumber(labelAnchorY))
-                    .append(")\" text-anchor=\"end\" font-size=\"9\" fill=\"#444\">")
-                    .append(escapeHtml(label))
+                    .append("\" transform=\"rotate(-38 ").append(svgNumber(labelAnchorX)).append(" ").append(svgNumber(labelAnchorY))
+                    .append(")\" text-anchor=\"end\" font-size=\"10\" font-weight=\"600\" fill=\"#1f2933\" paint-order=\"stroke\" stroke=\"#ffffff\" stroke-width=\"2\" stroke-linejoin=\"round\">")
+                    .append(escapeHtml(compactLabel))
                     .append("</text>\n");
         }
 
@@ -1068,7 +1087,7 @@ public class PortfolioTracker {
         final double left = 74.0;
         final double right = 86.0;
         final double top = 18.0;
-        final double bottom = 118.0;
+            final double bottom = 92.0;
         final double plotWidth = width - left - right;
         final double plotHeight = height - top - bottom;
 
@@ -1131,6 +1150,7 @@ public class PortfolioTracker {
             double barHeight = (top + plotHeight) - y;
 
             String label = getOverviewRowLabel(row);
+            String compactLabel = getCompactBarLabel(row);
             String color = getAllocationColor(i);
 
             svg.append("<rect x=\"").append(svgNumber(x)).append("\" y=\"").append(svgNumber(y))
@@ -1141,11 +1161,11 @@ public class PortfolioTracker {
                 .append("</title></rect>\n");
 
             double labelAnchorX = x + (barWidth / 2.0);
-            double labelAnchorY = height - bottom + 20.0;
+            double labelAnchorY = height - bottom + 16.0;
             svg.append("<text x=\"").append(svgNumber(labelAnchorX)).append("\" y=\"").append(svgNumber(labelAnchorY))
-                .append("\" transform=\"rotate(-35 ").append(svgNumber(labelAnchorX)).append(" ").append(svgNumber(labelAnchorY))
-                .append(")\" text-anchor=\"end\" font-size=\"9\" fill=\"#444\">")
-                .append(escapeHtml(label))
+                .append("\" transform=\"rotate(-30 ").append(svgNumber(labelAnchorX)).append(" ").append(svgNumber(labelAnchorY))
+                .append(")\" text-anchor=\"end\" font-size=\"10\" font-weight=\"600\" fill=\"#1f2933\" paint-order=\"stroke\" stroke=\"#ffffff\" stroke-width=\"2\" stroke-linejoin=\"round\">")
+                .append(escapeHtml(compactLabel))
                 .append("</text>\n");
         }
 
