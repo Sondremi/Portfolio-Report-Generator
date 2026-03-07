@@ -243,6 +243,8 @@ public class PortfolioTracker {
         private final double averageCost;
         private final double latestPrice;
         private final double positionCostBasis;
+        private final double realizedCostBasis;
+        private final double historicalCostBasis;
         private final double marketValue;
         private final double unrealized;
         private final double unrealizedPct;
@@ -262,6 +264,8 @@ public class PortfolioTracker {
                 double averageCost,
                 double latestPrice,
                 double positionCostBasis,
+                double realizedCostBasis,
+                double historicalCostBasis,
                 double marketValue,
                 double unrealized,
                 double unrealizedPct,
@@ -279,6 +283,8 @@ public class PortfolioTracker {
             this.averageCost = averageCost;
             this.latestPrice = latestPrice;
             this.positionCostBasis = positionCostBasis;
+            this.realizedCostBasis = realizedCostBasis;
+            this.historicalCostBasis = historicalCostBasis;
             this.marketValue = marketValue;
             this.unrealized = unrealized;
             this.unrealizedPct = unrealizedPct;
@@ -772,6 +778,8 @@ public class PortfolioTracker {
         double averageCost = security.getAverageCost();
         double latestPrice = security.getLatestPrice();
         double positionCostBasis = units * averageCost;
+        double realizedCostBasis = security.getRealizedCostBasis();
+        double historicalCostBasis = positionCostBasis + realizedCostBasis;
         boolean hasPrice = latestPrice > 0.0;
         double marketValue = hasPrice ? units * latestPrice : 0.0;
         double unrealized = hasPrice ? (marketValue - positionCostBasis) : 0.0;
@@ -779,7 +787,7 @@ public class PortfolioTracker {
         double realized = parseDoubleOrZero(security.getRealizedGainAsText());
         double dividends = parseDoubleOrZero(security.getDividendsAsText());
         double totalReturn = unrealized + realized + dividends;
-        double totalReturnPct = positionCostBasis > 0 ? (totalReturn / positionCostBasis) * 100.0 : 0.0;
+        double totalReturnPct = historicalCostBasis > 0 ? (totalReturn / historicalCostBasis) * 100.0 : 0.0;
 
         return new OverviewRow(
                 tickerText,
@@ -791,6 +799,8 @@ public class PortfolioTracker {
                 averageCost,
                 latestPrice,
                 positionCostBasis,
+                realizedCostBasis,
+                historicalCostBasis,
                 marketValue,
                 unrealized,
                 unrealizedPct,
@@ -1321,6 +1331,8 @@ public class PortfolioTracker {
         );
 
         double totalCostBasis = 0.0;
+        double totalRealizedCostBasis = 0.0;
+        double totalHistoricalCostBasis = 0.0;
         double totalMarketValue = 0.0;
         double totalUnrealized = 0.0;
         double totalCostBasisWithPrice = 0.0;
@@ -1330,6 +1342,8 @@ public class PortfolioTracker {
         String previousAssetType = null;
         for (OverviewRow row : overviewRows) {
             totalCostBasis += row.positionCostBasis;
+            totalRealizedCostBasis += row.realizedCostBasis;
+            totalHistoricalCostBasis += row.historicalCostBasis;
             totalMarketValue += row.marketValue;
             if (row.hasPrice) {
                 totalUnrealized += row.unrealized;
@@ -1368,8 +1382,8 @@ public class PortfolioTracker {
 
         double totalReturn = totalUnrealized + totalRealized + totalDividends;
         double totalUnrealizedPct = totalCostBasisWithPrice > 0 ? (totalUnrealized / totalCostBasisWithPrice) * 100.0 : 0.0;
-        double totalRealizedPct = totalCostBasis > 0 ? (totalRealized / totalCostBasis) * 100.0 : 0.0;
-        double totalReturnPct = totalCostBasis > 0 ? (totalReturn / totalCostBasis) * 100.0 : 0.0;
+        double totalRealizedPct = totalRealizedCostBasis > 0 ? (totalRealized / totalRealizedCostBasis) * 100.0 : 0.0;
+        double totalReturnPct = totalHistoricalCostBasis > 0 ? (totalReturn / totalHistoricalCostBasis) * 100.0 : 0.0;
         writer.write("<tr class=\"total-row\">"
             + toDataCell("")
             + toDataCell("TOTAL")
