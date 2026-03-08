@@ -1198,7 +1198,7 @@ public class PortfolioReportGenerator {
         StringBuilder svg = new StringBuilder();
         svg.append("<svg class=\"hero-sparkline\" viewBox=\"0 0 ")
                 .append(svgNumber(width)).append(" ").append(svgNumber(height))
-            .append("\" preserveAspectRatio=\"xMinYMid meet\" xmlns=\"http://www.w3.org/2000/svg\" role=\"img\">\n");
+            .append("\" preserveAspectRatio=\"xMidYMid meet\" xmlns=\"http://www.w3.org/2000/svg\" role=\"img\">\n");
 
         if (points.isEmpty()) {
             svg.append("<text x=\"").append(svgNumber(width / 2.0)).append("\" y=\"").append(svgNumber(height / 2.0 + 3.0))
@@ -1574,9 +1574,10 @@ public class PortfolioReportGenerator {
         writer.write("    .hero-card .value { margin-top: 4px; font-size: 18px; font-weight: 700; letter-spacing: 0.2px; }\n");
         writer.write("    .hero-card .name { font-size: 12px; font-weight: 600; margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }\n");
         writer.write("    .hero-card .subvalue { font-size: 12px; opacity: 0.95; }\n");
-        writer.write("    .hero-spark-card { display: flex; flex-direction: column; justify-content: flex-start; padding: 8px 9px; height: 100%; min-height: 0; }\n");
+        writer.write("    .hero-spark-card { display: flex; flex-direction: column; justify-content: stretch; padding: 8px 9px; height: 100%; min-height: 0; }\n");
         writer.write("    .hero-spark-card .label { margin-bottom: 6px; }\n");
-        writer.write("    .hero-sparkline { width: 100%; flex: 1 1 auto; min-height: 120px; display: block; }\n");
+        writer.write("    .hero-sparkline-wrap { flex: 1 1 auto; min-height: 0; display: flex; align-items: center; }\n");
+        writer.write("    .hero-sparkline { width: 100%; height: auto; min-height: 120px; max-height: 100%; display: block; }\n");
         writer.write("    table { border-collapse: collapse; width: 100%; margin: 8px 0 18px 0; table-layout: auto; }\n");
         writer.write("    th, td { border: 1px solid #d0d0d0; padding: 6px 8px; font-size: 13px; text-align: left; white-space: nowrap; }\n");
         writer.write("    .sale-trades-table { table-layout: fixed; }\n");
@@ -1625,7 +1626,7 @@ public class PortfolioReportGenerator {
         writer.write("          <div class=\"hero-card\"><div class=\"label\">Total Return (%)</div><div class=\"value\">" + escapeHtml(totalReturnPctText) + "</div></div>\n");
         writer.write("        </div>\n");
         writer.write("      </div>\n");
-        writer.write("      <div class=\"hero-spark-card\"><div class=\"label\">Portfolio Value (12M)</div>" + summary.sparklineSvg + "</div>\n");
+        writer.write("      <div class=\"hero-spark-card\"><div class=\"label\">Portfolio Value (12M)</div><div class=\"hero-sparkline-wrap\">" + summary.sparklineSvg + "</div></div>\n");
         writer.write("    </div>\n");
         writer.write("  </header>\n");
     }
@@ -2197,7 +2198,7 @@ public class PortfolioReportGenerator {
         final double width = 440.0;
         final double height = 330.0;
         final double centerX = width / 2.0;
-        final double centerY = 126.0;
+        final double centerY = 118.0;
         final double radius = 98.0;
 
         double stockValue = 0.0;
@@ -2321,7 +2322,7 @@ public class PortfolioReportGenerator {
         double cashDebtPct = totalValue > 0.0 ? (cashDebtValue / totalValue) * 100.0 : 0.0;
         double otherPct = totalValue > 0.0 ? (otherValue / totalValue) * 100.0 : 0.0;
 
-        double summaryY = centerY + radius + 16.0;
+        double summaryY = centerY + radius + 14.0;
         svg.append("<text x=\"").append(svgNumber(centerX)).append("\" y=\"").append(svgNumber(summaryY))
             .append("\" text-anchor=\"middle\" font-size=\"12\" fill=\"#666\">Asset Mix</text>\n");
         ArrayList<String> legendLabels = new ArrayList<>();
@@ -2356,7 +2357,7 @@ public class PortfolioReportGenerator {
 
         boolean useTwoColumns = legendLabels.size() > 4;
         int rowsPerColumn = useTwoColumns ? (legendLabels.size() + 1) / 2 : legendLabels.size();
-        double legendYStart = 248.0;
+        double legendYStart = 252.0;
         double legendRowGap = 15.0;
         for (int i = 0; i < legendLabels.size(); i++) {
             int columnIndex = (useTwoColumns && i >= rowsPerColumn) ? 1 : 0;
@@ -2396,7 +2397,7 @@ public class PortfolioReportGenerator {
         final double width = 440.0;
         final double height = 330.0;
         final double centerX = width / 2.0;
-        final double centerY = 126.0;
+        final double centerY = 118.0;
         final double radius = 98.0;
 
         LinkedHashMap<String, Double> valueByCategory = new LinkedHashMap<>();
@@ -2511,7 +2512,7 @@ public class PortfolioReportGenerator {
             currentAngle = endAngle;
         }
 
-        double summaryY = centerY + radius + 16.0;
+        double summaryY = centerY + radius + 14.0;
         svg.append("<text x=\"").append(svgNumber(centerX)).append("\" y=\"").append(svgNumber(summaryY))
             .append("\" text-anchor=\"middle\" font-size=\"12\" fill=\"#666\">")
             .append(escapeHtml(centerTitle))
@@ -2519,7 +2520,7 @@ public class PortfolioReportGenerator {
 
         boolean useTwoColumns = buckets.size() > 6;
         int rowsPerColumn = useTwoColumns ? (buckets.size() + 1) / 2 : buckets.size();
-        double legendYStart = 248.0;
+        double legendYStart = 252.0;
         double legendRowGap = 15.0;
         for (int i = 0; i < buckets.size(); i++) {
             AllocationBucket bucket = buckets.get(i);
