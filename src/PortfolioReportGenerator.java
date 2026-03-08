@@ -1556,7 +1556,7 @@ public class PortfolioReportGenerator {
         writer.write("    .report-hero h1 { margin: 0; font-size: 26px; letter-spacing: 0.2px; }\n");
         writer.write("    .report-hero .meta { margin-top: 8px; display: flex; flex-wrap: wrap; gap: 10px 16px; font-size: 12px; opacity: 0.95; }\n");
         writer.write("    .report-hero .meta span { background: rgba(255, 255, 255, 0.14); border: 1px solid rgba(255, 255, 255, 0.22); border-radius: 999px; padding: 3px 10px; }\n");
-        writer.write("    .hero-grid { margin-top: 12px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; align-items: stretch; }\n");
+        writer.write("    .hero-grid { margin-top: 12px; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 2fr); gap: 12px; align-items: stretch; }\n");
         writer.write("    .hero-kpi-grid { display: contents; }\n");
         writer.write("    .hero-kpi-col { display: grid; gap: 10px; align-content: stretch; height: 100%; }\n");
         writer.write("    .hero-card, .hero-spark-card { border: 1px solid rgba(255,255,255,0.28); border-radius: 8px; background: rgba(255,255,255,0.12); padding: 9px 10px; }\n");
@@ -1606,7 +1606,7 @@ public class PortfolioReportGenerator {
         writer.write("      <div class=\"hero-kpi-grid\">\n");
         writer.write("        <div class=\"hero-kpi-col\">\n");
         writer.write("          <div class=\"hero-card\"><div class=\"label\">Market Value</div><div class=\"value\">" + escapeHtml(totalMarketValueText) + "</div></div>\n");
-        writer.write("          <div class=\"hero-card\"><div class=\"label\">Best / Worst Holding</div><div class=\"name\">Best: " + escapeHtml(summary.bestLabel) + "</div><div class=\"subvalue\">" + escapeHtml(bestReturnText) + "</div><div class=\"name\" style=\"margin-top:6px;\">Worst: " + escapeHtml(summary.worstLabel) + "</div><div class=\"subvalue\">" + escapeHtml(worstReturnText) + "</div></div>\n");
+        writer.write("          <div class=\"hero-card\"><div class=\"label\">Best / Worst Holding</div><div class=\"name\">" + escapeHtml(summary.bestLabel) + "</div><div class=\"subvalue\">" + escapeHtml(bestReturnText) + "</div><div class=\"name\" style=\"margin-top:6px;\">" + escapeHtml(summary.worstLabel) + "</div><div class=\"subvalue\">" + escapeHtml(worstReturnText) + "</div></div>\n");
         writer.write("        </div>\n");
         writer.write("        <div class=\"hero-kpi-col\">\n");
         writer.write("          <div class=\"hero-card\"><div class=\"label\">Cash Holdings</div><div class=\"value\">" + escapeHtml(cashHoldingsText) + "</div></div>\n");
@@ -2312,7 +2312,7 @@ public class PortfolioReportGenerator {
 
         double summaryY = centerY + radius + 12.0;
         svg.append("<text x=\"").append(svgNumber(centerX)).append("\" y=\"").append(svgNumber(summaryY))
-            .append("\" text-anchor=\"middle\" font-size=\"10\" fill=\"#666\">Asset Mix</text>\n");
+            .append("\" text-anchor=\"middle\" font-size=\"11\" fill=\"#666\">Asset Mix</text>\n");
         ArrayList<String> legendLabels = new ArrayList<>();
         ArrayList<Double> legendPcts = new ArrayList<>();
         ArrayList<String> legendColors = new ArrayList<>();
@@ -2343,16 +2343,27 @@ public class PortfolioReportGenerator {
             legendColors.add("#868e96");
         }
 
+        boolean useTwoColumns = legendLabels.size() > 4;
+        int rowsPerColumn = useTwoColumns ? (legendLabels.size() + 1) / 2 : legendLabels.size();
         double legendYStart = 244.0;
+        double legendRowGap = 15.0;
         for (int i = 0; i < legendLabels.size(); i++) {
-            double y = legendYStart + (i * 14.0);
-            svg.append("<circle cx=\"22\" cy=\"").append(svgNumber(y - 3.0)).append("\" r=\"3.7\" fill=\"")
+            int columnIndex = (useTwoColumns && i >= rowsPerColumn) ? 1 : 0;
+            int rowIndex = useTwoColumns ? (i % rowsPerColumn) : i;
+            double y = legendYStart + (rowIndex * legendRowGap);
+            double dotX = columnIndex == 0 ? 22.0 : 228.0;
+            double labelX = dotX + 9.0;
+            double pctX = useTwoColumns
+                    ? (columnIndex == 0 ? 208.0 : (width - 16.0))
+                    : (width - 16.0);
+
+            svg.append("<circle cx=\"").append(svgNumber(dotX)).append("\" cy=\"").append(svgNumber(y - 3.0)).append("\" r=\"3.7\" fill=\"")
                 .append(legendColors.get(i)).append("\"/>\n");
-            svg.append("<text x=\"31\" y=\"").append(svgNumber(y)).append("\" text-anchor=\"start\" font-size=\"10\" fill=\"#2f2f2f\">")
+            svg.append("<text x=\"").append(svgNumber(labelX)).append("\" y=\"").append(svgNumber(y)).append("\" text-anchor=\"start\" font-size=\"11\" fill=\"#2f2f2f\">")
                 .append(escapeHtml(legendLabels.get(i)))
                 .append("</text>\n");
-            svg.append("<text x=\"").append(svgNumber(width - 16.0)).append("\" y=\"").append(svgNumber(y))
-                .append("\" text-anchor=\"end\" font-size=\"10\" fill=\"#4a4a4a\">")
+            svg.append("<text x=\"").append(svgNumber(pctX)).append("\" y=\"").append(svgNumber(y))
+                .append("\" text-anchor=\"end\" font-size=\"11\" fill=\"#4a4a4a\">")
                 .append(escapeHtml(formatNumber(legendPcts.get(i), 1) + "%"))
                 .append("</text>\n");
         }
@@ -2491,24 +2502,34 @@ public class PortfolioReportGenerator {
 
         double summaryY = centerY + radius + 12.0;
         svg.append("<text x=\"").append(svgNumber(centerX)).append("\" y=\"").append(svgNumber(summaryY))
-            .append("\" text-anchor=\"middle\" font-size=\"10\" fill=\"#666\">")
+            .append("\" text-anchor=\"middle\" font-size=\"11\" fill=\"#666\">")
             .append(escapeHtml(centerTitle))
             .append("</text>\n");
 
+        boolean useTwoColumns = buckets.size() > 6;
+        int rowsPerColumn = useTwoColumns ? (buckets.size() + 1) / 2 : buckets.size();
         double legendYStart = 244.0;
+        double legendRowGap = 15.0;
         for (int i = 0; i < buckets.size(); i++) {
             AllocationBucket bucket = buckets.get(i);
             double pct = (bucket.value / totalMarketValue) * 100.0;
-            double y = legendYStart + (i * 14.0);
+            int columnIndex = (useTwoColumns && i >= rowsPerColumn) ? 1 : 0;
+            int rowIndex = useTwoColumns ? (i % rowsPerColumn) : i;
+            double y = legendYStart + (rowIndex * legendRowGap);
+            double dotX = columnIndex == 0 ? 22.0 : 228.0;
+            double labelX = dotX + 9.0;
+            double pctX = useTwoColumns
+                    ? (columnIndex == 0 ? 208.0 : (width - 16.0))
+                    : (width - 16.0);
             String color = getAllocationColor(i);
 
-            svg.append("<circle cx=\"22\" cy=\"").append(svgNumber(y - 3.0)).append("\" r=\"3.7\" fill=\"")
+            svg.append("<circle cx=\"").append(svgNumber(dotX)).append("\" cy=\"").append(svgNumber(y - 3.0)).append("\" r=\"3.7\" fill=\"")
                 .append(color).append("\"/>\n");
-            svg.append("<text x=\"31\" y=\"").append(svgNumber(y)).append("\" text-anchor=\"start\" font-size=\"10\" fill=\"#2f2f2f\">")
+            svg.append("<text x=\"").append(svgNumber(labelX)).append("\" y=\"").append(svgNumber(y)).append("\" text-anchor=\"start\" font-size=\"11\" fill=\"#2f2f2f\">")
                 .append(escapeHtml(bucket.label))
                 .append("</text>\n");
-            svg.append("<text x=\"").append(svgNumber(width - 16.0)).append("\" y=\"").append(svgNumber(y))
-                .append("\" text-anchor=\"end\" font-size=\"10\" fill=\"#4a4a4a\">")
+            svg.append("<text x=\"").append(svgNumber(pctX)).append("\" y=\"").append(svgNumber(y))
+                .append("\" text-anchor=\"end\" font-size=\"11\" fill=\"#4a4a4a\">")
                 .append(escapeHtml(formatNumber(pct, 1) + "%"))
                 .append("</text>\n");
         }
