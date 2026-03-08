@@ -1304,8 +1304,18 @@ public class PortfolioReportGenerator {
             svg.append("<line x1=\"").append(svgNumber(xValues[tickIndex])).append("\" y1=\"").append(svgNumber(axisY))
                 .append("\" x2=\"").append(svgNumber(xValues[tickIndex])).append("\" y2=\"").append(svgNumber(axisY + 2.8))
                 .append("\" stroke=\"#eaf2ff\" stroke-width=\"0.8\"/>\n");
-            svg.append("<text x=\"").append(svgNumber(xValues[tickIndex])).append("\" y=\"").append(svgNumber(axisY + 8.8))
-                .append("\" text-anchor=\"middle\" font-size=\"5.7\" fill=\"#eaf2ff\">")
+            String tickAnchor = "middle";
+            double tickLabelX = xValues[tickIndex];
+            if (tickIndex == 0) {
+                tickAnchor = "start";
+                tickLabelX = Math.max(tickLabelX, left + 1.0);
+            } else if (tickIndex == count - 1) {
+                tickAnchor = "end";
+                tickLabelX = Math.min(tickLabelX, left + plotWidth - 1.0);
+            }
+
+            svg.append("<text x=\"").append(svgNumber(tickLabelX)).append("\" y=\"").append(svgNumber(axisY + 8.8))
+                .append("\" text-anchor=\"").append(tickAnchor).append("\" font-size=\"5.7\" fill=\"#eaf2ff\">")
                 .append(escapeHtml(points.get(tickIndex).monthEnd.format(axisMonthFormat)))
                 .append("</text>\n");
             previousIndex = tickIndex;
@@ -1564,8 +1574,9 @@ public class PortfolioReportGenerator {
         writer.write("    .hero-card .value { margin-top: 4px; font-size: 18px; font-weight: 700; letter-spacing: 0.2px; }\n");
         writer.write("    .hero-card .name { font-size: 12px; font-weight: 600; margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }\n");
         writer.write("    .hero-card .subvalue { font-size: 12px; opacity: 0.95; }\n");
-        writer.write("    .hero-spark-card { display: flex; flex-direction: column; justify-content: center; padding: 8px 9px; height: 100%; }\n");
-        writer.write("    .hero-sparkline { width: 100%; height: auto; display: block; }\n");
+        writer.write("    .hero-spark-card { display: flex; flex-direction: column; justify-content: flex-start; padding: 8px 9px; height: 100%; min-height: 0; }\n");
+        writer.write("    .hero-spark-card .label { margin-bottom: 6px; }\n");
+        writer.write("    .hero-sparkline { width: 100%; flex: 1 1 auto; min-height: 120px; display: block; }\n");
         writer.write("    table { border-collapse: collapse; width: 100%; margin: 8px 0 18px 0; table-layout: auto; }\n");
         writer.write("    th, td { border: 1px solid #d0d0d0; padding: 6px 8px; font-size: 13px; text-align: left; white-space: nowrap; }\n");
         writer.write("    .sale-trades-table { table-layout: fixed; }\n");
@@ -1586,7 +1597,7 @@ public class PortfolioReportGenerator {
         writer.write("    .overview-chart.allocation-card .chart-svg.market-value-bar-chart { height: 290px; }\n");
         writer.write("    .allocation-visuals { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 10px; }\n");
         writer.write("    .allocation-panel { border: 1px solid #ececec; border-radius: 6px; padding: 6px; }\n");
-        writer.write("    .allocation-panel-title { margin: 0 0 6px 0; font-size: 12px; color: #2b2b2b; font-weight: 600; }\n");
+        writer.write("    .allocation-panel-title { margin: 0 0 6px 0; font-size: 13px; color: #2b2b2b; font-weight: 600; }\n");
         writer.write("    .allocation-panel.asset-type-panel, .allocation-panel.sector-panel, .allocation-panel.region-panel { grid-column: span 2; }\n");
         writer.write("    .allocation-panel.security-pie-panel { grid-column: span 2; }\n");
         writer.write("    .allocation-panel.security-bar-panel { grid-column: span 4; }\n");
@@ -1845,8 +1856,8 @@ public class PortfolioReportGenerator {
         final double height = 430.0;
         final double left = 68.0;
         final double right = 22.0;
-        final double top = 26.0;
-        final double bottom = 92.0;
+        final double top = 14.0;
+        final double bottom = 76.0;
         final double plotWidth = width - left - right;
         final double plotHeight = height - top - bottom;
 
@@ -1915,7 +1926,7 @@ public class PortfolioReportGenerator {
                     .append("</title></rect>\n");
 
             double labelAnchorX = x + (barWidth / 2.0);
-            double labelAnchorY = height - bottom + 16.0;
+            double labelAnchorY = height - bottom + 10.0;
             svg.append("<text x=\"").append(svgNumber(labelAnchorX)).append("\" y=\"").append(svgNumber(labelAnchorY))
                     .append("\" transform=\"rotate(-38 ").append(svgNumber(labelAnchorX)).append(" ").append(svgNumber(labelAnchorY))
                     .append(")\" text-anchor=\"end\" font-size=\"11\" font-weight=\"600\" fill=\"#1f2933\" paint-order=\"stroke\" stroke=\"#ffffff\" stroke-width=\"2\" stroke-linejoin=\"round\">")
@@ -2310,9 +2321,9 @@ public class PortfolioReportGenerator {
         double cashDebtPct = totalValue > 0.0 ? (cashDebtValue / totalValue) * 100.0 : 0.0;
         double otherPct = totalValue > 0.0 ? (otherValue / totalValue) * 100.0 : 0.0;
 
-        double summaryY = centerY + radius + 12.0;
+        double summaryY = centerY + radius + 16.0;
         svg.append("<text x=\"").append(svgNumber(centerX)).append("\" y=\"").append(svgNumber(summaryY))
-            .append("\" text-anchor=\"middle\" font-size=\"11\" fill=\"#666\">Asset Mix</text>\n");
+            .append("\" text-anchor=\"middle\" font-size=\"12\" fill=\"#666\">Asset Mix</text>\n");
         ArrayList<String> legendLabels = new ArrayList<>();
         ArrayList<Double> legendPcts = new ArrayList<>();
         ArrayList<String> legendColors = new ArrayList<>();
@@ -2345,7 +2356,7 @@ public class PortfolioReportGenerator {
 
         boolean useTwoColumns = legendLabels.size() > 4;
         int rowsPerColumn = useTwoColumns ? (legendLabels.size() + 1) / 2 : legendLabels.size();
-        double legendYStart = 244.0;
+        double legendYStart = 248.0;
         double legendRowGap = 15.0;
         for (int i = 0; i < legendLabels.size(); i++) {
             int columnIndex = (useTwoColumns && i >= rowsPerColumn) ? 1 : 0;
@@ -2359,11 +2370,11 @@ public class PortfolioReportGenerator {
 
             svg.append("<circle cx=\"").append(svgNumber(dotX)).append("\" cy=\"").append(svgNumber(y - 3.0)).append("\" r=\"3.7\" fill=\"")
                 .append(legendColors.get(i)).append("\"/>\n");
-            svg.append("<text x=\"").append(svgNumber(labelX)).append("\" y=\"").append(svgNumber(y)).append("\" text-anchor=\"start\" font-size=\"11\" fill=\"#2f2f2f\">")
+            svg.append("<text x=\"").append(svgNumber(labelX)).append("\" y=\"").append(svgNumber(y)).append("\" text-anchor=\"start\" font-size=\"12\" fill=\"#2f2f2f\">")
                 .append(escapeHtml(legendLabels.get(i)))
                 .append("</text>\n");
             svg.append("<text x=\"").append(svgNumber(pctX)).append("\" y=\"").append(svgNumber(y))
-                .append("\" text-anchor=\"end\" font-size=\"11\" fill=\"#4a4a4a\">")
+                .append("\" text-anchor=\"end\" font-size=\"12\" fill=\"#4a4a4a\">")
                 .append(escapeHtml(formatNumber(legendPcts.get(i), 1) + "%"))
                 .append("</text>\n");
         }
@@ -2500,15 +2511,15 @@ public class PortfolioReportGenerator {
             currentAngle = endAngle;
         }
 
-        double summaryY = centerY + radius + 12.0;
+        double summaryY = centerY + radius + 16.0;
         svg.append("<text x=\"").append(svgNumber(centerX)).append("\" y=\"").append(svgNumber(summaryY))
-            .append("\" text-anchor=\"middle\" font-size=\"11\" fill=\"#666\">")
+            .append("\" text-anchor=\"middle\" font-size=\"12\" fill=\"#666\">")
             .append(escapeHtml(centerTitle))
             .append("</text>\n");
 
         boolean useTwoColumns = buckets.size() > 6;
         int rowsPerColumn = useTwoColumns ? (buckets.size() + 1) / 2 : buckets.size();
-        double legendYStart = 244.0;
+        double legendYStart = 248.0;
         double legendRowGap = 15.0;
         for (int i = 0; i < buckets.size(); i++) {
             AllocationBucket bucket = buckets.get(i);
@@ -2525,11 +2536,11 @@ public class PortfolioReportGenerator {
 
             svg.append("<circle cx=\"").append(svgNumber(dotX)).append("\" cy=\"").append(svgNumber(y - 3.0)).append("\" r=\"3.7\" fill=\"")
                 .append(color).append("\"/>\n");
-            svg.append("<text x=\"").append(svgNumber(labelX)).append("\" y=\"").append(svgNumber(y)).append("\" text-anchor=\"start\" font-size=\"11\" fill=\"#2f2f2f\">")
+            svg.append("<text x=\"").append(svgNumber(labelX)).append("\" y=\"").append(svgNumber(y)).append("\" text-anchor=\"start\" font-size=\"12\" fill=\"#2f2f2f\">")
                 .append(escapeHtml(bucket.label))
                 .append("</text>\n");
             svg.append("<text x=\"").append(svgNumber(pctX)).append("\" y=\"").append(svgNumber(y))
-                .append("\" text-anchor=\"end\" font-size=\"11\" fill=\"#4a4a4a\">")
+                .append("\" text-anchor=\"end\" font-size=\"12\" fill=\"#4a4a4a\">")
                 .append(escapeHtml(formatNumber(pct, 1) + "%"))
                 .append("</text>\n");
         }
