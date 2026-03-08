@@ -44,6 +44,8 @@ public class PortfolioReportGenerator {
     private static final Map<String, Security> securitiesByKey = new LinkedHashMap<>();
     private static final Map<String, String> canonicalSecurityNameByIsin = new LinkedHashMap<>();
     private static final ArrayList<UnitEvent> unitEvents = new ArrayList<>();
+    private static final ArrayList<CashEvent> cashEvents = new ArrayList<>();
+    private static final ArrayList<PortfolioCashSnapshot> portfolioCashSnapshots = new ArrayList<>();
     private static int loadedCsvFileCount = 0;
     private static int loadedTransactionRowCount = 0;
 
@@ -54,6 +56,8 @@ public class PortfolioReportGenerator {
         loadedCsvFileCount = 0;
         loadedTransactionRowCount = 0;
         unitEvents.clear();
+        cashEvents.clear();
+        portfolioCashSnapshots.clear();
         int filesProcessed = readAllTransactionFiles();
         loadedCsvFileCount = filesProcessed;
 
@@ -246,9 +250,11 @@ public class PortfolioReportGenerator {
         int totalFees;
         int tradeDate;
         int cancellationDate;
+        int portfolioId;
+        int cashBalance;
 
         HeaderIndexes() {
-            transactionId = securityName = securityType = isin = transactionType = amount = quantity = price = result = totalFees = tradeDate = cancellationDate = -1;
+            transactionId = securityName = securityType = isin = transactionType = amount = quantity = price = result = totalFees = tradeDate = cancellationDate = portfolioId = cashBalance = -1;
         }
 
         boolean hasRequiredColumns() {
@@ -265,6 +271,30 @@ public class PortfolioReportGenerator {
             this.tradeDate = tradeDate;
             this.securityKey = securityKey;
             this.unitsDelta = unitsDelta;
+        }
+    }
+
+    private static final class CashEvent {
+        private final LocalDate tradeDate;
+        private final double cashDelta;
+
+        private CashEvent(LocalDate tradeDate, double cashDelta) {
+            this.tradeDate = tradeDate;
+            this.cashDelta = cashDelta;
+        }
+    }
+
+    private static final class PortfolioCashSnapshot {
+        private final LocalDate tradeDate;
+        private final long sortId;
+        private final String portfolioId;
+        private final double balance;
+
+        private PortfolioCashSnapshot(LocalDate tradeDate, long sortId, String portfolioId, double balance) {
+            this.tradeDate = tradeDate;
+            this.sortId = sortId;
+            this.portfolioId = portfolioId;
+            this.balance = balance;
         }
     }
 
@@ -391,6 +421,7 @@ public class PortfolioReportGenerator {
         private final int holdingsCount;
         private final String totalCurrencyCode;
         private final double totalMarketValue;
+        private final double cashHoldings;
         private final double totalReturn;
         private final double totalReturnPct;
         private final String bestLabel;
@@ -408,6 +439,7 @@ public class PortfolioReportGenerator {
                 int holdingsCount,
                 String totalCurrencyCode,
                 double totalMarketValue,
+                double cashHoldings,
                 double totalReturn,
                 double totalReturnPct,
                 String bestLabel,
@@ -423,6 +455,7 @@ public class PortfolioReportGenerator {
             this.holdingsCount = holdingsCount;
             this.totalCurrencyCode = totalCurrencyCode;
             this.totalMarketValue = totalMarketValue;
+            this.cashHoldings = cashHoldings;
             this.totalReturn = totalReturn;
             this.totalReturnPct = totalReturnPct;
             this.bestLabel = bestLabel;
@@ -453,9 +486,19 @@ public class PortfolioReportGenerator {
                 case "totale avgifter", "omkostninger" -> indexes.totalFees = i;
                 case "handelsdag", "handelsdato" -> indexes.tradeDate = i;
                 case "makuleringsdato" -> indexes.cancellationDate = i;
+                case "portefølje", "portefolje", "konto" -> indexes.portfolioId = i;
+                case "saldo" -> indexes.cashBalance = i;
                 default -> {
                     // Ignored.
                 }
+            }
+
+            if (indexes.portfolioId < 0 && (column.contains("portef") || "konto".equals(column))) {
+                indexes.portfolioId = i;
+            }
+
+            if (indexes.cashBalance < 0 && column.contains("saldo")) {
+                indexes.cashBalance = i;
             }
         }
         return indexes;
@@ -466,8 +509,20 @@ public class PortfolioReportGenerator {
             return;
         }
 
+        String transactionType = getCell(row, indexes.transactionType)
+                .toUpperCase(Locale.ROOT)
+                .replaceAll("\\s+", " ")
+                .trim();
+
+        LocalDate tradeDateForTracking = indexes.tradeDate >= 0
+            ? parseTradeDateForSort(getCell(row, indexes.tradeDate))
+            : LocalDate.MIN;
+        long sortId = parseSortIdOrDefault(getCell(row, indexes.transactionId));
+        boolean balanceBackedRow = recordPortfolioCashSnapshot(row, indexes, tradeDateForTracking, sortId);
+
         String securityName = getCell(row, indexes.securityName);
         if (securityName.isEmpty()) {
+            processStandaloneCashTransaction(row, indexes, transactionType, tradeDateForTracking, balanceBackedRow);
             return;
         }
 
@@ -482,7 +537,49 @@ public class PortfolioReportGenerator {
 
         security.updateAssetTypeFromHint(securityType, securityName);
 
-        processTransaction(security, row, indexes, isin);
+        processTransaction(security, row, indexes, isin, transactionType, tradeDateForTracking, balanceBackedRow);
+    }
+
+    private static boolean recordPortfolioCashSnapshot(ArrayList<String> row, HeaderIndexes indexes,
+                                                       LocalDate tradeDate, long sortId) {
+        if (indexes.portfolioId < 0 || indexes.cashBalance < 0) {
+            return false;
+        }
+
+        String portfolioId = getCell(row, indexes.portfolioId);
+        String balanceText = getCell(row, indexes.cashBalance);
+        if (portfolioId.isBlank() || balanceText.isBlank()) {
+            return false;
+        }
+
+        double balance = parseDoubleOrZero(balanceText);
+        portfolioCashSnapshots.add(new PortfolioCashSnapshot(
+                tradeDate == null ? LocalDate.MIN : tradeDate,
+                sortId,
+                portfolioId,
+                balance
+        ));
+        return true;
+    }
+
+    private static void processStandaloneCashTransaction(ArrayList<String> row, HeaderIndexes indexes,
+                                                         String transactionType, LocalDate tradeDateForTracking,
+                                                         boolean balanceBackedRow) {
+        if (balanceBackedRow) {
+            return;
+        }
+
+        if (!isCashAccountEventType(transactionType)) {
+            return;
+        }
+
+        double amount = parseDoubleOrZero(getCell(row, indexes.amount));
+        double totalFees = parseDoubleOrZero(getCell(row, indexes.totalFees));
+
+        double cashDelta = resolveCashAccountEventDelta(transactionType, amount, totalFees);
+        if (Math.abs(cashDelta) > 1e-9) {
+            recordCashEvent(tradeDateForTracking, cashDelta);
+        }
     }
 
     private static void rememberCanonicalSecurityName(String originalIsin, String canonicalIsin, String securityName) {
@@ -634,20 +731,15 @@ public class PortfolioReportGenerator {
         return soldSecurities;
     }
 
-    private static void processTransaction(Security security, ArrayList<String> row, HeaderIndexes indexes, String originalIsin) {
-        String transactionType = getCell(row, indexes.transactionType)
-                .toUpperCase(Locale.ROOT)
-                .replaceAll("\\s+", " ");
+    private static void processTransaction(Security security, ArrayList<String> row, HeaderIndexes indexes,
+                                           String originalIsin, String transactionType,
+                                           LocalDate tradeDateForTracking, boolean balanceBackedRow) {
 
         double quantity = parseDoubleOrZero(getCell(row, indexes.quantity));
         double amount = parseDoubleOrZero(getCell(row, indexes.amount));
         double price = parseDoubleOrZero(getCell(row, indexes.price));
         double result = parseDoubleOrZero(getCell(row, indexes.result));
         double totalFees = parseDoubleOrZero(getCell(row, indexes.totalFees));
-        LocalDate tradeDateForTracking = indexes.tradeDate >= 0
-            ? parseTradeDateForSort(getCell(row, indexes.tradeDate))
-            : LocalDate.MIN;
-
         if (isRenameBookkeepingTransaction(transactionType, originalIsin)) {
             boolean isCancelled = indexes.cancellationDate >= 0 && !getCell(row, indexes.cancellationDate).isBlank();
             if (!isCancelled && "BYTTE INNLEGG VP".equals(transactionType) && quantity > 0.0) {
@@ -660,6 +752,10 @@ public class PortfolioReportGenerator {
 
         switch (transactionType) {
             case "SALG", "SELL", "KJØPT", "KJOPT", "KJØP", "KJOP", "BUY", "REINVESTERT UTBYTTE", "REINVESTERTUTBYTTE" -> {
+                    double tradeCashDelta = resolveTradeCashDelta(transactionType, amount, quantity, price, totalFees);
+                    if (!balanceBackedRow && Math.abs(tradeCashDelta) > 1e-9) {
+                        recordCashEvent(tradeDateForTracking, tradeCashDelta);
+                    }
                     if (Math.abs(quantity) > 0.0) {
                         double unitsDelta = isBuyLikeTransaction(transactionType, amount)
                                 ? Math.abs(quantity)
@@ -676,14 +772,26 @@ public class PortfolioReportGenerator {
                     security.addZeroCostUnits(quantity, tradeDate);
                 }
             }
-            case "UTBYTTE", "DIVIDEND" -> security.addDividend(amount);
+            case "UTBYTTE", "DIVIDEND" -> {
+                if (!balanceBackedRow && Math.abs(amount) > 1e-9) {
+                    recordCashEvent(tradeDateForTracking, Math.abs(amount));
+                }
+                security.addDividend(Math.abs(amount));
+            }
             case "TILBAKEBET. FOND AVG" -> {
                 double refundAmount = totalFees > 0.0 ? totalFees : Math.abs(amount);
                 security.applyCostRefund(refundAmount);
+                if (!balanceBackedRow && Math.abs(refundAmount) > 0.0) {
+                    recordCashEvent(tradeDateForTracking, refundAmount);
+                }
             }
             case "INNSKUDD", "UTTAK INTERNET", "PLATTFORMAVGIFT",
-                    "OVERBELÅNINGSRENTE", "TILBAKEBETALING", "OVERFØRING VIA TRUSTLY", "OVERFORING VIA TRUSTLY" -> {
-                // Ignored on purpose; these are cash-account events.
+                    "OVERBELÅNINGSRENTE", "OVERBELANINGSRENTE", "DEBETRENTE", "TILBAKEBETALING",
+                    "OVERFØRING VIA TRUSTLY", "OVERFORING VIA TRUSTLY", "PLATTFORMAVG KORR" -> {
+                double cashDelta = resolveCashAccountEventDelta(transactionType, amount, totalFees);
+                if (!balanceBackedRow && Math.abs(cashDelta) > 1e-9) {
+                    recordCashEvent(tradeDateForTracking, cashDelta);
+                }
             }
             default -> {
                 // Intentionally ignored unknown transaction types.
@@ -703,6 +811,71 @@ public class PortfolioReportGenerator {
         return amount < 0.0;
     }
 
+    private static boolean isSellLikeTransaction(String transactionType, double amount) {
+        return !isBuyLikeTransaction(transactionType, amount);
+    }
+
+    private static double resolveTradeCashDelta(String transactionType, double amount,
+                                                double quantity, double price, double totalFees) {
+        if (isBuyLikeTransaction(transactionType, amount)) {
+            double buyCashOut = Math.abs(amount);
+            if (buyCashOut <= 1e-9 && Math.abs(quantity) > 1e-9 && price > 0.0) {
+                buyCashOut = Math.abs(quantity) * price + Math.max(totalFees, 0.0);
+            }
+            return -buyCashOut;
+        }
+
+        if (isSellLikeTransaction(transactionType, amount)) {
+            double sellCashIn = Math.abs(amount);
+            if (sellCashIn <= 1e-9 && Math.abs(quantity) > 1e-9 && price > 0.0) {
+                sellCashIn = Math.max(0.0, (Math.abs(quantity) * price) - Math.max(totalFees, 0.0));
+            }
+            return sellCashIn;
+        }
+
+        return 0.0;
+    }
+
+    private static boolean isCashAccountEventType(String transactionType) {
+        if (transactionType == null || transactionType.isBlank()) {
+            return false;
+        }
+
+        String normalized = transactionType.toUpperCase(Locale.ROOT);
+        return normalized.contains("INNSKUDD")
+                || normalized.contains("UTTAK")
+                || normalized.contains("PLATTFORMAVG")
+                || normalized.contains("DEBETRENTE")
+                || normalized.contains("OVERBEL")
+                || normalized.contains("OVERFØRING VIA TRUSTLY")
+                || normalized.contains("OVERFORING VIA TRUSTLY")
+                || normalized.contains("TILBAKEBETALING");
+    }
+
+    private static double resolveCashAccountEventDelta(String transactionType, double amount, double totalFees) {
+        String normalized = transactionType == null ? "" : transactionType.toUpperCase(Locale.ROOT);
+
+        if (normalized.contains("INNSKUDD") || normalized.contains("OVERFØRING VIA TRUSTLY")
+                || normalized.contains("OVERFORING VIA TRUSTLY") || normalized.contains("TILBAKEBETALING")) {
+            double baseAmount = Math.abs(amount);
+            return baseAmount > 1e-9 ? baseAmount : Math.max(0.0, totalFees);
+        }
+
+        if (normalized.contains("UTTAK")) {
+            double baseAmount = Math.abs(amount);
+            return baseAmount > 1e-9 ? -baseAmount : -Math.max(0.0, totalFees);
+        }
+
+        if (normalized.contains("PLATTFORMAVG") || normalized.contains("DEBETRENTE") || normalized.contains("OVERBEL")) {
+            if (Math.abs(amount) > 1e-9) {
+                return amount;
+            }
+            return -Math.max(0.0, totalFees);
+        }
+
+        return amount;
+    }
+
     private static void recordUnitEvent(Security security, LocalDate tradeDate, double unitsDelta) {
         if (security == null || Math.abs(unitsDelta) < 1e-9) {
             return;
@@ -715,6 +888,69 @@ public class PortfolioReportGenerator {
 
         LocalDate eventDate = tradeDate == null ? LocalDate.MIN : tradeDate;
         unitEvents.add(new UnitEvent(eventDate, securityKey, unitsDelta));
+    }
+
+    private static void recordCashEvent(LocalDate tradeDate, double cashDelta) {
+        if (Math.abs(cashDelta) < 1e-9) {
+            return;
+        }
+
+        LocalDate eventDate = tradeDate == null ? LocalDate.MIN : tradeDate;
+        cashEvents.add(new CashEvent(eventDate, cashDelta));
+    }
+
+    private static double getCurrentCashHoldings() {
+        if (portfolioCashSnapshots.isEmpty()) {
+            double cash = 0.0;
+            for (CashEvent event : cashEvents) {
+                cash += event.cashDelta;
+            }
+            return cash;
+        }
+
+        LinkedHashMap<String, PortfolioCashSnapshot> latestByPortfolio = new LinkedHashMap<>();
+        for (PortfolioCashSnapshot snapshot : portfolioCashSnapshots) {
+            if (snapshot == null || snapshot.portfolioId == null || snapshot.portfolioId.isBlank()) {
+                continue;
+            }
+
+            PortfolioCashSnapshot existing = latestByPortfolio.get(snapshot.portfolioId);
+            if (existing == null
+                    || snapshot.tradeDate.isAfter(existing.tradeDate)
+                    || (snapshot.tradeDate.equals(existing.tradeDate) && snapshot.sortId >= existing.sortId)) {
+                latestByPortfolio.put(snapshot.portfolioId, snapshot);
+            }
+        }
+
+        double authoritativePortfolioCash = 0.0;
+        for (PortfolioCashSnapshot snapshot : latestByPortfolio.values()) {
+            authoritativePortfolioCash += snapshot.balance;
+        }
+
+        return authoritativePortfolioCash;
+    }
+
+    private static double sumPortfolioBalancesOnOrBefore(
+            LocalDate monthEnd,
+            ArrayList<PortfolioCashSnapshot> sortedSnapshots,
+            int[] snapshotIndexRef,
+            LinkedHashMap<String, Double> latestBalanceByPortfolio) {
+        int snapshotIndex = snapshotIndexRef[0];
+        while (snapshotIndex < sortedSnapshots.size()
+                && !sortedSnapshots.get(snapshotIndex).tradeDate.isAfter(monthEnd)) {
+            PortfolioCashSnapshot snapshot = sortedSnapshots.get(snapshotIndex);
+            if (snapshot.portfolioId != null && !snapshot.portfolioId.isBlank()) {
+                latestBalanceByPortfolio.put(snapshot.portfolioId, snapshot.balance);
+            }
+            snapshotIndex++;
+        }
+        snapshotIndexRef[0] = snapshotIndex;
+
+        double cash = 0.0;
+        for (double balance : latestBalanceByPortfolio.values()) {
+            cash += balance;
+        }
+        return cash;
     }
 
     private static String getTrackingSecurityKey(Security security) {
@@ -852,6 +1088,7 @@ public class PortfolioReportGenerator {
         int holdingsCount = overviewRows == null ? 0 : overviewRows.size();
 
         double totalMarketValue = 0.0;
+        double cashHoldings = getCurrentCashHoldings();
         double totalReturn = 0.0;
         double totalHistoricalCostBasis = 0.0;
         String totalCurrencyCode = null;
@@ -895,6 +1132,7 @@ public class PortfolioReportGenerator {
                 holdingsCount,
                 totalCurrencyCode,
                 totalMarketValue,
+                cashHoldings,
                 totalReturn,
                 totalReturnPct,
                 bestLabel,
@@ -1041,13 +1279,27 @@ public class PortfolioReportGenerator {
 
     private static ArrayList<PortfolioValuePoint> buildPortfolioValueTimelineLast12Months() {
         ArrayList<PortfolioValuePoint> timeline = new ArrayList<>();
-        if (unitEvents.isEmpty()) {
+        if (unitEvents.isEmpty() && cashEvents.isEmpty() && portfolioCashSnapshots.isEmpty()) {
             return timeline;
         }
+
+        boolean useAuthoritativeSnapshots = !portfolioCashSnapshots.isEmpty();
 
         ArrayList<UnitEvent> sortedEvents = new ArrayList<>(unitEvents);
         sortedEvents.sort(Comparator.comparing((UnitEvent e) -> e.tradeDate)
                 .thenComparing(e -> e.securityKey));
+
+        ArrayList<CashEvent> sortedCashEvents = new ArrayList<>();
+        if (!useAuthoritativeSnapshots) {
+            sortedCashEvents.addAll(cashEvents);
+            sortedCashEvents.sort(Comparator.comparing((CashEvent e) -> e.tradeDate));
+        }
+
+        ArrayList<PortfolioCashSnapshot> sortedCashSnapshots = new ArrayList<>(portfolioCashSnapshots);
+        sortedCashSnapshots.sort(
+            Comparator.comparing((PortfolioCashSnapshot s) -> s.tradeDate)
+                .thenComparingLong(s -> s.sortId)
+        );
 
         Map<String, Security> securitiesByTrackingKey = new HashMap<>();
         for (Security security : securities) {
@@ -1060,6 +1312,10 @@ public class PortfolioReportGenerator {
         YearMonth endMonth = YearMonth.now();
         YearMonth startMonth = endMonth.minusMonths(11);
         int eventIndex = 0;
+        int cashEventIndex = 0;
+        int[] cashSnapshotIndexRef = new int[] {0};
+        double runningCash = 0.0;
+        LinkedHashMap<String, Double> latestBalanceByPortfolio = new LinkedHashMap<>();
 
         for (int monthOffset = 0; monthOffset < 12; monthOffset++) {
             YearMonth currentMonth = startMonth.plusMonths(monthOffset);
@@ -1071,7 +1327,23 @@ public class PortfolioReportGenerator {
                 eventIndex++;
             }
 
-            double totalValue = 0.0;
+            while (cashEventIndex < sortedCashEvents.size()
+                    && !sortedCashEvents.get(cashEventIndex).tradeDate.isAfter(monthEnd)) {
+                CashEvent cashEvent = sortedCashEvents.get(cashEventIndex);
+                runningCash += cashEvent.cashDelta;
+                cashEventIndex++;
+            }
+
+                double balanceSnapshotCash = sumPortfolioBalancesOnOrBefore(
+                    monthEnd,
+                    sortedCashSnapshots,
+                    cashSnapshotIndexRef,
+                    latestBalanceByPortfolio
+                );
+
+            double totalValue = useAuthoritativeSnapshots
+                    ? balanceSnapshotCash
+                    : runningCash + balanceSnapshotCash;
             for (Map.Entry<String, Double> entry : unitsBySecurity.entrySet()) {
                 double units = entry.getValue();
                 if (units <= 0.0000001) {
@@ -1226,6 +1498,7 @@ public class PortfolioReportGenerator {
     private static void writeHtmlHeader(FileWriter writer, HeaderSummary summary) throws IOException {
         String generatedDate = summary.generatedDate;
         String totalMarketValueText = formatTotalMoney(summary.totalMarketValue, summary.totalCurrencyCode, 0);
+        String cashHoldingsText = formatTotalMoney(summary.cashHoldings, summary.totalCurrencyCode, 0);
         String totalReturnText = formatTotalMoney(summary.totalReturn, summary.totalCurrencyCode, 0);
         String totalReturnPctText = formatPercent(summary.totalReturnPct, 2);
         String bestReturnText = formatTotalMoney(summary.bestReturn, summary.totalCurrencyCode, 0) + " (" + formatPercent(summary.bestReturnPct, 2) + ")";
@@ -1247,6 +1520,7 @@ public class PortfolioReportGenerator {
         writer.write("    .report-hero .meta span { background: rgba(255, 255, 255, 0.14); border: 1px solid rgba(255, 255, 255, 0.22); border-radius: 999px; padding: 3px 10px; }\n");
         writer.write("    .hero-grid { margin-top: 12px; display: grid; grid-template-columns: minmax(300px, 1fr) 2fr; gap: 12px; align-items: stretch; }\n");
         writer.write("    .hero-kpi-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }\n");
+        writer.write("    .hero-kpi-col { display: grid; gap: 10px; align-content: start; }\n");
         writer.write("    .hero-card, .hero-spark-card { border: 1px solid rgba(255,255,255,0.28); border-radius: 8px; background: rgba(255,255,255,0.12); padding: 9px 10px; }\n");
         writer.write("    .hero-card .label, .hero-spark-card .label { font-size: 11px; opacity: 0.9; }\n");
         writer.write("    .hero-card .value { margin-top: 4px; font-size: 18px; font-weight: 700; letter-spacing: 0.2px; }\n");
@@ -1292,10 +1566,15 @@ public class PortfolioReportGenerator {
         writer.write("    <div class=\"meta\"><span>Date: " + escapeHtml(generatedDate) + "</span><span>Files: " + summary.fileCount + "</span><span>Transactions: " + summary.transactionCount + "</span><span>Holdings: " + summary.holdingsCount + "</span></div>\n");
         writer.write("    <div class=\"hero-grid\">\n");
         writer.write("      <div class=\"hero-kpi-grid\">\n");
-        writer.write("        <div class=\"hero-card\"><div class=\"label\">Market Value</div><div class=\"value\">" + escapeHtml(totalMarketValueText) + "</div></div>\n");
-        writer.write("        <div class=\"hero-card\"><div class=\"label\">Total Return</div><div class=\"value\">" + escapeHtml(totalReturnText) + "</div></div>\n");
-        writer.write("        <div class=\"hero-card\"><div class=\"label\">Best / Worst Holding</div><div class=\"name\">Best: " + escapeHtml(summary.bestLabel) + "</div><div class=\"subvalue\">" + escapeHtml(bestReturnText) + "</div><div class=\"name\" style=\"margin-top:6px;\">Worst: " + escapeHtml(summary.worstLabel) + "</div><div class=\"subvalue\">" + escapeHtml(worstReturnText) + "</div></div>\n");
-        writer.write("        <div class=\"hero-card\"><div class=\"label\">Total Return (%)</div><div class=\"value\">" + escapeHtml(totalReturnPctText) + "</div></div>\n");
+        writer.write("        <div class=\"hero-kpi-col\">\n");
+        writer.write("          <div class=\"hero-card\"><div class=\"label\">Market Value</div><div class=\"value\">" + escapeHtml(totalMarketValueText) + "</div></div>\n");
+        writer.write("          <div class=\"hero-card\"><div class=\"label\">Best / Worst Holding</div><div class=\"name\">Best: " + escapeHtml(summary.bestLabel) + "</div><div class=\"subvalue\">" + escapeHtml(bestReturnText) + "</div><div class=\"name\" style=\"margin-top:6px;\">Worst: " + escapeHtml(summary.worstLabel) + "</div><div class=\"subvalue\">" + escapeHtml(worstReturnText) + "</div></div>\n");
+        writer.write("        </div>\n");
+        writer.write("        <div class=\"hero-kpi-col\">\n");
+        writer.write("          <div class=\"hero-card\"><div class=\"label\">Cash Holdings</div><div class=\"value\">" + escapeHtml(cashHoldingsText) + "</div></div>\n");
+        writer.write("          <div class=\"hero-card\"><div class=\"label\">Total Return</div><div class=\"value\">" + escapeHtml(totalReturnText) + "</div></div>\n");
+        writer.write("          <div class=\"hero-card\"><div class=\"label\">Total Return (%)</div><div class=\"value\">" + escapeHtml(totalReturnPctText) + "</div></div>\n");
+        writer.write("        </div>\n");
         writer.write("      </div>\n");
         writer.write("      <div class=\"hero-spark-card\"><div class=\"label\">Portfolio Value (12M)</div>" + summary.sparklineSvg + "</div>\n");
         writer.write("    </div>\n");
@@ -1874,9 +2153,14 @@ public class PortfolioReportGenerator {
 
         double stockValue = 0.0;
         double fundValue = 0.0;
+        double rawCashValue = getCurrentCashHoldings();
+        double cashValue = Math.max(0.0, rawCashValue);
+        double cashDebtValue = rawCashValue < 0.0 ? -rawCashValue : 0.0;
         double otherValue = 0.0;
         int stockCount = 0;
         int fundCount = 0;
+        int cashCount = cashValue > 0.0 ? 1 : 0;
+        int cashDebtCount = cashDebtValue > 0.0 ? 1 : 0;
         int otherCount = 0;
 
         for (OverviewRow row : rows) {
@@ -1900,7 +2184,7 @@ public class PortfolioReportGenerator {
             }
         }
 
-        double totalValue = stockValue + fundValue + otherValue;
+        double totalValue = stockValue + fundValue + cashValue + cashDebtValue + otherValue;
 
         StringBuilder svg = new StringBuilder();
         svg.append("<svg class=\"chart-svg\" viewBox=\"0 0 ")
@@ -1929,6 +2213,16 @@ public class PortfolioReportGenerator {
             labels.add("Funds");
             values.add(fundValue);
             colors.add("#2f9e44");
+        }
+        if (cashValue > 0.0) {
+            labels.add("Cash");
+            values.add(cashValue);
+            colors.add("#f59f00");
+        }
+        if (cashDebtValue > 0.0) {
+            labels.add("Cash (Debt)");
+            values.add(cashDebtValue);
+            colors.add("#e03131");
         }
         if (otherValue > 0.0) {
             labels.add("Other");
@@ -1974,22 +2268,40 @@ public class PortfolioReportGenerator {
 
         double stockPct = totalValue > 0.0 ? (stockValue / totalValue) * 100.0 : 0.0;
         double fundPct = totalValue > 0.0 ? (fundValue / totalValue) * 100.0 : 0.0;
+        double cashPct = totalValue > 0.0 ? (cashValue / totalValue) * 100.0 : 0.0;
+        double cashDebtPct = totalValue > 0.0 ? (cashDebtValue / totalValue) * 100.0 : 0.0;
         double otherPct = totalValue > 0.0 ? (otherValue / totalValue) * 100.0 : 0.0;
 
         double summaryY = centerY + radius + 14.0;
         svg.append("<text x=\"").append(svgNumber(centerX)).append("\" y=\"").append(svgNumber(summaryY))
             .append("\" text-anchor=\"middle\" font-size=\"10\" fill=\"#666\">Asset Mix</text>\n");
-        svg.append("<text x=\"").append(svgNumber(centerX)).append("\" y=\"").append(svgNumber(summaryY + 14.0))
-            .append("\" text-anchor=\"middle\" font-size=\"11\" fill=\"#222\" font-weight=\"600\">")
-            .append(escapeHtml("Stocks: " + stockCount + " (" + formatNumber(stockPct, 1) + "%)"))
-            .append("</text>\n");
-        svg.append("<text x=\"").append(svgNumber(centerX)).append("\" y=\"").append(svgNumber(summaryY + 28.0))
-            .append("\" text-anchor=\"middle\" font-size=\"11\" fill=\"#222\" font-weight=\"600\">")
-            .append(escapeHtml("Funds: " + fundCount + " (" + formatNumber(fundPct, 1) + "%)"))
-            .append("</text>\n");
-
+        int summaryLine = 0;
+        if (stockCount > 0) {
+            svg.append("<text x=\"").append(svgNumber(centerX)).append("\" y=\"").append(svgNumber(summaryY + 14.0 + (summaryLine++ * 14.0)))
+                .append("\" text-anchor=\"middle\" font-size=\"11\" fill=\"#222\" font-weight=\"600\">")
+                .append(escapeHtml("Stocks: " + stockCount + " (" + formatNumber(stockPct, 1) + "%)"))
+                .append("</text>\n");
+        }
+        if (fundCount > 0) {
+            svg.append("<text x=\"").append(svgNumber(centerX)).append("\" y=\"").append(svgNumber(summaryY + 14.0 + (summaryLine++ * 14.0)))
+                .append("\" text-anchor=\"middle\" font-size=\"11\" fill=\"#222\" font-weight=\"600\">")
+                .append(escapeHtml("Funds: " + fundCount + " (" + formatNumber(fundPct, 1) + "%)"))
+                .append("</text>\n");
+        }
+        if (cashCount > 0) {
+            svg.append("<text x=\"").append(svgNumber(centerX)).append("\" y=\"").append(svgNumber(summaryY + 14.0 + (summaryLine++ * 14.0)))
+                .append("\" text-anchor=\"middle\" font-size=\"11\" fill=\"#222\" font-weight=\"600\">")
+                .append(escapeHtml("Cash: " + formatNumber(cashValue, 2) + " kr (" + formatNumber(cashPct, 1) + "%)"))
+                .append("</text>\n");
+        }
+        if (cashDebtCount > 0) {
+            svg.append("<text x=\"").append(svgNumber(centerX)).append("\" y=\"").append(svgNumber(summaryY + 14.0 + (summaryLine++ * 14.0)))
+                .append("\" text-anchor=\"middle\" font-size=\"11\" fill=\"#222\" font-weight=\"600\">")
+                .append(escapeHtml("Cash (Debt): -" + formatNumber(cashDebtValue, 2) + " kr (" + formatNumber(cashDebtPct, 1) + "%)"))
+                .append("</text>\n");
+        }
         if (otherCount > 0) {
-            svg.append("<text x=\"").append(svgNumber(centerX)).append("\" y=\"").append(svgNumber(summaryY + 42.0))
+            svg.append("<text x=\"").append(svgNumber(centerX)).append("\" y=\"").append(svgNumber(summaryY + 14.0 + (summaryLine * 14.0)))
                 .append("\" text-anchor=\"middle\" font-size=\"9\" fill=\"#555\">")
                 .append(escapeHtml("Other: " + otherCount + " (" + formatNumber(otherPct, 1) + "%)"))
                 .append("</text>\n");
