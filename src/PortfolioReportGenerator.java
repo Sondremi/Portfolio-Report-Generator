@@ -1583,8 +1583,10 @@ public class PortfolioReportGenerator {
         writer.write(" .overview-charts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; margin: 8px 0 14px 0; align-items: stretch; }\n");
         writer.write(" .overview-chart { border: 1px solid #d0d0d0; border-radius: 6px; background: #fff; padding: 10px; }\n");
         writer.write(" .overview-chart h3 { margin: 0 0 8px 0; font-size: 15px; font-weight: 600; }\n");
+        writer.write(" .overview-chart.total-return-chart { padding: 8px 10px 6px 10px; }\n");
+        writer.write(" .overview-chart.total-return-chart h3 { margin: 0 0 4px 0; }\n");
         writer.write(" .chart-svg { width: 100%; height: 350px; display: block; }\n");
-        writer.write(" .overview-chart.total-return-chart .chart-svg { height: 430px; }\n");
+        writer.write(" .overview-chart.total-return-chart .chart-svg { height: 500px; }\n");
         writer.write(" .overview-chart.allocation-card { margin-top: 12px; }\n");
         writer.write(" .overview-chart.allocation-card .chart-svg { height: 230px; }\n");
         writer.write(" .overview-chart.allocation-card .chart-svg.market-value-bar-chart { height: 290px; }\n");
@@ -1889,16 +1891,21 @@ public class PortfolioReportGenerator {
 
             svg.append("<line x1=\"").append(svgNumber(left)).append("\" y1=\"").append(svgNumber(y))
                     .append("\" x2=\"").append(svgNumber(left + plotWidth)).append("\" y2=\"").append(svgNumber(y))
-                    .append("\" stroke=\"#ececec\" stroke-width=\"1\"/>\n");
+                .append("\" stroke=\"#d2d8df\" stroke-width=\"1.3\"/>\n");
 
                 svg.append("<text x=\"").append(svgNumber(left - 8.0)).append("\" y=\"").append(svgNumber(y + 4.0))
-                    .append("\" text-anchor=\"end\" font-size=\"11\" fill=\"#666\">")
+                .append("\" text-anchor=\"end\" font-size=\"12\" font-weight=\"600\" fill=\"#4a5563\">")
                     .append(escapeHtml(formatChartValue(tickValue, percentChart, true)))
                     .append("</text>\n");
         }
 
+        svg.append("<rect x=\"").append(svgNumber(left)).append("\" y=\"").append(svgNumber(top))
+            .append("\" width=\"").append(svgNumber(plotWidth)).append("\" height=\"").append(svgNumber(plotHeight))
+            .append("\" fill=\"none\" stroke=\"#b8c0ca\" stroke-width=\"1.3\"/>\n");
+
         double slotWidth = rows.isEmpty() ? plotWidth : plotWidth / rows.size();
-        double barWidth = Math.max(6.0, slotWidth * 0.48);
+        double barWidth = Math.max(8.0, slotWidth * 0.62);
+        double labelRotation = rows.size() > 14 ? -38.0 : -30.0;
 
         for (int i = 0; i < rows.size(); i++) {
             OverviewRow row = rows.get(i);
@@ -1911,32 +1918,34 @@ public class PortfolioReportGenerator {
                 barHeight = 1.0;
             }
 
-            String barColor = value >= 0.0 ? "#2f9e44" : "#d94841";
+                String barColor = value >= 0.0 ? "#2b8a3e" : "#b23a31";
+                String barBorderColor = value >= 0.0 ? "#1f6f31" : "#8f2b24";
             String label = getOverviewRowLabel(row);
-            String compactLabel = getCompactBarLabel(row);
+            String compactLabel = (label == null || label.isBlank()) ? "-" : label;
 
             svg.append("<rect x=\"").append(svgNumber(x)).append("\" y=\"").append(svgNumber(barY))
                     .append("\" width=\"").append(svgNumber(barWidth)).append("\" height=\"").append(svgNumber(barHeight))
-                    .append("\" fill=\"").append(barColor).append("\" rx=\"2\">\n")
+                    .append("\" fill=\"").append(barColor).append("\" stroke=\"").append(barBorderColor)
+                    .append("\" stroke-width=\"1.1\" rx=\"1\">\n")
                     .append("<title>")
                     .append(escapeHtml(label + ": " + formatChartValue(value, percentChart, false)))
                     .append("</title></rect>\n");
 
             double labelAnchorX = x + (barWidth / 2.0);
-            double labelAnchorY = height - bottom + 10.0;
+                double labelAnchorY = height - bottom + 12.0;
             svg.append("<text x=\"").append(svgNumber(labelAnchorX)).append("\" y=\"").append(svgNumber(labelAnchorY))
-                    .append("\" transform=\"rotate(-38 ").append(svgNumber(labelAnchorX)).append(" ").append(svgNumber(labelAnchorY))
-                    .append(")\" text-anchor=\"end\" font-size=\"11\" font-weight=\"600\" fill=\"#1f2933\" paint-order=\"stroke\" stroke=\"#ffffff\" stroke-width=\"2\" stroke-linejoin=\"round\">")
+                    .append("\" transform=\"rotate(").append(svgNumber(labelRotation)).append(" ").append(svgNumber(labelAnchorX)).append(" ").append(svgNumber(labelAnchorY))
+                    .append(")\" text-anchor=\"end\" font-size=\"12\" font-weight=\"700\" fill=\"#1f2933\" paint-order=\"stroke\" stroke=\"#ffffff\" stroke-width=\"2.4\" stroke-linejoin=\"round\">")
                     .append(escapeHtml(compactLabel))
                     .append("</text>\n");
         }
 
         svg.append("<line x1=\"").append(svgNumber(left)).append("\" y1=\"").append(svgNumber(chartZeroY))
                 .append("\" x2=\"").append(svgNumber(left + plotWidth)).append("\" y2=\"").append(svgNumber(chartZeroY))
-                .append("\" stroke=\"#7a7a7a\" stroke-width=\"1.1\"/>\n");
+                .append("\" stroke=\"#4f5d6c\" stroke-width=\"1.8\"/>\n");
         svg.append("<line x1=\"").append(svgNumber(left)).append("\" y1=\"").append(svgNumber(top))
                 .append("\" x2=\"").append(svgNumber(left)).append("\" y2=\"").append(svgNumber(top + plotHeight))
-                .append("\" stroke=\"#7a7a7a\" stroke-width=\"1.1\"/>\n");
+                .append("\" stroke=\"#4f5d6c\" stroke-width=\"1.8\"/>\n");
 
         svg.append("</svg>\n");
         return svg.toString();
@@ -2068,6 +2077,15 @@ public class PortfolioReportGenerator {
         }
 
         return text.substring(0, safeMax - 3) + "...";
+    }
+
+    private static double computeLegendRowGap(int rowsPerColumn, double startY, double maxY, double preferredGap) {
+        if (rowsPerColumn <= 1) {
+            return 0.0;
+        }
+
+        double availableHeight = Math.max(0.0, maxY - startY);
+        return Math.min(preferredGap, availableHeight / (rowsPerColumn - 1));
     }
 
     private static void adjustPieLabelPositions(ArrayList<PieSliceLabel> labels, boolean rightSide,
@@ -2367,8 +2385,9 @@ public class PortfolioReportGenerator {
 
         boolean useTwoColumns = legendLabels.size() > 4;
         int rowsPerColumn = useTwoColumns ? (legendLabels.size() + 1) / 2 : legendLabels.size();
-        double legendYStart = 252.0;
-        double legendRowGap = 15.0;
+        double legendYStart = summaryY + 18.0;
+        double legendBottomY = height - 14.0;
+        double legendRowGap = computeLegendRowGap(rowsPerColumn, legendYStart, legendBottomY, 15.0);
         for (int i = 0; i < legendLabels.size(); i++) {
             int columnIndex = (useTwoColumns && i >= rowsPerColumn) ? 1 : 0;
             int rowIndex = useTwoColumns ? (i % rowsPerColumn) : i;
@@ -2378,7 +2397,7 @@ public class PortfolioReportGenerator {
                 double pctX = useTwoColumns
                     ? (columnIndex == 0 ? 214.0 : (width - 16.0))
                     : (width - 16.0);
-                String displayLabel = abbreviateLegendLabel(legendLabels.get(i), useTwoColumns ? 18 : 26);
+                String displayLabel = abbreviateLegendLabel(legendLabels.get(i), useTwoColumns ? 14 : 24);
 
             svg.append("<circle cx=\"").append(svgNumber(dotX)).append("\" cy=\"").append(svgNumber(y - 3.0)).append("\" r=\"3.7\" fill=\"")
                 .append(legendColors.get(i)).append("\"/>\n");
@@ -2531,8 +2550,9 @@ public class PortfolioReportGenerator {
 
         boolean useTwoColumns = buckets.size() > 6;
         int rowsPerColumn = useTwoColumns ? (buckets.size() + 1) / 2 : buckets.size();
-        double legendYStart = 252.0;
-        double legendRowGap = 15.0;
+        double legendYStart = summaryY + 18.0;
+        double legendBottomY = height - 14.0;
+        double legendRowGap = computeLegendRowGap(rowsPerColumn, legendYStart, legendBottomY, 15.0);
         for (int i = 0; i < buckets.size(); i++) {
             AllocationBucket bucket = buckets.get(i);
             double pct = (bucket.value / totalMarketValue) * 100.0;
@@ -2545,7 +2565,7 @@ public class PortfolioReportGenerator {
                     ? (columnIndex == 0 ? 214.0 : (width - 16.0))
                     : (width - 16.0);
             String color = getAllocationColor(i);
-                String displayLabel = abbreviateLegendLabel(bucket.label, useTwoColumns ? 18 : 26);
+                    String displayLabel = abbreviateLegendLabel(bucket.label, useTwoColumns ? 22 : 36);
 
             svg.append("<circle cx=\"").append(svgNumber(dotX)).append("\" cy=\"").append(svgNumber(y - 3.0)).append("\" r=\"3.7\" fill=\"")
                 .append(color).append("\"/>\n");
