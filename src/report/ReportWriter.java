@@ -108,9 +108,6 @@ public class ReportWriter {
             // Realized Overview
             writeRealizedSummaryTableHtml(writer, store, ratesToNok);
 
-            // Sale Trades Details
-            writeSaleTradesTablesHtml(writer, store, ratesToNok);
-
             writer.write("</main>\n");
             writer.write("<script>\n");
             writer.write("function toggleOverviewDetails(rowId, button) {\n");
@@ -213,7 +210,7 @@ public class ReportWriter {
 
         writer.write("<div class=\"table-wrap\">\n<table>\n");
         writeHtmlRow(writer, true,
-                "Detaljer", "Ticker", "Security", "Units", "Avg Cost", "Last Price",
+                "Details", "Ticker", "Security", "Units", "Avg Cost", "Last Price",
                 "Market Value", "Cost Basis", "Unrealized", "Unrealized (%)",
                 "Realized (%)", "Realized", "Dividends", "Total Return", "Total Return (%)");
 
@@ -321,7 +318,7 @@ public class ReportWriter {
     private static void writeRealizedSummaryTableHtml(FileWriter writer, TransactionStore store, Map<String, Double> ratesToNok) throws IOException {
         writer.write("<h2>REALIZED OVERVIEW - ALL SALES</h2>\n");
         writer.write("<div class=\"table-wrap\">\n<table>\n");
-        writeHtmlRow(writer, true, "Ticker", "Security", "Sales Value", "Cost Basis", "Realized Gain/Loss", "Dividends", "Return (%)");
+        writeHtmlRow(writer, true, "Details", "Ticker", "Security", "Sales Value", "Cost Basis", "Realized Gain/Loss", "Dividends", "Return (%)");
 
         ArrayList<Security> soldSecurities = getSortedSoldSecurities(store);
         LinkedHashMap<String, Double> totalSalesValueBuckets = new LinkedHashMap<>();
@@ -329,6 +326,7 @@ public class ReportWriter {
         LinkedHashMap<String, Double> totalRealizedGainBuckets = new LinkedHashMap<>();
         LinkedHashMap<String, Double> totalRealizedDividendsBuckets = new LinkedHashMap<>();
         String previousAssetType = null;
+        int detailsIndex = 0;
 
         for (Security security : soldSecurities) {
             String currency = security.getCurrencyCode();
@@ -344,8 +342,10 @@ public class ReportWriter {
             addToCurrencyBuckets(totalCostBasisBuckets, currency, costBasis);
             addToCurrencyBuckets(totalRealizedGainBuckets, currency, gain);
             addToCurrencyBuckets(totalRealizedDividendsBuckets, currency, realizedDividends);
+                String detailsRowId = "realized-details-" + detailsIndex;
 
             writeHtmlRowWithClass(writer, rowClass,
+                    "<button class=\"expand-btn\" onclick=\"toggleOverviewDetails('" + detailsRowId + "', this)\">Show details</button>",
                     security.getTicker(),
                     security.getDisplayName(),
                     HtmlFormatter.formatMoney(salesValue, currency, 2),
@@ -354,7 +354,14 @@ public class ReportWriter {
                     HtmlFormatter.formatMoney(realizedDividends, currency, 2),
                     HtmlFormatter.formatPercent(returnPct, 2));
 
+                writer.write("<tr id=\"" + detailsRowId + "\" class=\"details-row\">\n");
+                writer.write("    <td class=\"details-cell\" colspan=\"8\">\n");
+                writer.write(buildRealizedSaleTradesDetailsHtml(security));
+                writer.write("    </td>\n");
+                writer.write("</tr>\n");
+
             previousAssetType = currentAssetType;
+                detailsIndex++;
         }
 
         double totalCostBasisForPct = convertBucketsToTarget(totalCostBasisBuckets, DEFAULT_TOTAL_CURRENCY, ratesToNok);
@@ -363,7 +370,7 @@ public class ReportWriter {
             ? (totalRealizedGainForPct / totalCostBasisForPct) * 100.0
             : (totalRealizedGainForPct > 0 ? 100.0 : 0.0);
         writer.write("<tr class=\"total-row\">\n");
-        writer.write("    <td></td><td><strong>TOTAL</strong></td>\n");
+        writer.write("    <td></td><td></td><td><strong>TOTAL</strong></td>\n");
         writer.write("    <td>" + renderConvertibleMoneyCell(totalSalesValueBuckets, 2, ratesToNok) + "</td>\n");
         writer.write("    <td>" + renderConvertibleMoneyCell(totalCostBasisBuckets, 2, ratesToNok) + "</td>\n");
         writer.write("    <td>" + renderConvertibleMoneyCell(totalRealizedGainBuckets, 2, ratesToNok) + "</td>\n");
@@ -374,45 +381,56 @@ public class ReportWriter {
         writer.write("</table>\n</div>\n\n");
     }
 
-    private static void writeSaleTradesTablesHtml(FileWriter writer, TransactionStore store, Map<String, Double> ratesToNok) throws IOException {
-        ArrayList<Security> soldSecurities = getSortedSoldSecurities(store);
+    private static String buildRealizedSaleTradesDetailsHtml(Security security) {
+        StringBuilder html = new StringBuilder();
+        html.append("<div class=\"details-wrap\">\n");
+        html.append("<h4>Sale Trades - ").append(escapeHtml(security.getDisplayName())).append("</h4>\n");
 
-        for (Security security : soldSecurities) {
-            List<Security.SaleTrade> saleTrades = security.getSaleTradesSortedByDate();
-            String currency = security.getCurrencyCode();
-            writer.write("<h2>SALE TRADES - " + escapeHtml(security.getDisplayName()) + "</h2>\n");
-            writer.write("<div class=\"table-wrap\">\n<table>\n");
-            writeHtmlRow(writer, true, "Sale Date", "Units", "Price/Unit", "Sale Value", "Cost Basis", "Gain/Loss", "Return (%)");
-
-            for (Security.SaleTrade trade : saleTrades) {
-                writeHtmlRow(writer, false,
-                        trade.getTradeDateAsCsv(),
-                        HtmlFormatter.formatUnits(trade.getUnits()),
-                        HtmlFormatter.formatMoney(trade.getUnitPrice(), currency, 2),
-                        HtmlFormatter.formatMoney(trade.getSaleValue(), currency, 0),
-                        HtmlFormatter.formatMoney(trade.getCostBasis(), currency, 0),
-                        HtmlFormatter.formatMoney(trade.getGainLoss(), currency, 0),
-                        HtmlFormatter.formatPercent(trade.getReturnPct(), 2));
-            }
-
-                double totalUnits = saleTrades.stream().mapToDouble(Security.SaleTrade::getUnits).sum();
-                double totalSaleValue = saleTrades.stream().mapToDouble(Security.SaleTrade::getSaleValue).sum();
-                double totalCostBasis = saleTrades.stream().mapToDouble(Security.SaleTrade::getCostBasis).sum();
-                double totalGainLoss = saleTrades.stream().mapToDouble(Security.SaleTrade::getGainLoss).sum();
-                double totalReturnPct = totalCostBasis > 0.0 ? (totalGainLoss / totalCostBasis) * 100.0 : 0.0;
-
-                writer.write("<tr class=\"total-row\">\n");
-                writer.write("    <td><strong>TOTAL</strong></td>\n");
-                writer.write("    <td>" + HtmlFormatter.formatUnits(totalUnits) + "</td>\n");
-                writer.write("    <td></td>\n");
-                writer.write("    <td>" + renderConvertibleMoneyCell(singleCurrencyBuckets(currency, totalSaleValue), 0, ratesToNok) + "</td>\n");
-                writer.write("    <td>" + renderConvertibleMoneyCell(singleCurrencyBuckets(currency, totalCostBasis), 0, ratesToNok) + "</td>\n");
-                writer.write("    <td>" + renderConvertibleMoneyCell(singleCurrencyBuckets(currency, totalGainLoss), 0, ratesToNok) + "</td>\n");
-                writer.write("    <td>" + HtmlFormatter.formatPercent(totalReturnPct, 2) + "</td>\n");
-                writer.write("</tr>\n");
-
-            writer.write("</table>\n</div>\n\n");
+        List<Security.SaleTrade> saleTrades = security.getSaleTradesSortedByDate();
+        String currency = security.getCurrencyCode();
+        if (saleTrades.isEmpty()) {
+            html.append("<div class=\"hero-side-note\">No sale trades available.</div>\n");
+            html.append("</div>\n");
+            return html.toString();
         }
+
+        html.append("<table class=\"details-table\">\n");
+        html.append("<tr><th>Sale Date</th><th>Units</th><th>Price/Unit</th><th>Sale Value</th><th>Cost Basis</th><th>Gain/Loss</th><th>Return (%)</th></tr>\n");
+
+        double totalUnits = 0.0;
+        double totalSaleValue = 0.0;
+        double totalCostBasis = 0.0;
+        double totalGainLoss = 0.0;
+        for (Security.SaleTrade trade : saleTrades) {
+            totalUnits += trade.getUnits();
+            totalSaleValue += trade.getSaleValue();
+            totalCostBasis += trade.getCostBasis();
+            totalGainLoss += trade.getGainLoss();
+
+            html.append("<tr>");
+            html.append("<td>").append(escapeHtml(trade.getTradeDateAsCsv())).append("</td>");
+            html.append("<td>").append(escapeHtml(HtmlFormatter.formatUnits(trade.getUnits()))).append("</td>");
+            html.append("<td>").append(escapeHtml(HtmlFormatter.formatMoney(trade.getUnitPrice(), currency, 2))).append("</td>");
+            html.append("<td>").append(escapeHtml(HtmlFormatter.formatMoney(trade.getSaleValue(), currency, 0))).append("</td>");
+            html.append("<td>").append(escapeHtml(HtmlFormatter.formatMoney(trade.getCostBasis(), currency, 0))).append("</td>");
+            html.append("<td>").append(escapeHtml(HtmlFormatter.formatMoney(trade.getGainLoss(), currency, 0))).append("</td>");
+            html.append("<td>").append(escapeHtml(HtmlFormatter.formatPercent(trade.getReturnPct(), 2))).append("</td>");
+            html.append("</tr>\n");
+        }
+
+        double totalReturnPct = totalCostBasis > 0.0 ? (totalGainLoss / totalCostBasis) * 100.0 : 0.0;
+        html.append("<tr class=\"total-row\">");
+        html.append("<td><strong>TOTAL</strong></td>");
+        html.append("<td>").append(escapeHtml(HtmlFormatter.formatUnits(totalUnits))).append("</td>");
+        html.append("<td></td>");
+        html.append("<td>").append(escapeHtml(HtmlFormatter.formatMoney(totalSaleValue, currency, 0))).append("</td>");
+        html.append("<td>").append(escapeHtml(HtmlFormatter.formatMoney(totalCostBasis, currency, 0))).append("</td>");
+        html.append("<td>").append(escapeHtml(HtmlFormatter.formatMoney(totalGainLoss, currency, 0))).append("</td>");
+        html.append("<td>").append(escapeHtml(HtmlFormatter.formatPercent(totalReturnPct, 2))).append("</td>");
+        html.append("</tr>\n");
+
+        html.append("</table>\n</div>\n");
+        return html.toString();
     }
 
     private static Map<String, Security> buildSecurityLookupByKey(TransactionStore store) {
