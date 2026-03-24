@@ -91,8 +91,6 @@ public class ReportWriter {
             writer.write("</body>\n");
             writer.write("</html>\n");
         }
-
-        System.out.println("Portfolio report successfully generated: " + outputFile);
     }
 
     private static void writeHeaderSummaryHtml(FileWriter writer, HeaderSummary s) throws IOException {
