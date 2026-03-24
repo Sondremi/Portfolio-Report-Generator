@@ -111,7 +111,7 @@ public class ReportWriter {
             writer.write("  if (!row) return;\n");
             writer.write("  var isOpen = row.style.display === 'table-row';\n");
             writer.write("  row.style.display = isOpen ? 'none' : 'table-row';\n");
-            writer.write("  if (button) button.textContent = isOpen ? 'Vis detaljer' : 'Skjul detaljer';\n");
+            writer.write("  if (button) button.textContent = isOpen ? 'Show details' : 'Hide details';\n");
             writer.write("}\n");
             writer.write("</script>\n");
             writer.write("</body>\n");
@@ -191,7 +191,7 @@ public class ReportWriter {
             Security security = securityByKey.get(row.securityKey);
 
             writeHtmlRowWithClass(writer, rowClass,
-                "<button class=\"expand-btn\" onclick=\"toggleOverviewDetails('" + detailsRowId + "', this)\">Vis detaljer</button>",
+                "<button class=\"expand-btn\" onclick=\"toggleOverviewDetails('" + detailsRowId + "', this)\">Show details</button>",
                     row.tickerText,
                     row.securityDisplayName,
                     HtmlFormatter.formatUnits(row.units),
