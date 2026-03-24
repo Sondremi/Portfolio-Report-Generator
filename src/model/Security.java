@@ -82,6 +82,7 @@ public class Security {
 
     private final ArrayDeque<BuyLot> buyLots = new ArrayDeque<>();
     private final ArrayList<SaleTrade> saleTrades = new ArrayList<>();
+    private final ArrayList<DividendEvent> currentDividendEvents = new ArrayList<>();
 
     private double unitsOwned = 0.0;
     private double dividends = 0.0;
@@ -93,13 +94,48 @@ public class Security {
     private LocalDate firstHoldingDate = null;
 
     private static class BuyLot {
+        LocalDate tradeDate;
         double remainingUnits;
         double unitCost;
 
-        BuyLot(double remainingUnits, double unitCost) {
+        BuyLot(LocalDate tradeDate, double remainingUnits, double unitCost) {
+            this.tradeDate = tradeDate;
             this.remainingUnits = remainingUnits;
             this.unitCost = unitCost;
         }
+    }
+
+    public static class CurrentHoldingLot {
+        private final LocalDate tradeDate;
+        private final double units;
+        private final double unitCost;
+
+        CurrentHoldingLot(LocalDate tradeDate, double units, double unitCost) {
+            this.tradeDate = tradeDate;
+            this.units = units;
+            this.unitCost = unitCost;
+        }
+
+        public LocalDate getTradeDate() { return tradeDate; }
+        public double getUnits() { return units; }
+        public double getUnitCost() { return unitCost; }
+        public double getCostBasis() { return units * unitCost; }
+    }
+
+    public static class DividendEvent {
+        private final LocalDate tradeDate;
+        private final double units;
+        private final double amount;
+
+        DividendEvent(LocalDate tradeDate, double units, double amount) {
+            this.tradeDate = tradeDate;
+            this.units = units;
+            this.amount = amount;
+        }
+
+        public LocalDate getTradeDate() { return tradeDate; }
+        public double getUnits() { return units; }
+        public double getAmount() { return amount; }
     }
 
     public static class SaleTrade {
@@ -225,6 +261,30 @@ public class Security {
 
     public void addDividend(double amount) {
         dividends += amount;
+    }
+
+    public void addDividend(double amount, String tradeDateText, double unitsAtDividend) {
+        dividends += amount;
+        LocalDate tradeDate = parseDate(tradeDateText);
+        currentDividendEvents.add(new DividendEvent(tradeDate, Math.max(0.0, unitsAtDividend), amount));
+    }
+
+    public ArrayList<CurrentHoldingLot> getCurrentHoldingLotsSortedByDate() {
+        ArrayList<CurrentHoldingLot> lots = new ArrayList<>();
+        for (BuyLot lot : buyLots) {
+            if (lot.remainingUnits <= EPSILON) {
+                continue;
+            }
+            lots.add(new CurrentHoldingLot(lot.tradeDate, lot.remainingUnits, lot.unitCost));
+        }
+        lots.sort(Comparator.comparing(CurrentHoldingLot::getTradeDate));
+        return lots;
+    }
+
+    public ArrayList<DividendEvent> getCurrentDividendEventsSortedByDate() {
+        ArrayList<DividendEvent> events = new ArrayList<>(currentDividendEvents);
+        events.sort(Comparator.comparing(DividendEvent::getTradeDate));
+        return events;
     }
 
     public void addTransaction(String tradeDateText, String transactionType, double amount,
@@ -361,7 +421,7 @@ public class Security {
         }
 
         double unitCost = cashOut / units;
-        buyLots.addLast(new BuyLot(units, unitCost));
+        buyLots.addLast(new BuyLot(tradeDate, units, unitCost));
         unitsOwned += units;
 
         if (tradeDate != null && !tradeDate.equals(LocalDate.MIN)
@@ -408,6 +468,7 @@ public class Security {
         unitsOwned -= units;
         if (Math.abs(unitsOwned) < EPSILON) {
             unitsOwned = 0.0;
+            currentDividendEvents.clear();
         }
 
         realizedSalesValue += saleValue;

@@ -5,12 +5,18 @@ import model.Security;
 
 import java.io.FileWriter;
 import java.io.IOException;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 
 public class ReportWriter {
+
+    private static final DateTimeFormatter DETAIL_DATE_FORMATTER = DateTimeFormatter.ofPattern("dd.MM.yyyy");
 
     public static void writeHtmlReport(TransactionStore store, String outputFile) throws IOException {
         List<OverviewRow> overviewRows = PortfolioCalculator.buildOverviewRows(store);
@@ -68,6 +74,17 @@ public class ReportWriter {
             writer.write("        .chart-svg { width:100%; height:auto; background:var(--card); border:1px solid var(--line); border-radius:8px; }\n");
             writer.write("        .allocation-panel .chart-svg { width:96%; margin:6px auto 10px; display:block; }\n");
             writer.write("        .security-pie-panel .chart-svg, .security-bar-panel .chart-svg { height:340px; width:98%; }\n");
+            writer.write("        .expand-btn { border:1px solid #86a4bf; background:#f3f8fd; color:#1e3951; border-radius:7px; padding:4px 8px; font-size:.78rem; font-weight:600; cursor:pointer; }\n");
+            writer.write("        .expand-btn:hover { background:#e6f1fb; }\n");
+            writer.write("        .details-row { display:none; }\n");
+            writer.write("        .details-cell { padding:0 !important; background:#f9fcff; }\n");
+            writer.write("        .details-wrap { padding:10px 12px 12px; }\n");
+            writer.write("        .details-wrap h4 { margin:0 0 8px; font-size:.85rem; color:#31495f; text-transform:uppercase; letter-spacing:.25px; }\n");
+            writer.write("        .details-table { width:100%; border-collapse:collapse; min-width:0; background:#fff; border:1px solid #dfe7ef; }\n");
+            writer.write("        .details-table th, .details-table td { padding:6px 7px; border-bottom:1px solid #edf2f7; font-size:.82rem; white-space:nowrap; }\n");
+            writer.write("        .details-table th { background:#f4f8fc; color:#405a70; }\n");
+            writer.write("        .details-buy { color:#1d5d92; font-weight:600; }\n");
+            writer.write("        .details-dividend { color:#1f8b4d; font-weight:600; }\n");
             writer.write("        @media (max-width:1200px) { .allocation-row-top{grid-template-columns:1fr 1fr;} }\n");
             writer.write("        @media (max-width:1060px) { .report-hero{grid-template-columns:1fr;} .hero-kpis{grid-template-columns:1fr;} .overview-charts{grid-template-columns:1fr;} .allocation-row-top,.allocation-row-bottom{grid-template-columns:1fr;} .page{width:100vw; padding:16px 8px 22px;} }\n");
             writer.write("    </style>\n");
@@ -88,6 +105,15 @@ public class ReportWriter {
             writeSaleTradesTablesHtml(writer, store);
 
             writer.write("</main>\n");
+            writer.write("<script>\n");
+            writer.write("function toggleOverviewDetails(rowId, button) {\n");
+            writer.write("  var row = document.getElementById(rowId);\n");
+            writer.write("  if (!row) return;\n");
+            writer.write("  var isOpen = row.style.display === 'table-row';\n");
+            writer.write("  row.style.display = isOpen ? 'none' : 'table-row';\n");
+            writer.write("  if (button) button.textContent = isOpen ? 'Vis detaljer' : 'Skjul detaljer';\n");
+            writer.write("}\n");
+            writer.write("</script>\n");
             writer.write("</body>\n");
             writer.write("</html>\n");
         }
@@ -125,6 +151,7 @@ public class ReportWriter {
 
     private static void writeOverviewTableHtml(FileWriter writer, List<OverviewRow> rows, TransactionStore store) throws IOException {
         writer.write("<h2>PORTFOLIO OVERVIEW - CURRENT HOLDINGS</h2>\n");
+        Map<String, Security> securityByKey = buildSecurityLookupByKey(store);
 
         writer.write("<div class=\"overview-charts\">\n");
         writer.write("<section class=\"overview-chart total-return-chart\"><h3>Total Return (NOK)</h3>\n");
@@ -137,7 +164,7 @@ public class ReportWriter {
 
         writer.write("<div class=\"table-wrap\">\n<table>\n");
         writeHtmlRow(writer, true,
-            "Ticker", "Security", "Units", "Avg Cost", "Last Price",
+                "Detaljer", "Ticker", "Security", "Units", "Avg Cost", "Last Price",
                 "Market Value", "Cost Basis", "Unrealized", "Unrealized (%)",
                 "Realized (%)", "Realized", "Dividends", "Total Return", "Total Return (%)");
 
@@ -150,6 +177,7 @@ public class ReportWriter {
         String totalCurrencyCode = null;
         String previousAssetType = null;
 
+        int detailsIndex = 0;
         for (OverviewRow row : rows) {
             totalMarketValue += row.marketValue;
             totalCostBasis += row.positionCostBasis;
@@ -159,8 +187,11 @@ public class ReportWriter {
             totalHistoricalCost += row.historicalCostBasis;
             totalCurrencyCode = mergeCurrencyCodes(totalCurrencyCode, row.currencyCode);
             String rowClass = isStockFundBoundary(previousAssetType, row.assetType) ? "asset-split" : null;
+            String detailsRowId = "overview-details-" + detailsIndex;
+            Security security = securityByKey.get(row.securityKey);
 
             writeHtmlRowWithClass(writer, rowClass,
+                "<button class=\"expand-btn\" onclick=\"toggleOverviewDetails('" + detailsRowId + "', this)\">Vis detaljer</button>",
                     row.tickerText,
                     row.securityDisplayName,
                     HtmlFormatter.formatUnits(row.units),
@@ -176,7 +207,14 @@ public class ReportWriter {
                     HtmlFormatter.formatMoney(row.totalReturn, row.currencyCode, 2),
                     HtmlFormatter.formatPercent(row.totalReturnPct, 2));
 
+                    writer.write("<tr id=\"" + detailsRowId + "\" class=\"details-row\">\n");
+                    writer.write("    <td class=\"details-cell\" colspan=\"15\">\n");
+                    writer.write(buildHoldingDetailsTableHtml(security, row));
+                    writer.write("    </td>\n");
+                    writer.write("</tr>\n");
+
             previousAssetType = row.assetType;
+                    detailsIndex++;
         }
 
         double totalReturn = totalUnrealized + totalRealized + totalDividends;
@@ -185,7 +223,7 @@ public class ReportWriter {
         double totalRealizedPct = totalCostBasis > 0 ? (totalRealized / totalCostBasis) * 100.0 : 0.0;
 
         writer.write("<tr class=\"total-row\">\n");
-        writer.write("    <td></td><td><strong>TOTAL</strong></td><td></td><td></td><td></td>\n");
+        writer.write("    <td></td><td></td><td><strong>TOTAL</strong></td><td></td><td></td><td></td>\n");
         writer.write("    <td>" + formatTotalMoney(totalMarketValue, totalCurrencyCode, 2) + "</td>\n");
         writer.write("    <td>" + formatTotalMoney(totalCostBasis, totalCurrencyCode, 2) + "</td>\n");
         writer.write("    <td>" + formatTotalMoney(totalUnrealized, totalCurrencyCode, 2) + "</td>\n");
@@ -319,6 +357,139 @@ public class ReportWriter {
 
             writer.write("</table>\n</div>\n\n");
         }
+    }
+
+    private static Map<String, Security> buildSecurityLookupByKey(TransactionStore store) {
+        Map<String, Security> byKey = new HashMap<>();
+        for (Security security : store.getSecurities()) {
+            byKey.put(getTrackingSecurityKey(security), security);
+        }
+        return byKey;
+    }
+
+    private static String getTrackingSecurityKey(Security security) {
+        if (security == null) {
+            return "";
+        }
+
+        String isin = security.getIsin();
+        if (isin != null && !isin.isBlank()) {
+            return isin.trim().toUpperCase(Locale.ROOT);
+        }
+
+        String name = security.getName();
+        if (name == null || name.isBlank()) {
+            return "";
+        }
+
+        return "NAME:" + name.trim().toUpperCase(Locale.ROOT);
+    }
+
+    private static String buildHoldingDetailsTableHtml(Security security, OverviewRow row) {
+        StringBuilder html = new StringBuilder();
+        html.append("<div class=\"details-wrap\">\n");
+        html.append("<h4>Transaksjonsdetaljer - ").append(escapeHtml(row.securityDisplayName)).append("</h4>\n");
+
+        if (security == null) {
+            html.append("<div class=\"hero-side-note\">Detaljer er ikke tilgjengelig for dette verdipapiret.</div>\n");
+            html.append("</div>\n");
+            return html.toString();
+        }
+
+        class DetailEntry {
+            final LocalDate date;
+            final int order;
+            final String type;
+            final String units;
+            final String price;
+            final String amount;
+            final String unrealized;
+            final String unrealizedPct;
+
+            DetailEntry(LocalDate date, int order, String type, String units, String price,
+                        String amount, String unrealized, String unrealizedPct) {
+                this.date = date;
+                this.order = order;
+                this.type = type;
+                this.units = units;
+                this.price = price;
+                this.amount = amount;
+                this.unrealized = unrealized;
+                this.unrealizedPct = unrealizedPct;
+            }
+        }
+
+        ArrayList<DetailEntry> entries = new ArrayList<>();
+        for (Security.CurrentHoldingLot lot : security.getCurrentHoldingLotsSortedByDate()) {
+            double lotCostBasis = lot.getCostBasis();
+            String unrealizedText = "-";
+            String unrealizedPctText = "-";
+            if (row.latestPrice > 0.0 && lotCostBasis > 0.0) {
+                double currentValue = lot.getUnits() * row.latestPrice;
+                double unrealized = currentValue - lotCostBasis;
+                double unrealizedPct = (unrealized / lotCostBasis) * 100.0;
+                unrealizedText = HtmlFormatter.formatMoney(unrealized, row.currencyCode, 2);
+                unrealizedPctText = HtmlFormatter.formatPercent(unrealizedPct, 2);
+            }
+
+            entries.add(new DetailEntry(
+                    lot.getTradeDate(),
+                    0,
+                    "<span class=\"details-buy\">KJØP</span>",
+                    HtmlFormatter.formatUnits(lot.getUnits()),
+                    HtmlFormatter.formatMoney(lot.getUnitCost(), row.currencyCode, 2),
+                    HtmlFormatter.formatMoney(lotCostBasis, row.currencyCode, 2),
+                    unrealizedText,
+                    unrealizedPctText
+            ));
+        }
+
+        for (Security.DividendEvent event : security.getCurrentDividendEventsSortedByDate()) {
+            String unitsText = event.getUnits() > 0.0 ? HtmlFormatter.formatUnits(event.getUnits()) : "-";
+            entries.add(new DetailEntry(
+                    event.getTradeDate(),
+                    1,
+                    "<span class=\"details-dividend\">UTBYTTE</span>",
+                    unitsText,
+                    "-",
+                    HtmlFormatter.formatMoney(event.getAmount(), row.currencyCode, 2),
+                    "-",
+                    "-"
+            ));
+        }
+
+        entries.sort(Comparator
+                .comparing((DetailEntry e) -> e.date == null ? LocalDate.MIN : e.date)
+                .thenComparingInt(e -> e.order));
+
+        if (entries.isEmpty()) {
+            html.append("<div class=\"hero-side-note\">Ingen aktive kjøp/utbytter for nåværende beholdning.</div>\n");
+            html.append("</div>\n");
+            return html.toString();
+        }
+
+        html.append("<table class=\"details-table\">\n");
+        html.append("<tr><th>Dato</th><th>Type</th><th>Antall</th><th>Kurs</th><th>Sum</th><th>Urealisert</th><th>Urealisert (%)</th></tr>\n");
+        for (DetailEntry entry : entries) {
+            html.append("<tr>");
+            html.append("<td>").append(escapeHtml(formatDetailDate(entry.date))).append("</td>");
+            html.append("<td>").append(entry.type).append("</td>");
+            html.append("<td>").append(escapeHtml(entry.units)).append("</td>");
+            html.append("<td>").append(escapeHtml(entry.price)).append("</td>");
+            html.append("<td>").append(escapeHtml(entry.amount)).append("</td>");
+            html.append("<td>").append(escapeHtml(entry.unrealized)).append("</td>");
+            html.append("<td>").append(escapeHtml(entry.unrealizedPct)).append("</td>");
+            html.append("</tr>\n");
+        }
+        html.append("</table>\n</div>\n");
+        return html.toString();
+    }
+
+    private static String formatDetailDate(LocalDate date) {
+        if (date == null || date.equals(LocalDate.MIN)) {
+            return "-";
+        }
+        return date.format(DETAIL_DATE_FORMATTER);
     }
 
     private static ArrayList<Security> getSortedSoldSecurities(TransactionStore store) {

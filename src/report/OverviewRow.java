@@ -5,6 +5,7 @@ import java.util.Map;
 
 public class OverviewRow {
 
+    public final String securityKey;
     public final String tickerText;
     public final String securityDisplayName;
     public final String assetType;
@@ -30,6 +31,7 @@ public class OverviewRow {
     public final boolean hasPrice;
 
     public OverviewRow(
+            String securityKey,
             String tickerText,
             String securityDisplayName,
             String assetType,
@@ -54,6 +56,7 @@ public class OverviewRow {
             double totalReturnPct,
             boolean hasPrice) {
 
+        this.securityKey = securityKey != null ? securityKey : "";
         this.tickerText = tickerText != null ? tickerText : "-";
         this.securityDisplayName = securityDisplayName != null ? securityDisplayName : "-";
         this.assetType = assetType != null ? assetType : "UNKNOWN";

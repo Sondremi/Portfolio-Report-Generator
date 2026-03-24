@@ -226,7 +226,7 @@ public class CsvLoader {
             if (!balanceBackedRow && Math.abs(amount) > 1e-9) {
                 store.addCashEvent(new Events.CashEvent(tradeDate, Math.abs(amount)));
             }
-            security.addDividend(Math.abs(amount));
+            security.addDividend(Math.abs(amount), getCell(row, indexes.tradeDate), Math.abs(quantity));
             return;
         }
 

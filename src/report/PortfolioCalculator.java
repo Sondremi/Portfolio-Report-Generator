@@ -63,6 +63,7 @@ public class PortfolioCalculator {
                 double totalReturnPct = historicalCostBasis > 0 ? (totalReturn / historicalCostBasis) * 100.0 : 0.0;
 
             OverviewRow row = new OverviewRow(
+                    getTrackingSecurityKey(security),
                     getTickerText(security),
                     getPreferredSecurityName(security),
                     security.getAssetType().name(),
