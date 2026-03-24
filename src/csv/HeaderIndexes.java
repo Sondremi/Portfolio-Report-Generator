@@ -15,6 +15,10 @@ public class HeaderIndexes {
     public int cancellationDate = -1;
     public int portfolioId = -1;
     public int cashBalance = -1;
+    public int transactionCurrency = -1;
+    public int amountCurrency = -1;
+    public int resultCurrency = -1;
+    public int feeCurrency = -1;
 
     public boolean hasRequiredColumns() {
         return securityName >= 0 && transactionType >= 0;

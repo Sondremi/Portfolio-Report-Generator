@@ -187,6 +187,19 @@ public class Security {
     public AssetType getAssetType() { return assetType; }
     public String getCurrencyCode() { return currencyCode == null || currencyCode.isBlank() ? "NOK" : currencyCode; }
 
+    public void setCurrencyCodeFromTransaction(String transactionCurrency) {
+        if (transactionCurrency == null || transactionCurrency.isBlank()) {
+            return;
+        }
+
+        String normalized = transactionCurrency.trim().toUpperCase(Locale.ROOT);
+        if (!normalized.matches("[A-Z]{3}")) {
+            return;
+        }
+
+        currencyCode = normalized;
+    }
+
     public String getAverageCostAsText() { return formatNumber(getAverageCost(), 2); }
     public String getUnitsOwnedAsText() { return formatNumber(unitsOwned, 2); }
 

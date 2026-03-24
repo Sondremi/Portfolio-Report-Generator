@@ -191,6 +191,8 @@ public class CsvLoader {
         double price = parseDoubleOrZero(getCell(row, indexes.price));
         double result = parseDoubleOrZero(getCell(row, indexes.result));
         double totalFees = parseDoubleOrZero(getCell(row, indexes.totalFees));
+        String transactionCurrency = resolveTransactionCurrency(row, indexes);
+        security.setCurrencyCodeFromTransaction(transactionCurrency);
 
         if (isRenameBookkeepingTransaction(transactionType, originalIsin, store)) {
             boolean isCancelled = indexes.cancellationDate >= 0
@@ -327,7 +329,7 @@ public class CsvLoader {
     private static HeaderIndexes findHeaderIndexes(ArrayList<String> headerColumns) {
         HeaderIndexes indexes = new HeaderIndexes();
         for (int i = 0; i < headerColumns.size(); i++) {
-            String column = headerColumns.get(i).toLowerCase(Locale.ROOT).trim();
+            String column = normalizeHeader(headerColumns.get(i));
             switch (column) {
                 case "id", "transaksjon" -> indexes.transactionId = i;
                 case "verdipapir" -> indexes.securityName = i;
@@ -343,9 +345,59 @@ public class CsvLoader {
                 case "makuleringsdato" -> indexes.cancellationDate = i;
                 case "portefolje", "portefølje", "konto" -> indexes.portfolioId = i;
                 case "saldo" -> indexes.cashBalance = i;
+                case "valuta" -> mapCurrencyColumn(headerColumns, i, indexes);
             }
         }
         return indexes;
+    }
+
+    private static String normalizeHeader(String value) {
+        return value
+                .replace("\uFEFF", "")
+                .trim()
+                .toLowerCase(Locale.ROOT);
+    }
+
+    private static void mapCurrencyColumn(ArrayList<String> headerColumns, int index, HeaderIndexes indexes) {
+        String previous = index > 0 ? normalizeHeader(headerColumns.get(index - 1)) : "";
+        if ("belop".equals(previous) || "beløp".equals(previous)
+                || "handelsbelop".equals(previous) || "handelsbeløp".equals(previous)) {
+            indexes.amountCurrency = index;
+            return;
+        }
+
+        if ("resultat".equals(previous)) {
+            indexes.resultCurrency = index;
+            return;
+        }
+
+        if ("totale avgifter".equals(previous) || "omkostninger".equals(previous)) {
+            indexes.feeCurrency = index;
+            return;
+        }
+
+        if (indexes.transactionCurrency < 0) {
+            indexes.transactionCurrency = index;
+        }
+    }
+
+    private static String resolveTransactionCurrency(ArrayList<String> row, HeaderIndexes indexes) {
+        String amountCurrency = getCell(row, indexes.amountCurrency);
+        if (!amountCurrency.isBlank()) {
+            return amountCurrency;
+        }
+
+        String transactionCurrency = getCell(row, indexes.transactionCurrency);
+        if (!transactionCurrency.isBlank()) {
+            return transactionCurrency;
+        }
+
+        String resultCurrency = getCell(row, indexes.resultCurrency);
+        if (!resultCurrency.isBlank()) {
+            return resultCurrency;
+        }
+
+        return getCell(row, indexes.feeCurrency);
     }
 
     private static String canonicalizeIsin(String isin, TransactionStore store) {
