@@ -444,10 +444,10 @@ public class ReportWriter {
     private static String buildHoldingDetailsTableHtml(Security security, OverviewRow row) {
         StringBuilder html = new StringBuilder();
         html.append("<div class=\"details-wrap\">\n");
-        html.append("<h4>Transaksjonsdetaljer - ").append(escapeHtml(row.securityDisplayName)).append("</h4>\n");
+        html.append("<h4>Transaction Details - ").append(escapeHtml(row.securityDisplayName)).append("</h4>\n");
 
         if (security == null) {
-            html.append("<div class=\"hero-side-note\">Detaljer er ikke tilgjengelig for dette verdipapiret.</div>\n");
+            html.append("<div class=\"hero-side-note\">Details are not available for this security.</div>\n");
             html.append("</div>\n");
             return html.toString();
         }
@@ -491,7 +491,7 @@ public class ReportWriter {
             entries.add(new DetailEntry(
                     lot.getTradeDate(),
                     0,
-                    "<span class=\"details-buy\">KJØP</span>",
+                    "<span class=\"details-buy\">BUY</span>",
                     HtmlFormatter.formatUnits(lot.getUnits()),
                     HtmlFormatter.formatMoney(lot.getUnitCost(), row.currencyCode, 2),
                     HtmlFormatter.formatMoney(lotCostBasis, row.currencyCode, 2),
@@ -505,7 +505,7 @@ public class ReportWriter {
             entries.add(new DetailEntry(
                     event.getTradeDate(),
                     1,
-                    "<span class=\"details-dividend\">UTBYTTE</span>",
+                    "<span class=\"details-dividend\">DIVIDEND</span>",
                     unitsText,
                     "-",
                     HtmlFormatter.formatMoney(event.getAmount(), row.currencyCode, 2),
@@ -519,13 +519,13 @@ public class ReportWriter {
                 .thenComparingInt(e -> e.order));
 
         if (entries.isEmpty()) {
-            html.append("<div class=\"hero-side-note\">Ingen aktive kjøp/utbytter for nåværende beholdning.</div>\n");
+            html.append("<div class=\"hero-side-note\">No active buy/dividend entries for current holdings.</div>\n");
             html.append("</div>\n");
             return html.toString();
         }
 
         html.append("<table class=\"details-table\">\n");
-        html.append("<tr><th>Dato</th><th>Type</th><th>Antall</th><th>Kurs</th><th>Sum</th><th>Urealisert</th><th>Urealisert (%)</th></tr>\n");
+        html.append("<tr><th>Date</th><th>Type</th><th>Units</th><th>Price</th><th>Amount</th><th>Unrealized</th><th>Unrealized (%)</th></tr>\n");
         for (DetailEntry entry : entries) {
             html.append("<tr>");
             html.append("<td>").append(escapeHtml(formatDetailDate(entry.date))).append("</td>");
