@@ -858,9 +858,7 @@ public class ReportWriter {
         writer.write("  var activeTarget = null;\n");
         writer.write("  function readTooltipText(target) {\n");
         writer.write("    if (!target) return '';\n");
-        writer.write("    var title = target.querySelector('title');\n");
-        writer.write("    if (!title) return '';\n");
-        writer.write("    return String(title.textContent || '').trim();\n");
+        writer.write("    return String(target.getAttribute('data-tooltip') || '').trim();\n");
         writer.write("  }\n");
         writer.write("  function placeTooltip(event) {\n");
         writer.write("    var offsetX = 14;\n");
@@ -878,6 +876,11 @@ public class ReportWriter {
         writer.write("    activeTarget = null;\n");
         writer.write("  }\n");
         writer.write("  document.querySelectorAll('.chart-hover-target').forEach(function (target) {\n");
+        writer.write("    var nativeTitle = target.querySelector('title');\n");
+        writer.write("    if (nativeTitle) {\n");
+        writer.write("      target.setAttribute('data-tooltip', String(nativeTitle.textContent || '').trim());\n");
+        writer.write("      nativeTitle.remove();\n");
+        writer.write("    }\n");
         writer.write("    target.addEventListener('mouseenter', function (event) {\n");
         writer.write("      var text = readTooltipText(target);\n");
         writer.write("      if (!text) return;\n");
