@@ -287,6 +287,7 @@ public class PortfolioCalculator {
         svg.append("<path d=\"").append(path).append("\" fill=\"none\" stroke=\"#f1f6ff\" stroke-width=\"2.2\" stroke-linecap=\"round\"/>");
 
         DateTimeFormatter axisMonthFormat = DateTimeFormatter.ofPattern("MMM", Locale.ENGLISH);
+        int labelStep = Math.max(1, (int) Math.ceil(n / 10.0));
         for (int i = 0; i < n; i++) {
             String monthLabel = points.get(i).monthEnd.format(axisMonthFormat);
             svg.append("<circle class=\"chart-hover-target chart-hover-point\" cx=\"").append(svgNumber(xValues[i])).append("\" cy=\"").append(svgNumber(yValues[i]))
@@ -296,24 +297,32 @@ public class PortfolioCalculator {
                 .append(monthLabel).append(": ").append(formatCompactKroner(points.get(i).value))
                 .append("</title></circle>");
 
-            svg.append("<line x1=\"").append(svgNumber(xValues[i])).append("\" y1=\"").append(svgNumber(axisY))
-                    .append("\" x2=\"").append(svgNumber(xValues[i])).append("\" y2=\"").append(svgNumber(axisY + 2.8))
-                    .append("\" stroke=\"#eaf2ff\" stroke-width=\"0.8\"/>");
+            boolean isFirst = i == 0;
+            boolean isLast = i == n - 1;
+            boolean showXAxisLabel = isFirst || isLast || (i % labelStep == 0);
+
+            if (showXAxisLabel) {
+                svg.append("<line x1=\"").append(svgNumber(xValues[i])).append("\" y1=\"").append(svgNumber(axisY))
+                        .append("\" x2=\"").append(svgNumber(xValues[i])).append("\" y2=\"").append(svgNumber(axisY + 2.8))
+                        .append("\" stroke=\"#eaf2ff\" stroke-width=\"0.8\"/>");
+            }
 
             String tickAnchor = "middle";
             double tickLabelX = xValues[i];
-            if (i == 0) {
+            if (isFirst) {
                 tickAnchor = "start";
                 tickLabelX = Math.max(tickLabelX, left + 1.0);
-            } else if (i == n - 1) {
+            } else if (isLast) {
                 tickAnchor = "end";
                 tickLabelX = Math.min(tickLabelX, left + plotWidth - 1.0);
             }
 
+            if (showXAxisLabel) {
                 svg.append("<text x=\"").append(svgNumber(tickLabelX)).append("\" y=\"").append(svgNumber(axisY + 13.0))
-                    .append("\" text-anchor=\"").append(tickAnchor).append("\" font-size=\"7\" fill=\"#eaf2ff\">")
-                    .append(monthLabel)
-                    .append("</text>");
+                        .append("\" text-anchor=\"").append(tickAnchor).append("\" font-size=\"7\" fill=\"#eaf2ff\">")
+                        .append(monthLabel)
+                        .append("</text>");
+            }
         }
 
         svg.append("</svg>");
