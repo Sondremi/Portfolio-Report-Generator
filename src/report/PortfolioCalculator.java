@@ -100,7 +100,7 @@ public class PortfolioCalculator {
         return rows;
     }
 
-    public static HeaderSummary buildHeaderSummary(TransactionStore store, List<OverviewRow> overviewRows) {
+    public static HeaderSummary buildHeaderSummary(TransactionStore store, List<OverviewRow> overviewRows, Map<String, Double> ratesToNok) {
         int holdingsCount = overviewRows.size();
         double totalMarketValue = 0.0;
         double cashHoldings = store.getCurrentCashHoldings();
@@ -147,7 +147,7 @@ public class PortfolioCalculator {
         }
 
         double totalReturnPct = totalHistoricalCostBasis > 0 ? (totalReturn / totalHistoricalCostBasis) * 100.0 : 0.0;
-        String sparklineSvg = buildPortfolioValueSparkline(store);
+        String sparklineSvg = buildPortfolioValueSparkline(store, ratesToNok);
 
         return new HeaderSummary(
                 LocalDate.now().format(DATE_FORMATTER),
@@ -171,8 +171,8 @@ public class PortfolioCalculator {
         );
     }
 
-    private static String buildPortfolioValueSparkline(TransactionStore store) {
-        ArrayList<PortfolioValuePoint> points = buildPortfolioValueTimelineLast12Months(store);
+    private static String buildPortfolioValueSparkline(TransactionStore store, Map<String, Double> ratesToNok) {
+        ArrayList<PortfolioValuePoint> points = buildPortfolioValueTimelineLast12Months(store, ratesToNok);
         if (points.isEmpty()) {
             return "";
         }
@@ -220,11 +220,11 @@ public class PortfolioCalculator {
                 .append("\" stroke=\"#c7d2df\" stroke-width=\"1\"/>");
 
         svg.append("<text x=\"").append(svgNumber(left - 4.0)).append("\" y=\"").append(svgNumber(top + 1.0))
-                .append("\" text-anchor=\"end\" dominant-baseline=\"hanging\" font-size=\"8\" fill=\"#eaf2ff\">")
+            .append("\" class=\"js-chart-money\" data-value-nok=\"").append(svgNumber(max)).append("\" data-format=\"compact\" text-anchor=\"end\" dominant-baseline=\"hanging\" font-size=\"8\" fill=\"#eaf2ff\">")
                 .append(formatCompactKroner(max))
                 .append("</text>");
         svg.append("<text x=\"").append(svgNumber(left - 4.0)).append("\" y=\"").append(svgNumber(axisY))
-                .append("\" text-anchor=\"end\" dominant-baseline=\"middle\" font-size=\"8\" fill=\"#eaf2ff\">")
+            .append("\" class=\"js-chart-money\" data-value-nok=\"").append(svgNumber(min)).append("\" data-format=\"compact\" text-anchor=\"end\" dominant-baseline=\"middle\" font-size=\"8\" fill=\"#eaf2ff\">")
                 .append(formatCompactKroner(min))
                 .append("</text>");
 
@@ -295,7 +295,7 @@ public class PortfolioCalculator {
         return prefix + String.format(Locale.US, "%.0f", absValue) + " kr";
     }
 
-    private static ArrayList<PortfolioValuePoint> buildPortfolioValueTimelineLast12Months(TransactionStore store) {
+    private static ArrayList<PortfolioValuePoint> buildPortfolioValueTimelineLast12Months(TransactionStore store, Map<String, Double> ratesToNok) {
         ArrayList<PortfolioValuePoint> timeline = new ArrayList<>();
         List<Events.UnitEvent> unitEvents = store.getUnitEvents();
         List<Events.CashEvent> cashEvents = store.getCashEvents();
@@ -381,7 +381,13 @@ public class PortfolioCalculator {
                     continue;
                 }
 
-                totalValue += units * price;
+                double positionValue = units * price;
+                String securityCurrency = normalizeCurrencyCode(security.getCurrencyCode());
+                double rateToNok = ratesToNok == null ? 0.0 : ratesToNok.getOrDefault(securityCurrency, 0.0);
+                if (rateToNok <= 0.0) {
+                    rateToNok = ratesToNok == null ? 1.0 : ratesToNok.getOrDefault(DEFAULT_CURRENCY_CODE, 1.0);
+                }
+                totalValue += positionValue * rateToNok;
             }
 
             timeline.add(new PortfolioValuePoint(monthEnd, totalValue));

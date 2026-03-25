@@ -25,7 +25,7 @@ public class ReportWriter {
     public static void writeHtmlReport(TransactionStore store, String outputFile) throws IOException {
         List<OverviewRow> overviewRows = PortfolioCalculator.buildOverviewRows(store);
         Map<String, Double> ratesToNok = CurrencyConversionService.loadRatesToNok(collectCurrencies(store, overviewRows));
-        HeaderSummary headerSummary = PortfolioCalculator.buildHeaderSummary(store, overviewRows);
+        HeaderSummary headerSummary = PortfolioCalculator.buildHeaderSummary(store, overviewRows, ratesToNok);
 
         try (FileWriter writer = new FileWriter(outputFile)) {
             writer.write("<!DOCTYPE html>\n");
@@ -219,11 +219,11 @@ public class ReportWriter {
         Map<String, Security> securityByKey = buildSecurityLookupByKey(store);
 
         writer.write("<div class=\"overview-charts\">\n");
-        writer.write("<section class=\"overview-chart total-return-chart\"><h3>Total Return (NOK)</h3>\n");
-        writer.write(ChartBuilder.buildOverviewBarChartSvg(rows, false));
+        writer.write("<section class=\"overview-chart total-return-chart\"><h3 class=\"js-total-return-money-title\">Total Return (" + DEFAULT_TOTAL_CURRENCY + ")</h3>\n");
+        writer.write(ChartBuilder.buildOverviewBarChartSvg(rows, false, ratesToNok));
         writer.write("</section>\n");
         writer.write("<section class=\"overview-chart total-return-chart\"><h3>Total Return (%)</h3>\n");
-        writer.write(ChartBuilder.buildOverviewBarChartSvg(rows, true));
+        writer.write(ChartBuilder.buildOverviewBarChartSvg(rows, true, ratesToNok));
         writer.write("</section>\n");
         writer.write("</div>\n");
 
@@ -324,10 +324,10 @@ public class ReportWriter {
 
         writer.write("<div class=\"allocation-row allocation-row-bottom\">\n");
         writer.write("<div class=\"allocation-panel security-pie-panel\"><h4 class=\"allocation-panel-title\">By Security (Pie)</h4>\n");
-        writer.write(ChartBuilder.buildMarketValueAllocationSvg(rows));
+        writer.write(ChartBuilder.buildMarketValueAllocationSvg(rows, ratesToNok));
         writer.write("</div>\n");
         writer.write("<div class=\"allocation-panel security-bar-panel\"><h4 class=\"allocation-panel-title\">By Security (Bar)</h4>\n");
-        writer.write(ChartBuilder.buildMarketValueBarChartSvg(rows));
+        writer.write(ChartBuilder.buildMarketValueBarChartSvg(rows, ratesToNok));
         writer.write("</div>\n");
         writer.write("</div>\n");
         writer.write("</div>\n");
@@ -782,6 +782,14 @@ public class ReportWriter {
         writer.write("function formatMoneyValue(amount, currency, decimals) {\n");
         writer.write("  return formatGroupedNumber(amount, decimals) + ' ' + currency;\n");
         writer.write("}\n");
+        writer.write("function formatCompactMoney(amount, currency) {\n");
+        writer.write("  var absValue = Math.abs(Number(amount || 0));\n");
+        writer.write("  var prefix = Number(amount || 0) < 0 ? '-' : '';\n");
+        writer.write("  if (absValue >= 1000000000) return prefix + Number(absValue / 1000000000.0).toFixed(1) + 'B ' + currency;\n");
+        writer.write("  if (absValue >= 1000000) return prefix + Number(absValue / 1000000.0).toFixed(1) + 'M ' + currency;\n");
+        writer.write("  if (absValue >= 1000) return prefix + Number(absValue / 1000.0).toFixed(0) + 'k ' + currency;\n");
+        writer.write("  return prefix + Number(absValue).toFixed(0) + ' ' + currency;\n");
+        writer.write("}\n");
         writer.write("function convertBucketsToCurrency(buckets, targetCurrency) {\n");
         writer.write("  var target = normalizeCurrencyCodeInput(targetCurrency);\n");
         writer.write("  var targetRate = REPORT_RATES_TO_NOK[target];\n");
@@ -814,6 +822,26 @@ public class ReportWriter {
         writer.write("  });\n");
         writer.write("  return true;\n");
         writer.write("}\n");
+        writer.write("function refreshReportChartsCurrency(targetCurrency) {\n");
+        writer.write("  var target = normalizeCurrencyCodeInput(targetCurrency);\n");
+        writer.write("  var targetRate = REPORT_RATES_TO_NOK[target];\n");
+        writer.write("  if (!targetRate || targetRate <= 0) return false;\n");
+        writer.write("  document.querySelectorAll('.js-total-return-money-title').forEach(function (node) {\n");
+        writer.write("    node.textContent = 'Total Return (' + target + ')';\n");
+        writer.write("  });\n");
+        writer.write("  document.querySelectorAll('.js-chart-money').forEach(function (node) {\n");
+        writer.write("    var valueNok = Number(node.getAttribute('data-value-nok') || '0');\n");
+        writer.write("    var decimals = Number(node.getAttribute('data-decimals') || '0');\n");
+        writer.write("    var prefix = node.getAttribute('data-prefix') || '';\n");
+        writer.write("    var mode = node.getAttribute('data-format') || 'money';\n");
+        writer.write("    var converted = valueNok / targetRate;\n");
+        writer.write("    var text = mode === 'compact'\n");
+        writer.write("      ? prefix + formatCompactMoney(converted, target)\n");
+        writer.write("      : prefix + formatMoneyValue(converted, target, decimals);\n");
+        writer.write("    node.textContent = text;\n");
+        writer.write("  });\n");
+        writer.write("  return true;\n");
+        writer.write("}\n");
         writer.write("(function initReportCurrencyInput() {\n");
         writer.write("  var input = document.getElementById('portfolio-currency-input');\n");
         writer.write("  if (!input) return;\n");
@@ -822,15 +850,17 @@ public class ReportWriter {
         writer.write("    event.preventDefault();\n");
         writer.write("    var target = normalizeCurrencyCodeInput(input.value);\n");
         writer.write("    if (!target) { target = '" + DEFAULT_TOTAL_CURRENCY + "'; }\n");
-        writer.write("    if (!refreshReportTotalsCurrency(target)) {\n");
+        writer.write("    if (!refreshReportTotalsCurrency(target) || !refreshReportChartsCurrency(target)) {\n");
         writer.write("      window.alert('No exchange rate available for ' + target + '. Try one of: ' + Object.keys(REPORT_RATES_TO_NOK).join(', '));\n");
         writer.write("      input.value = '" + DEFAULT_TOTAL_CURRENCY + "';\n");
         writer.write("      refreshReportTotalsCurrency('" + DEFAULT_TOTAL_CURRENCY + "');\n");
+        writer.write("      refreshReportChartsCurrency('" + DEFAULT_TOTAL_CURRENCY + "');\n");
         writer.write("      return;\n");
         writer.write("    }\n");
         writer.write("    input.value = target;\n");
         writer.write("  });\n");
         writer.write("  refreshReportTotalsCurrency('" + DEFAULT_TOTAL_CURRENCY + "');\n");
+        writer.write("  refreshReportChartsCurrency('" + DEFAULT_TOTAL_CURRENCY + "');\n");
         writer.write("})();\n");
     }
 

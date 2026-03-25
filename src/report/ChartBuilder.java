@@ -40,7 +40,7 @@ public class ChartBuilder {
         }
     }
 
-    public static String buildOverviewBarChartSvg(List<OverviewRow> rows, boolean percentChart) {
+    public static String buildOverviewBarChartSvg(List<OverviewRow> rows, boolean percentChart, Map<String, Double> ratesToNok) {
         final double width = 1100.0;
         final double height = 450.0;
         final double left = 68.0;
@@ -53,7 +53,9 @@ public class ChartBuilder {
         double minValue = 0.0;
         double maxValue = 0.0;
         for (OverviewRow row : rows) {
-            double value = percentChart ? row.totalReturnPct : row.totalReturn;
+            double value = percentChart
+                    ? row.totalReturnPct
+                    : convertToNok(row.totalReturn, row.currencyCode, ratesToNok);
             minValue = Math.min(minValue, value);
             maxValue = Math.max(maxValue, value);
         }
@@ -83,10 +85,18 @@ public class ChartBuilder {
                     .append("\" x2=\"").append(svgNumber(left + plotWidth)).append("\" y2=\"").append(svgNumber(y))
                     .append("\" stroke=\"#d2d8df\" stroke-width=\"1.3\"/>\n");
 
-            svg.append("<text x=\"").append(svgNumber(left - 8.0)).append("\" y=\"").append(svgNumber(y + 4.0))
+                if (percentChart) {
+                svg.append("<text x=\"").append(svgNumber(left - 8.0)).append("\" y=\"").append(svgNumber(y + 4.0))
                     .append("\" text-anchor=\"end\" font-size=\"12\" font-weight=\"600\" fill=\"#4a5563\">")
-                    .append(escapeHtml(formatChartValue(tickValue, percentChart, true)))
+                    .append(escapeHtml(formatChartValue(tickValue, true, true)))
                     .append("</text>\n");
+                } else {
+                svg.append("<text class=\"js-chart-money\" data-value-nok=\"").append(svgNumber(tickValue)).append("\" data-decimals=\"0\"")
+                    .append(" x=\"").append(svgNumber(left - 8.0)).append("\" y=\"").append(svgNumber(y + 4.0))
+                    .append("\" text-anchor=\"end\" font-size=\"12\" font-weight=\"600\" fill=\"#4a5563\">")
+                    .append(escapeHtml(formatNumber(tickValue, 0) + " NOK"))
+                    .append("</text>\n");
+                }
         }
 
         svg.append("<rect x=\"").append(svgNumber(left)).append("\" y=\"").append(svgNumber(top))
@@ -100,7 +110,9 @@ public class ChartBuilder {
 
         for (int i = 0; i < rows.size(); i++) {
             OverviewRow row = rows.get(i);
-            double value = percentChart ? row.totalReturnPct : row.totalReturn;
+            double value = percentChart
+                    ? row.totalReturnPct
+                    : convertToNok(row.totalReturn, row.currencyCode, ratesToNok);
             double x = left + (i * slotWidth) + ((slotWidth - barWidth) / 2.0);
             double yValue = mapValueToY(value, minValue, maxValue, top, plotHeight);
             double barY = Math.min(yValue, chartZeroY);
@@ -114,13 +126,22 @@ public class ChartBuilder {
             String label = getOverviewRowLabel(row);
             String compactLabel = getCompactOverviewLabel(row);
 
-            svg.append("<rect x=\"").append(svgNumber(x)).append("\" y=\"").append(svgNumber(barY))
+                svg.append("<rect x=\"").append(svgNumber(x)).append("\" y=\"").append(svgNumber(barY))
                     .append("\" width=\"").append(svgNumber(barWidth)).append("\" height=\"").append(svgNumber(barHeight))
                     .append("\" fill=\"").append(barColor).append("\" stroke=\"").append(barBorderColor)
-                    .append("\" stroke-width=\"1.1\" rx=\"1\">\n")
-                    .append("<title>")
-                    .append(escapeHtml(label + ": " + formatChartValue(value, percentChart, false)))
-                    .append("</title></rect>\n");
+                    .append("\" stroke-width=\"1.1\" rx=\"1\">\n");
+                if (percentChart) {
+                svg.append("<title>")
+                    .append(escapeHtml(label + ": " + formatChartValue(value, true, false)))
+                    .append("</title>");
+                } else {
+                svg.append("<title class=\"js-chart-money\" data-value-nok=\"").append(svgNumber(value))
+                    .append("\" data-decimals=\"2\" data-prefix=\"").append(escapeHtml(label + ": "))
+                    .append("\">")
+                    .append(escapeHtml(label + ": " + formatNumber(value, 2) + " NOK"))
+                    .append("</title>");
+                }
+                svg.append("</rect>\n");
 
             double labelAnchorX = x + (barWidth / 2.0);
                 double labelAnchorY = height - bottom + 16.0;
@@ -142,7 +163,7 @@ public class ChartBuilder {
         return svg.toString();
     }
 
-    public static String buildMarketValueBarChartSvg(List<OverviewRow> rows) {
+    public static String buildMarketValueBarChartSvg(List<OverviewRow> rows, Map<String, Double> ratesToNok) {
         final double width = 620.0;
         final double height = 390.0;
         final double left = 60.0;
@@ -153,13 +174,16 @@ public class ChartBuilder {
         final double plotHeight = height - top - bottom;
 
         List<OverviewRow> rowsWithValue = new ArrayList<>();
+        List<Double> marketValuesNok = new ArrayList<>();
         double totalMarketValue = 0.0;
         double maxValue = 0.0;
         for (OverviewRow row : rows) {
-            if (row.marketValue > 0.0) {
+            double marketValueNok = convertToNok(row.marketValue, row.currencyCode, ratesToNok);
+            if (marketValueNok > 0.0) {
                 rowsWithValue.add(row);
-                totalMarketValue += row.marketValue;
-                maxValue = Math.max(maxValue, row.marketValue);
+                marketValuesNok.add(marketValueNok);
+                totalMarketValue += marketValueNok;
+                maxValue = Math.max(maxValue, marketValueNok);
             }
         }
 
@@ -185,9 +209,11 @@ public class ChartBuilder {
                .append("\" x2=\"").append(svgNumber(left + plotWidth)).append("\" y2=\"").append(svgNumber(y))
                .append("\" stroke=\"#ececec\" stroke-width=\"1\"/>\n");
 
-            svg.append("<text x=\"").append(svgNumber(left - 8.0)).append("\" y=\"").append(svgNumber(y + 4.0))
-               .append("\" text-anchor=\"end\" font-size=\"10\" fill=\"#666\">")
-               .append(formatNumber(tickValue, 0)).append(" kr</text>\n");
+                svg.append("<text class=\"js-chart-money\" data-value-nok=\"").append(svgNumber(tickValue)).append("\" data-decimals=\"0\"")
+                    .append(" x=\"").append(svgNumber(left - 8.0)).append("\" y=\"").append(svgNumber(y + 4.0))
+                    .append("\" text-anchor=\"end\" font-size=\"10\" fill=\"#666\">")
+                    .append(escapeHtml(formatNumber(tickValue, 0) + " NOK"))
+                    .append("</text>\n");
         }
 
         double averageValue = totalMarketValue / rowsWithValue.size();
@@ -196,9 +222,11 @@ public class ChartBuilder {
            .append("\" x2=\"").append(svgNumber(left + plotWidth)).append("\" y2=\"").append(svgNumber(averageY))
            .append("\" stroke=\"#495057\" stroke-width=\"1.2\" stroke-dasharray=\"5 4\"/>\n");
 
-        svg.append("<text x=\"").append(svgNumber(left + plotWidth + 8.0)).append("\" y=\"").append(svgNumber(averageY + 3.0))
-           .append("\" text-anchor=\"start\" font-size=\"10\" fill=\"#495057\">Avg: ")
-           .append(formatNumber(averageValue, 0)).append(" kr</text>\n");
+          svg.append("<text class=\"js-chart-money\" data-value-nok=\"").append(svgNumber(averageValue)).append("\" data-decimals=\"0\" data-prefix=\"Avg: \"")
+              .append(" x=\"").append(svgNumber(left + plotWidth + 8.0)).append("\" y=\"").append(svgNumber(averageY + 3.0))
+              .append("\" text-anchor=\"start\" font-size=\"10\" fill=\"#495057\">Avg: ")
+              .append(escapeHtml(formatNumber(averageValue, 0) + " NOK"))
+              .append("</text>\n");
 
         double slotWidth = plotWidth / rowsWithValue.size();
         double barWidth = Math.max(10.0, slotWidth * 0.92);
@@ -206,8 +234,9 @@ public class ChartBuilder {
 
         for (int i = 0; i < rowsWithValue.size(); i++) {
             OverviewRow row = rowsWithValue.get(i);
+            double marketValueNok = marketValuesNok.get(i);
             double x = left + (i * slotWidth) + ((slotWidth - barWidth) / 2.0);
-            double y = mapValueToY(row.marketValue, 0.0, maxValue, top, plotHeight);
+            double y = mapValueToY(marketValueNok, 0.0, maxValue, top, plotHeight);
             double barHeight = (top + plotHeight) - y;
 
             String color = colors[i % colors.length];
@@ -216,9 +245,11 @@ public class ChartBuilder {
             svg.append("<rect x=\"").append(svgNumber(x)).append("\" y=\"").append(svgNumber(y))
                .append("\" width=\"").append(svgNumber(barWidth)).append("\" height=\"").append(svgNumber(barHeight))
                .append("\" fill=\"").append(color).append("\" rx=\"2\">\n")
-               .append("<title>")
-               .append(escapeHtml(row.securityDisplayName + ": " + formatNumber(row.marketValue, 0) + " kr"))
-               .append("</title></rect>\n");
+                    .append("<title class=\"js-chart-money\" data-value-nok=\"").append(svgNumber(marketValueNok))
+                    .append("\" data-decimals=\"0\" data-prefix=\"").append(escapeHtml(row.securityDisplayName + ": "))
+                    .append("\">")
+                    .append(escapeHtml(row.securityDisplayName + ": " + formatNumber(marketValueNok, 0) + " NOK"))
+                    .append("</title></rect>\n");
 
             double labelAnchorX = x + (barWidth / 2.0);
             double labelAnchorY = height - bottom + 16.0;
@@ -239,7 +270,7 @@ public class ChartBuilder {
         return svg.toString();
     }
 
-    public static String buildMarketValueAllocationSvg(List<OverviewRow> rows) {
+    public static String buildMarketValueAllocationSvg(List<OverviewRow> rows, Map<String, Double> ratesToNok) {
         final double width = 620.0;
         final double height = 390.0;
         final double centerX = width / 2.0;
@@ -247,11 +278,14 @@ public class ChartBuilder {
         final double radius = 82.0;
 
         List<OverviewRow> rowsWithValue = new ArrayList<>();
+        List<Double> marketValuesNok = new ArrayList<>();
         double totalMarketValue = 0.0;
         for (OverviewRow row : rows) {
-            if (row.marketValue > 0.0) {
+            double marketValueNok = convertToNok(row.marketValue, row.currencyCode, ratesToNok);
+            if (marketValueNok > 0.0) {
                 rowsWithValue.add(row);
-                totalMarketValue += row.marketValue;
+                marketValuesNok.add(marketValueNok);
+                totalMarketValue += marketValueNok;
             }
         }
 
@@ -273,7 +307,8 @@ public class ChartBuilder {
         List<PieSliceLabel> pieLabels = new ArrayList<>();
         for (int i = 0; i < rowsWithValue.size(); i++) {
             OverviewRow row = rowsWithValue.get(i);
-            double fraction = row.marketValue / totalMarketValue;
+            double marketValueNok = marketValuesNok.get(i);
+            double fraction = marketValueNok / totalMarketValue;
             double sliceAngle = fraction * Math.PI * 2.0;
             double endAngle = currentAngle + sliceAngle;
             String color = getAllocationColor(i);
@@ -291,7 +326,7 @@ public class ChartBuilder {
                     .append(" Z\" fill=\"").append(color).append("\">\n")
                     .append("<title>")
                     .append(escapeHtml(getOverviewRowLabel(row)
-                            + ": " + formatNumber(row.marketValue, 2) + " kr (" + formatNumber(fraction * 100.0, 2) + "%)"))
+                            + ": " + formatNumber(marketValueNok, 2) + " NOK (" + formatNumber(fraction * 100.0, 2) + "%)"))
                     .append("</title></path>\n");
 
             double midAngle = currentAngle + (sliceAngle / 2.0);
@@ -333,8 +368,8 @@ public class ChartBuilder {
         svg.append("<text x=\"").append(svgNumber(centerX)).append("\" y=\"").append(svgNumber(summaryY))
                 .append("\" text-anchor=\"middle\" font-size=\"12\" fill=\"#666\">Market Value Total</text>\n");
         svg.append("<text x=\"").append(svgNumber(centerX)).append("\" y=\"").append(svgNumber(summaryY + 16.0))
-                .append("\" text-anchor=\"middle\" font-size=\"14\" fill=\"#222\" font-weight=\"600\">")
-                .append(escapeHtml(formatNumber(totalMarketValue, 0) + " kr"))
+            .append("\" class=\"js-chart-money\" data-value-nok=\"").append(svgNumber(totalMarketValue)).append("\" data-decimals=\"0\" text-anchor=\"middle\" font-size=\"14\" fill=\"#222\" font-weight=\"600\">")
+            .append(escapeHtml(formatNumber(totalMarketValue, 0) + " NOK"))
                 .append("</text>\n");
 
         svg.append("</svg>\n");
@@ -734,7 +769,33 @@ public class ChartBuilder {
             return formatNumber(value, 2) + "%";
         }
         int decimals = compact ? 0 : 2;
-        return formatNumber(value, decimals) + " kr";
+        return formatNumber(value, decimals) + " NOK";
+    }
+
+    private static double convertToNok(double amount, String currencyCode, Map<String, Double> ratesToNok) {
+        if (!Double.isFinite(amount)) {
+            return 0.0;
+        }
+        if (ratesToNok == null || ratesToNok.isEmpty()) {
+            return amount;
+        }
+        String normalized = normalizeCurrencyCode(currencyCode);
+        double rate = ratesToNok.getOrDefault(normalized, 0.0);
+        if (rate <= 0.0) {
+            rate = ratesToNok.getOrDefault("NOK", 1.0);
+        }
+        return amount * rate;
+    }
+
+    private static String normalizeCurrencyCode(String currencyCode) {
+        if (currencyCode == null || currencyCode.isBlank()) {
+            return "NOK";
+        }
+        String normalized = currencyCode.trim().toUpperCase(Locale.ROOT);
+        if (!normalized.matches("[A-Z]{3}")) {
+            return "NOK";
+        }
+        return normalized;
     }
 
     private static String formatNumber(double value, int decimals) {
