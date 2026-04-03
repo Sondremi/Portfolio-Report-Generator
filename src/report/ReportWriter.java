@@ -40,12 +40,28 @@ public class ReportWriter {
             writer.write("        body { font-family: 'Segoe UI','Avenir Next','Helvetica Neue',Arial,sans-serif; margin:0; background: radial-gradient(circle at top,#f8fbfe 0%,var(--bg) 58%); color:var(--ink); }\n");
             writer.write("        .page { width:100vw; max-width:none; margin:0; padding:24px 8px 32px; }\n");
             writer.write("        h2 { margin:26px 2px 12px; font-size:1.14rem; color:var(--ink); }\n");
-            writer.write("        table { width:100%; border-collapse:collapse; min-width:1120px; background:var(--card); }\n");
-            writer.write("        th, td { padding:8px 8px; border-bottom:1px solid #edf2f7; white-space:nowrap; }\n");
-            writer.write("        th { background:#f5f8fb; text-align:left; font-size:.8rem; text-transform:uppercase; letter-spacing:.2px; color:#374556; border-bottom:1px solid var(--line); }\n");
-            writer.write("        td { font-size:.88rem; }\n");
+            writer.write("        table { width:100%; border-collapse:collapse; min-width:0; table-layout:fixed; background:var(--card); }\n");
+            writer.write("        th, td { padding:5px 5px; border-bottom:1px solid #edf2f7; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }\n");
+            writer.write("        th { background:#f5f8fb; text-align:left; font-size:.70rem; text-transform:uppercase; letter-spacing:.2px; color:#374556; border-bottom:1px solid var(--line); }\n");
+            writer.write("        td { font-size:.70rem; }\n");
             writer.write("        td.num, th.num { text-align:right; }\n");
-            writer.write("        .table-wrap { background:var(--card); border:1px solid var(--line); border-radius:14px; overflow:auto; box-shadow:0 5px 14px rgba(15,23,33,.06); }\n");
+            writer.write("        .table-wrap { background:var(--card); border:1px solid var(--line); border-radius:14px; overflow-x:hidden; overflow-y:hidden; -webkit-overflow-scrolling:touch; scrollbar-gutter:stable both-edges; box-shadow:0 5px 14px rgba(15,23,33,.06); }\n");
+            writer.write("        .table-wrap::-webkit-scrollbar { height:12px; }\n");
+            writer.write("        .table-wrap::-webkit-scrollbar-track { background:#e7eef5; border-radius:999px; }\n");
+            writer.write("        .table-wrap::-webkit-scrollbar-thumb { background:#9db0c3; border-radius:999px; border:2px solid #e7eef5; }\n");
+            writer.write("        .overview-table { table-layout:auto; }\n");
+            writer.write("        .overview-table tr > *:nth-child(1) { width:72px; max-width:72px; min-width:72px; overflow:visible; text-overflow:clip; }\n");
+            writer.write("        .overview-table tr > *:nth-child(2) { width:10ch; max-width:10ch; min-width:10ch; }\n");
+            writer.write("        .overview-table tr > *:nth-child(3) { width:12ch; max-width:12ch; min-width:12ch; }\n");
+            writer.write("        .overview-table tr > *:nth-child(n+4) { white-space:nowrap; overflow:visible; text-overflow:clip; }\n");
+            writer.write("        .realized-table { table-layout:auto; }\n");
+            writer.write("        .realized-table tr > *:nth-child(1) { width:106px; max-width:106px; min-width:106px; overflow:visible; text-overflow:clip; }\n");
+            writer.write("        .realized-table tr > *:nth-child(2) { width:auto; min-width:9ch; max-width:none; overflow:visible; text-overflow:clip; }\n");
+            writer.write("        .realized-table tr > *:nth-child(3) { width:auto; min-width:14ch; max-width:none; overflow:visible; text-overflow:clip; }\n");
+            writer.write("        .realized-table tr > *:nth-child(8) { width:160px; max-width:160px; }\n");
+            writer.write("        .ticker-scroll, .security-scroll { display:block; width:100%; max-width:100%; overflow-x:auto; overflow-y:hidden; white-space:nowrap; text-overflow:clip; scrollbar-width:thin; }\n");
+            writer.write("        .ticker-scroll::-webkit-scrollbar, .security-scroll::-webkit-scrollbar { height:2px; }\n");
+            writer.write("        .ticker-scroll::-webkit-scrollbar-thumb, .security-scroll::-webkit-scrollbar-thumb { background:#b8c7d5; border-radius:999px; }\n");
             writer.write("        .total-row { font-weight:700; background:#f3f7fb; }\n");
             writer.write("        .asset-split td { border-top:3px solid #8a9eb3 !important; }\n");
             writer.write("        .positive { color:var(--good); } .negative { color:var(--bad); }\n");
@@ -93,6 +109,7 @@ public class ReportWriter {
             writer.write("        .chart-hover-bar.is-hovered { transform:translateY(-2px); }\n");
             writer.write("        .chart-hover-slice.is-hovered { transform:scale(1.03); }\n");
             writer.write("        .chart-hover-point.is-hovered { transform:scale(1.75); stroke:#ffffff; stroke-width:1; }\n");
+            writer.write("        .chart-hover-avg-hit { pointer-events:stroke; }\n");
             writer.write("        .chart-tooltip { position:fixed; pointer-events:none; z-index:10000; max-width:340px; padding:7px 10px; border-radius:8px; background:rgba(16,28,40,.94); color:#f6fbff; font-size:.8rem; font-weight:600; line-height:1.3; box-shadow:0 8px 18px rgba(7,16,26,.28); border:1px solid rgba(255,255,255,.14); opacity:0; transform:translateY(4px); transition:opacity .1s ease, transform .1s ease; }\n");
             writer.write("        .chart-tooltip.visible { opacity:1; transform:translateY(0); }\n");
             writer.write("        .chart-title-row { display:flex; align-items:center; justify-content:space-between; gap:8px; margin:0 0 10px; }\n");
@@ -100,22 +117,22 @@ public class ReportWriter {
             writer.write("        .chart-download-btn { border:1px solid #86a4bf; background:#f3f8fd; color:#1e3951; border-radius:7px; width:28px; height:28px; display:inline-flex; align-items:center; justify-content:center; cursor:pointer; padding:0; }\n");
             writer.write("        .chart-download-btn:hover { background:#e6f1fb; }\n");
             writer.write("        .chart-download-btn svg { width:15px; height:15px; stroke:currentColor; fill:none; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }\n");
-            writer.write("        .expand-btn { border:1px solid #86a4bf; background:#f3f8fd; color:#1e3951; border-radius:7px; padding:4px 8px; font-size:.78rem; font-weight:600; cursor:pointer; }\n");
+            writer.write("        .expand-btn { border:1px solid #86a4bf; background:#f3f8fd; color:#1e3951; border-radius:7px; min-width:62px; padding:2px 8px; font-size:.66rem; font-weight:700; cursor:pointer; text-align:center; }\n");
             writer.write("        .expand-btn:hover { background:#e6f1fb; }\n");
             writer.write("        .details-head { display:inline-flex; align-items:center; gap:6px; }\n");
             writer.write("        .detail-group-toggle { border:1px solid #86a4bf; background:#f3f8fd; color:#1e3951; border-radius:50%; width:18px; height:18px; padding:0; line-height:16px; font-size:.72rem; font-weight:700; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; }\n");
             writer.write("        .detail-group-toggle:hover { background:#e6f1fb; }\n");
             writer.write("        .details-row { display:none; }\n");
             writer.write("        .details-cell { padding:0 !important; background:#f9fcff; }\n");
-            writer.write("        .details-wrap { padding:10px 12px 12px; }\n");
+            writer.write("        .details-wrap { padding:10px 12px 12px; overflow-x:auto; overflow-y:hidden; }\n");
             writer.write("        .details-wrap h4 { margin:0 0 8px; font-size:.85rem; color:#31495f; text-transform:uppercase; letter-spacing:.25px; }\n");
-            writer.write("        .details-table { width:100%; border-collapse:collapse; min-width:0; background:#fff; border:1px solid #dfe7ef; }\n");
-            writer.write("        .details-table th, .details-table td { padding:6px 7px; border-bottom:1px solid #edf2f7; font-size:.82rem; white-space:nowrap; }\n");
+            writer.write("        .details-table { width:max-content; min-width:100%; border-collapse:collapse; background:#fff; border:1px solid #dfe7ef; }\n");
+            writer.write("        .details-table th, .details-table td { padding:6px 7px; border-bottom:1px solid #edf2f7; font-size:.70rem; white-space:nowrap; overflow:visible; text-overflow:clip; }\n");
             writer.write("        .details-table th { background:#f4f8fc; color:#405a70; }\n");
             writer.write("        .details-buy { color:#1d5d92; font-weight:600; }\n");
             writer.write("        .details-dividend { color:#1f8b4d; font-weight:600; }\n");
             writer.write("        @media (max-width:1200px) { .allocation-row-top{grid-template-columns:1fr 1fr;} }\n");
-            writer.write("        @media (max-width:1060px) { .report-hero{grid-template-columns:1fr;} .hero-kpis{grid-template-columns:1fr;} .overview-charts{grid-template-columns:1fr;} .allocation-row-top,.allocation-row-bottom{grid-template-columns:1fr;} .page{width:100vw; padding:16px 8px 22px;} }\n");
+            writer.write("        @media (max-width:1060px) { .report-hero{grid-template-columns:1fr;} .hero-kpis{grid-template-columns:1fr;} .overview-charts{grid-template-columns:1fr;} .allocation-row-top,.allocation-row-bottom{grid-template-columns:1fr;} .page{width:100vw; padding:16px 8px 22px;} .table-wrap{overflow-x:auto;} .table-wrap table{min-width:980px;} .ticker-scroll,.security-scroll{max-width:none;} }\n");
             writer.write("    </style>\n");
             writer.write("</head>\n");
             writer.write("<body>\n");
@@ -137,7 +154,7 @@ public class ReportWriter {
             writer.write("  if (!row) return;\n");
             writer.write("  var isOpen = row.style.display === 'table-row';\n");
             writer.write("  row.style.display = isOpen ? 'none' : 'table-row';\n");
-            writer.write("  if (button) button.textContent = isOpen ? 'Show details' : 'Hide details';\n");
+            writer.write("  if (button) button.textContent = isOpen ? 'Show' : 'Hide';\n");
             writer.write("}\n");
             writer.write("function toggleDetailGroup(groupName, button) {\n");
             writer.write("  var rows = document.querySelectorAll('tr.details-row[data-group=\\\"' + groupName + '\\\"]');\n");
@@ -150,7 +167,7 @@ public class ReportWriter {
             writer.write("    var rowId = row.id;\n");
             writer.write("    if (!rowId) return;\n");
             writer.write("    var rowButton = document.querySelector('button.expand-btn[data-target=\\\"' + rowId + '\\\"]');\n");
-            writer.write("    if (rowButton) rowButton.textContent = open ? 'Hide details' : 'Show details';\n");
+            writer.write("    if (rowButton) rowButton.textContent = open ? 'Hide' : 'Show';\n");
             writer.write("  });\n");
             writer.write("  window.__detailGroupNextAction[groupName] = open ? 'close' : 'open';\n");
             writer.write("  if (button) button.textContent = open ? '▾' : '▸';\n");
@@ -246,11 +263,10 @@ public class ReportWriter {
         writer.write("</section>\n");
         writer.write("</div>\n");
 
-        writer.write("<div class=\"table-wrap\">\n<table>\n");
+        writer.write("<div class=\"table-wrap\">\n<table class=\"overview-table\">\n");
         writeHtmlRow(writer, true,
             buildDetailsHeaderCell("overview-details"), "Ticker", "Security", "Units", "Avg Cost", "Last Price",
-                "Market Value", "Cost Basis", "Unrealized", "Unrealized (%)",
-                "Realized (%)", "Realized", "Dividends", "Total Return", "Total Return (%)");
+                "Cost Basis", "Market Value", "Unrealized", "Realized", "Dividends", "Total Return");
 
         LinkedHashMap<String, Double> totalMarketValueBuckets = new LinkedHashMap<>();
         LinkedHashMap<String, Double> totalCostBasisBuckets = new LinkedHashMap<>();
@@ -271,26 +287,30 @@ public class ReportWriter {
             String rowClass = isStockFundBoundary(previousAssetType, row.assetType) ? "asset-split" : null;
             String detailsRowId = "overview-details-" + detailsIndex;
             Security security = securityByKey.get(row.securityKey);
+            String unrealizedCombined = row.hasPrice
+                ? HtmlFormatter.formatMoney(row.unrealized, row.currencyCode, 2) + " (" + HtmlFormatter.formatPercent(row.unrealizedPct, 2) + ")"
+                : "-";
+            String realizedCombined = HtmlFormatter.formatMoney(row.realized, row.currencyCode, 2)
+                + " (" + row.realizedReturnPctText + "%)";
+            String totalReturnCombined = HtmlFormatter.formatMoney(row.totalReturn, row.currencyCode, 2)
+                + " (" + HtmlFormatter.formatPercent(row.totalReturnPct, 2) + ")";
 
             writeHtmlRowWithClass(writer, rowClass,
-                "<button class=\"expand-btn\" data-target=\"" + detailsRowId + "\" onclick=\"toggleOverviewDetails('" + detailsRowId + "', this)\">Show details</button>",
-                    row.tickerText,
-                    row.securityDisplayName,
+                "<button class=\"expand-btn\" data-target=\"" + detailsRowId + "\" onclick=\"toggleOverviewDetails('" + detailsRowId + "', this)\">Show</button>",
+                    "<span class=\"ticker-scroll\">" + escapeHtml(row.tickerText) + "</span>",
+                    "<span class=\"security-scroll\">" + escapeHtml(row.securityDisplayName) + "</span>",
                     HtmlFormatter.formatUnits(row.units),
                     HtmlFormatter.formatMoney(row.averageCost, row.currencyCode, 2),
                     row.latestPrice > 0 ? HtmlFormatter.formatMoney(row.latestPrice, row.currencyCode, 2) : "-",
-                    row.latestPrice > 0 ? HtmlFormatter.formatMoney(row.marketValue, row.currencyCode, 2) : "-",
                     HtmlFormatter.formatMoney(row.positionCostBasis, row.currencyCode, 2),
-                    row.hasPrice ? HtmlFormatter.formatMoney(row.unrealized, row.currencyCode, 2) : "-",
-                    row.hasPrice ? HtmlFormatter.formatPercent(row.unrealizedPct, 2) : "-",
-                    row.realizedReturnPctText + "%",
-                    HtmlFormatter.formatMoney(row.realized, row.currencyCode, 2),
+                    row.latestPrice > 0 ? HtmlFormatter.formatMoney(row.marketValue, row.currencyCode, 2) : "-",
+                    unrealizedCombined,
+                    realizedCombined,
                     HtmlFormatter.formatMoney(row.dividends, row.currencyCode, 2),
-                    HtmlFormatter.formatMoney(row.totalReturn, row.currencyCode, 2),
-                    HtmlFormatter.formatPercent(row.totalReturnPct, 2));
+                    totalReturnCombined);
 
                     writer.write("<tr id=\"" + detailsRowId + "\" class=\"details-row\" data-group=\"overview-details\">\n");
-                    writer.write("    <td class=\"details-cell\" colspan=\"15\">\n");
+                    writer.write("    <td class=\"details-cell\" colspan=\"12\">\n");
                     writer.write(buildHoldingDetailsTableHtml(security, row));
                     writer.write("    </td>\n");
                     writer.write("</tr>\n");
@@ -313,15 +333,12 @@ public class ReportWriter {
 
         writer.write("<tr class=\"total-row\">\n");
         writer.write("    <td></td><td></td><td><strong>TOTAL</strong></td><td></td><td></td><td></td>\n");
-        writer.write("    <td>" + renderConvertibleMoneyCell(totalMarketValueBuckets, 2, ratesToNok) + "</td>\n");
         writer.write("    <td>" + renderConvertibleMoneyCell(totalCostBasisBuckets, 2, ratesToNok) + "</td>\n");
-        writer.write("    <td>" + renderConvertibleMoneyCell(totalUnrealizedBuckets, 2, ratesToNok) + "</td>\n");
-        writer.write("    <td>" + HtmlFormatter.formatPercent(totalUnrealizedPct, 2) + "</td>\n");
-        writer.write("    <td>" + HtmlFormatter.formatPercent(totalRealizedPct, 2) + "</td>\n");
-        writer.write("    <td>" + renderConvertibleMoneyCell(totalRealizedBuckets, 2, ratesToNok) + "</td>\n");
+        writer.write("    <td>" + renderConvertibleMoneyCell(totalMarketValueBuckets, 2, ratesToNok) + "</td>\n");
+        writer.write("    <td>" + renderConvertibleMoneyCell(totalUnrealizedBuckets, 2, ratesToNok) + " (" + HtmlFormatter.formatPercent(totalUnrealizedPct, 2) + ")</td>\n");
+        writer.write("    <td>" + renderConvertibleMoneyCell(totalRealizedBuckets, 2, ratesToNok) + " (" + HtmlFormatter.formatPercent(totalRealizedPct, 2) + ")</td>\n");
         writer.write("    <td>" + renderConvertibleMoneyCell(totalDividendsBuckets, 2, ratesToNok) + "</td>\n");
-        writer.write("    <td>" + renderConvertibleMoneyCell(totalReturnBuckets, 2, ratesToNok) + "</td>\n");
-        writer.write("    <td>" + HtmlFormatter.formatPercent(totalReturnPct, 2) + "</td>\n");
+        writer.write("    <td>" + renderConvertibleMoneyCell(totalReturnBuckets, 2, ratesToNok) + " (" + HtmlFormatter.formatPercent(totalReturnPct, 2) + ")</td>\n");
         writer.write("</tr>\n");
 
         writer.write("</table>\n</div>\n\n");
@@ -355,8 +372,8 @@ public class ReportWriter {
 
     private static void writeRealizedSummaryTableHtml(FileWriter writer, TransactionStore store, Map<String, Double> ratesToNok) throws IOException {
         writer.write("<h2>REALIZED OVERVIEW - ALL SALES</h2>\n");
-        writer.write("<div class=\"table-wrap\">\n<table>\n");
-        writeHtmlRow(writer, true, buildDetailsHeaderCell("realized-details"), "Ticker", "Security", "Sales Value", "Cost Basis", "Realized Gain/Loss", "Dividends", "Return (%)");
+        writer.write("<div class=\"table-wrap\">\n<table class=\"realized-table\">\n");
+        writeHtmlRow(writer, true, buildDetailsHeaderCell("realized-details"), "Ticker", "Security", "Cost Basis", "Sales Value", "Gain/Loss", "Dividends", "Total Return");
 
         ArrayList<Security> soldSecurities = getSortedSoldSecurities(store);
         LinkedHashMap<String, Double> totalSalesValueBuckets = new LinkedHashMap<>();
@@ -372,9 +389,12 @@ public class ReportWriter {
             double costBasis = security.getRealizedCostBasis();
             double gain = security.getRealizedGain();
             double realizedDividends = security.isFullyRealized() ? security.getDividends() : 0.0;
-            double returnPct = costBasis > 0 ? (gain / costBasis) * 100.0 : (gain > 0 ? 100.0 : 0.0);
+            double totalReturnValue = gain + realizedDividends;
+            double rowTotalReturnPct = costBasis > 0 ? (totalReturnValue / costBasis) * 100.0 : (totalReturnValue > 0 ? 100.0 : 0.0);
             String currentAssetType = security.getAssetType().name();
             String rowClass = isStockFundBoundary(previousAssetType, currentAssetType) ? "asset-split" : null;
+            String totalReturnCombined = HtmlFormatter.formatMoney(totalReturnValue, currency, 2)
+                + " (" + HtmlFormatter.formatPercent(rowTotalReturnPct, 2) + ")";
 
             addToCurrencyBuckets(totalSalesValueBuckets, currency, salesValue);
             addToCurrencyBuckets(totalCostBasisBuckets, currency, costBasis);
@@ -383,14 +403,14 @@ public class ReportWriter {
                 String detailsRowId = "realized-details-" + detailsIndex;
 
                 writeHtmlRowWithClass(writer, rowClass,
-                    "<button class=\"expand-btn\" data-target=\"" + detailsRowId + "\" onclick=\"toggleOverviewDetails('" + detailsRowId + "', this)\">Show details</button>",
-                    security.getTicker(),
-                    security.getDisplayName(),
-                    HtmlFormatter.formatMoney(salesValue, currency, 2),
+                    "<button class=\"expand-btn\" data-target=\"" + detailsRowId + "\" onclick=\"toggleOverviewDetails('" + detailsRowId + "', this)\">Show</button>",
+                    "<span class=\"ticker-scroll\">" + escapeHtml(security.getTicker()) + "</span>",
+                    "<span class=\"security-scroll\">" + escapeHtml(security.getDisplayName()) + "</span>",
                     HtmlFormatter.formatMoney(costBasis, currency, 2),
+                    HtmlFormatter.formatMoney(salesValue, currency, 2),
                     HtmlFormatter.formatMoney(gain, currency, 2),
                     HtmlFormatter.formatMoney(realizedDividends, currency, 2),
-                    HtmlFormatter.formatPercent(returnPct, 2));
+                    totalReturnCombined);
 
                 writer.write("<tr id=\"" + detailsRowId + "\" class=\"details-row\" data-group=\"realized-details\">\n");
                 writer.write("    <td class=\"details-cell\" colspan=\"8\">\n");
@@ -404,16 +424,19 @@ public class ReportWriter {
 
         double totalCostBasisForPct = convertBucketsToTarget(totalCostBasisBuckets, DEFAULT_TOTAL_CURRENCY, ratesToNok);
         double totalRealizedGainForPct = convertBucketsToTarget(totalRealizedGainBuckets, DEFAULT_TOTAL_CURRENCY, ratesToNok);
+        double totalRealizedDividendsForPct = convertBucketsToTarget(totalRealizedDividendsBuckets, DEFAULT_TOTAL_CURRENCY, ratesToNok);
+        LinkedHashMap<String, Double> totalRealizedReturnBuckets = sumCurrencyBuckets(totalRealizedGainBuckets, totalRealizedDividendsBuckets);
+        double totalRealizedReturnForPct = totalRealizedGainForPct + totalRealizedDividendsForPct;
         double totalReturnPct = totalCostBasisForPct > 0
-            ? (totalRealizedGainForPct / totalCostBasisForPct) * 100.0
-            : (totalRealizedGainForPct > 0 ? 100.0 : 0.0);
+            ? (totalRealizedReturnForPct / totalCostBasisForPct) * 100.0
+            : (totalRealizedReturnForPct > 0 ? 100.0 : 0.0);
         writer.write("<tr class=\"total-row\">\n");
         writer.write("    <td></td><td></td><td><strong>TOTAL</strong></td>\n");
-        writer.write("    <td>" + renderConvertibleMoneyCell(totalSalesValueBuckets, 2, ratesToNok) + "</td>\n");
         writer.write("    <td>" + renderConvertibleMoneyCell(totalCostBasisBuckets, 2, ratesToNok) + "</td>\n");
+        writer.write("    <td>" + renderConvertibleMoneyCell(totalSalesValueBuckets, 2, ratesToNok) + "</td>\n");
         writer.write("    <td>" + renderConvertibleMoneyCell(totalRealizedGainBuckets, 2, ratesToNok) + "</td>\n");
         writer.write("    <td>" + renderConvertibleMoneyCell(totalRealizedDividendsBuckets, 2, ratesToNok) + "</td>\n");
-        writer.write("    <td>" + HtmlFormatter.formatPercent(totalReturnPct, 2) + "</td>\n");
+        writer.write("    <td>" + renderConvertibleMoneyCell(totalRealizedReturnBuckets, 2, ratesToNok) + " (" + HtmlFormatter.formatPercent(totalReturnPct, 2) + ")</td>\n");
         writer.write("</tr>\n");
 
         writer.write("</table>\n</div>\n\n");
@@ -433,7 +456,7 @@ public class ReportWriter {
         }
 
         html.append("<table class=\"details-table\">\n");
-        html.append("<tr><th>Sale Date</th><th>Units</th><th>Price/Unit</th><th>Sale Value</th><th>Cost Basis</th><th>Gain/Loss</th><th>Return (%)</th></tr>\n");
+        html.append("<tr><th>Sale Date</th><th>Units</th><th>Price/Unit</th><th>Cost Basis</th><th>Sale Value</th><th>Gain/Loss</th><th>Return (%)</th></tr>\n");
 
         double totalUnits = 0.0;
         double totalSaleValue = 0.0;
@@ -449,8 +472,8 @@ public class ReportWriter {
             html.append("<td>").append(escapeHtml(trade.getTradeDateAsCsv())).append("</td>");
             html.append("<td>").append(escapeHtml(HtmlFormatter.formatUnits(trade.getUnits()))).append("</td>");
             html.append("<td>").append(escapeHtml(HtmlFormatter.formatMoney(trade.getUnitPrice(), currency, 2))).append("</td>");
-            html.append("<td>").append(escapeHtml(HtmlFormatter.formatMoney(trade.getSaleValue(), currency, 0))).append("</td>");
             html.append("<td>").append(escapeHtml(HtmlFormatter.formatMoney(trade.getCostBasis(), currency, 0))).append("</td>");
+            html.append("<td>").append(escapeHtml(HtmlFormatter.formatMoney(trade.getSaleValue(), currency, 0))).append("</td>");
             html.append("<td>").append(escapeHtml(HtmlFormatter.formatMoney(trade.getGainLoss(), currency, 0))).append("</td>");
             html.append("<td>").append(escapeHtml(HtmlFormatter.formatPercent(trade.getReturnPct(), 2))).append("</td>");
             html.append("</tr>\n");
@@ -461,13 +484,37 @@ public class ReportWriter {
         html.append("<td><strong>TOTAL</strong></td>");
         html.append("<td>").append(escapeHtml(HtmlFormatter.formatUnits(totalUnits))).append("</td>");
         html.append("<td></td>");
-        html.append("<td>").append(escapeHtml(HtmlFormatter.formatMoney(totalSaleValue, currency, 0))).append("</td>");
         html.append("<td>").append(escapeHtml(HtmlFormatter.formatMoney(totalCostBasis, currency, 0))).append("</td>");
+        html.append("<td>").append(escapeHtml(HtmlFormatter.formatMoney(totalSaleValue, currency, 0))).append("</td>");
         html.append("<td>").append(escapeHtml(HtmlFormatter.formatMoney(totalGainLoss, currency, 0))).append("</td>");
         html.append("<td>").append(escapeHtml(HtmlFormatter.formatPercent(totalReturnPct, 2))).append("</td>");
         html.append("</tr>\n");
 
-        html.append("</table>\n</div>\n");
+        html.append("</table>\n");
+
+        List<Security.DividendEvent> dividendEvents = security.getAllDividendEventsSortedByDate();
+        if (!dividendEvents.isEmpty()) {
+            html.append("<h4 style=\"margin-top:10px;\">Dividend Events</h4>\n");
+            html.append("<table class=\"details-table\">\n");
+            html.append("<tr><th>Date</th><th>Units</th><th>Dividend</th></tr>\n");
+            double totalDividendAmount = 0.0;
+            for (Security.DividendEvent event : dividendEvents) {
+                totalDividendAmount += event.getAmount();
+                String unitsText = event.getUnits() > 0.0 ? HtmlFormatter.formatUnits(event.getUnits()) : "-";
+                html.append("<tr>");
+                html.append("<td>").append(escapeHtml(formatDetailDate(event.getTradeDate()))).append("</td>");
+                html.append("<td>").append(escapeHtml(unitsText)).append("</td>");
+                html.append("<td>").append(escapeHtml(HtmlFormatter.formatMoney(event.getAmount(), currency, 2))).append("</td>");
+                html.append("</tr>\n");
+            }
+            html.append("<tr class=\"total-row\">");
+            html.append("<td><strong>TOTAL</strong></td><td></td>");
+            html.append("<td>").append(escapeHtml(HtmlFormatter.formatMoney(totalDividendAmount, currency, 2))).append("</td>");
+            html.append("</tr>\n");
+            html.append("</table>\n");
+        }
+
+        html.append("</div>\n");
         return html.toString();
     }
 
@@ -644,12 +691,29 @@ public class ReportWriter {
     }
 
     private static boolean isStockFundBoundary(String previousAssetType, String currentAssetType) {
-        if (previousAssetType == null || currentAssetType == null || previousAssetType.equals(currentAssetType)) {
+        String previousGroup = normalizeAssetBoundaryGroup(previousAssetType);
+        String currentGroup = normalizeAssetBoundaryGroup(currentAssetType);
+
+        if (previousGroup == null || currentGroup == null || previousGroup.equals(currentGroup)) {
             return false;
         }
 
-        return ("STOCK".equals(previousAssetType) && "FUND".equals(currentAssetType))
-                || ("FUND".equals(previousAssetType) && "STOCK".equals(currentAssetType));
+        return ("STOCK".equals(previousGroup) && "FUND".equals(currentGroup))
+                || ("FUND".equals(previousGroup) && "STOCK".equals(currentGroup));
+    }
+
+    private static String normalizeAssetBoundaryGroup(String assetType) {
+        if (assetType == null || assetType.isBlank()) {
+            return null;
+        }
+
+        String normalized = assetType.trim().toUpperCase(Locale.ROOT);
+        if ("FUND".equals(normalized)) {
+            return "FUND";
+        }
+
+        // Treat UNKNOWN and all non-fund classes as STOCK for a stable single boundary.
+        return "STOCK";
     }
 
     private static int getAssetPriority(String assetType) {
@@ -868,8 +932,34 @@ public class ReportWriter {
         writer.write("  tooltip.className = 'chart-tooltip';\n");
         writer.write("  document.body.appendChild(tooltip);\n");
         writer.write("  var activeTarget = null;\n");
+        writer.write("  function getActiveCurrencyCode() {\n");
+        writer.write("    var input = document.getElementById('portfolio-currency-input');\n");
+        writer.write("    var fallback = 'NOK';\n");
+        writer.write("    var code = normalizeCurrencyCodeInput(input && input.value ? input.value : fallback);\n");
+        writer.write("    return REPORT_RATES_TO_NOK[code] ? code : fallback;\n");
+        writer.write("  }\n");
+        writer.write("  function formatMoneyTooltip(target) {\n");
+        writer.write("    var currency = getActiveCurrencyCode();\n");
+        writer.write("    var targetRate = REPORT_RATES_TO_NOK[currency];\n");
+        writer.write("    if (!targetRate || targetRate <= 0) return '';\n");
+        writer.write("    var valueNok = Number(target.getAttribute('data-tooltip-value-nok') || '0');\n");
+        writer.write("    var decimals = Number(target.getAttribute('data-tooltip-decimals') || '0');\n");
+        writer.write("    var prefix = target.getAttribute('data-tooltip-prefix') || '';\n");
+        writer.write("    var suffix = target.getAttribute('data-tooltip-suffix') || '';\n");
+        writer.write("    var mode = target.getAttribute('data-tooltip-format') || 'money';\n");
+        writer.write("    var converted = valueNok / targetRate;\n");
+        writer.write("    var text = mode === 'compact'\n");
+        writer.write("      ? prefix + formatCompactMoney(converted, currency)\n");
+        writer.write("      : prefix + formatMoneyValue(converted, currency, decimals);\n");
+        writer.write("    return text + suffix;\n");
+        writer.write("  }\n");
         writer.write("  function readTooltipText(target) {\n");
         writer.write("    if (!target) return '';\n");
+        writer.write("    if (target.getAttribute('data-tooltip-kind') === 'money') {\n");
+        writer.write("      var moneyText = formatMoneyTooltip(target);\n");
+        writer.write("      if (moneyText) return moneyText;\n");
+        writer.write("      return String(target.getAttribute('data-tooltip-fallback') || '').trim();\n");
+        writer.write("    }\n");
         writer.write("    return String(target.getAttribute('data-tooltip') || '').trim();\n");
         writer.write("  }\n");
         writer.write("  function placeTooltip(event) {\n");
@@ -890,7 +980,19 @@ public class ReportWriter {
         writer.write("  document.querySelectorAll('.chart-hover-target').forEach(function (target) {\n");
         writer.write("    var nativeTitle = target.querySelector('title');\n");
         writer.write("    if (nativeTitle) {\n");
-        writer.write("      target.setAttribute('data-tooltip', String(nativeTitle.textContent || '').trim());\n");
+        writer.write("      var isMoneyTitle = (nativeTitle.classList && nativeTitle.classList.contains('js-chart-money')) || nativeTitle.hasAttribute('data-value-nok');\n");
+        writer.write("      if (isMoneyTitle) {\n");
+        writer.write("        target.setAttribute('data-tooltip-kind', 'money');\n");
+        writer.write("        target.setAttribute('data-tooltip-value-nok', nativeTitle.getAttribute('data-value-nok') || '0');\n");
+        writer.write("        target.setAttribute('data-tooltip-decimals', nativeTitle.getAttribute('data-decimals') || '0');\n");
+        writer.write("        target.setAttribute('data-tooltip-prefix', nativeTitle.getAttribute('data-prefix') || '');\n");
+        writer.write("        target.setAttribute('data-tooltip-suffix', nativeTitle.getAttribute('data-suffix') || '');\n");
+        writer.write("        target.setAttribute('data-tooltip-format', nativeTitle.getAttribute('data-format') || 'money');\n");
+        writer.write("        target.setAttribute('data-tooltip-fallback', String(nativeTitle.textContent || '').trim());\n");
+        writer.write("      } else {\n");
+        writer.write("        target.setAttribute('data-tooltip-kind', 'text');\n");
+        writer.write("        target.setAttribute('data-tooltip', String(nativeTitle.textContent || '').trim());\n");
+        writer.write("      }\n");
         writer.write("      nativeTitle.remove();\n");
         writer.write("    }\n");
         writer.write("    target.addEventListener('mouseenter', function (event) {\n");

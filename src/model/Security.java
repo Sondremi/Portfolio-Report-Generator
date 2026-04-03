@@ -83,6 +83,7 @@ public class Security {
     private final ArrayDeque<BuyLot> buyLots = new ArrayDeque<>();
     private final ArrayList<SaleTrade> saleTrades = new ArrayList<>();
     private final ArrayList<DividendEvent> currentDividendEvents = new ArrayList<>();
+    private final ArrayList<DividendEvent> allDividendEvents = new ArrayList<>();
 
     private double unitsOwned = 0.0;
     private double dividends = 0.0;
@@ -279,7 +280,9 @@ public class Security {
     public void addDividend(double amount, String tradeDateText, double unitsAtDividend) {
         dividends += amount;
         LocalDate tradeDate = parseDate(tradeDateText);
-        currentDividendEvents.add(new DividendEvent(tradeDate, Math.max(0.0, unitsAtDividend), amount));
+        DividendEvent event = new DividendEvent(tradeDate, Math.max(0.0, unitsAtDividend), amount);
+        currentDividendEvents.add(event);
+        allDividendEvents.add(event);
     }
 
     public ArrayList<CurrentHoldingLot> getCurrentHoldingLotsSortedByDate() {
@@ -296,6 +299,12 @@ public class Security {
 
     public ArrayList<DividendEvent> getCurrentDividendEventsSortedByDate() {
         ArrayList<DividendEvent> events = new ArrayList<>(currentDividendEvents);
+        events.sort(Comparator.comparing(DividendEvent::getTradeDate));
+        return events;
+    }
+
+    public ArrayList<DividendEvent> getAllDividendEventsSortedByDate() {
+        ArrayList<DividendEvent> events = new ArrayList<>(allDividendEvents);
         events.sort(Comparator.comparing(DividendEvent::getTradeDate));
         return events;
     }

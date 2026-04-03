@@ -166,7 +166,7 @@ public class ChartBuilder {
     public static String buildMarketValueBarChartSvg(List<OverviewRow> rows, Map<String, Double> ratesToNok) {
         final double width = 760.0;
         final double height = 390.0;
-        final double left = 74.0;
+        final double left = 126.0;
         final double right = 20.0;
         final double top = 16.0;
         final double bottom = 108.0;
@@ -218,13 +218,20 @@ public class ChartBuilder {
 
         double averageValue = totalMarketValue / rowsWithValue.size();
         double averageY = mapValueToY(averageValue, 0.0, maxValue, top, plotHeight);
-        svg.append("<line x1=\"").append(svgNumber(left)).append("\" y1=\"").append(svgNumber(averageY))
-           .append("\" x2=\"").append(svgNumber(left + plotWidth)).append("\" y2=\"").append(svgNumber(averageY))
-           .append("\" stroke=\"#495057\" stroke-width=\"1.2\" stroke-dasharray=\"5 4\"/>\n");
+          svg.append("<line x1=\"").append(svgNumber(left)).append("\" y1=\"").append(svgNumber(averageY))
+              .append("\" x2=\"").append(svgNumber(left + plotWidth)).append("\" y2=\"").append(svgNumber(averageY))
+              .append("\" stroke=\"#495057\" stroke-width=\"1.2\" stroke-dasharray=\"5 4\"/>\n");
 
-          svg.append("<text class=\"js-chart-money\" data-value-nok=\"").append(svgNumber(averageValue)).append("\" data-decimals=\"0\" data-prefix=\"Avg: \"")
-              .append(" x=\"").append(svgNumber(left + plotWidth + 8.0)).append("\" y=\"").append(svgNumber(averageY + 3.0))
-              .append("\" text-anchor=\"start\" font-size=\"10\" fill=\"#495057\">Avg: ")
+          svg.append("<line class=\"chart-hover-target chart-hover-avg-hit\" x1=\"").append(svgNumber(left)).append("\" y1=\"").append(svgNumber(averageY))
+              .append("\" x2=\"").append(svgNumber(left + plotWidth)).append("\" y2=\"").append(svgNumber(averageY))
+              .append("\" stroke=\"transparent\" stroke-width=\"12\">\n")
+              .append("<title class=\"js-chart-money\" data-value-nok=\"").append(svgNumber(averageValue)).append("\" data-decimals=\"0\" data-prefix=\"Avg: \">");
+          svg.append(escapeHtml("Avg: " + formatNumber(averageValue, 0) + " NOK"));
+          svg.append("</title></line>\n");
+
+             svg.append("<text class=\"js-chart-money\" data-value-nok=\"").append(svgNumber(averageValue)).append("\" data-decimals=\"0\" data-prefix=\"Avg: \"")
+                  .append(" x=\"").append(svgNumber(left - 8.0)).append("\" y=\"").append(svgNumber(averageY + 3.0))
+                  .append("\" text-anchor=\"end\" font-size=\"10\" fill=\"#495057\">Avg: ")
               .append(escapeHtml(formatNumber(averageValue, 0) + " NOK"))
               .append("</text>\n");
 
