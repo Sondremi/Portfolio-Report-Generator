@@ -126,12 +126,14 @@ public class ReportWriter {
             writer.write("        .chart-download-btn { border:1px solid #86a4bf; background:#f3f8fd; color:#1e3951; border-radius:7px; width:28px; height:28px; display:inline-flex; align-items:center; justify-content:center; cursor:pointer; padding:0; }\n");
             writer.write("        .chart-download-btn:hover { background:#e6f1fb; }\n");
             writer.write("        .chart-download-btn svg { width:15px; height:15px; stroke:currentColor; fill:none; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }\n");
-            writer.write("        .chart-toolbar { display:flex; gap:6px; align-items:center; flex-wrap:wrap; margin:0 0 8px; }\n");
+            writer.write("        .chart-toolbar { display:flex; gap:6px; align-items:center; flex-wrap:wrap; margin:0 0 8px; position:relative; z-index:3; }\n");
             writer.write("        .chart-tool-btn { border:1px solid #86a4bf; background:#f3f8fd; color:#1e3951; border-radius:7px; min-width:28px; height:28px; padding:0 7px; font-size:.74rem; font-weight:700; cursor:pointer; }\n");
             writer.write("        .chart-tool-btn:hover { background:#e6f1fb; }\n");
             writer.write("        .chart-filter-input { border:1px solid #a5bbcf; border-radius:7px; height:28px; min-width:130px; padding:0 8px; font-size:.74rem; background:#ffffff; color:#20384f; }\n");
             writer.write("        .chart-filter-input::placeholder { color:#6f8498; }\n");
+            writer.write("        .chart-viewport { position:relative; overflow:hidden; border:1px solid var(--line); border-radius:8px; background:var(--card); z-index:1; }\n");
             writer.write("        .chart-svg { transform-origin:0 0; transition:transform .12s ease-out; }\n");
+            writer.write("        .chart-viewport .chart-svg { border:none; border-radius:0; margin:0 !important; }\n");
             writer.write("        .chart-svg.is-panning { cursor:grabbing; }\n");
             writer.write("        .hero-theme-btn { border:1px solid rgba(235,245,255,.45); background:rgba(255,255,255,.12); color:#f3f7fc; border-radius:999px; padding:4px 10px; font-size:.78rem; font-weight:700; cursor:pointer; }\n");
             writer.write("        .hero-theme-btn:hover { background:rgba(255,255,255,.2); }\n");
@@ -236,10 +238,32 @@ public class ReportWriter {
         LinkedHashMap<String, Double> totalMarketBuckets = new LinkedHashMap<>();
         LinkedHashMap<String, Double> totalReturnBuckets = new LinkedHashMap<>();
         LinkedHashMap<String, Double> totalHistoricalCostBuckets = new LinkedHashMap<>();
+        Set<String> activeSecurityKeys = new LinkedHashSet<>();
         for (OverviewRow row : overviewRows) {
+            activeSecurityKeys.add(row.securityKey);
             addToCurrencyBuckets(totalMarketBuckets, row.currencyCode, row.marketValue);
             addToCurrencyBuckets(totalReturnBuckets, row.currencyCode, row.totalReturn);
             addToCurrencyBuckets(totalHistoricalCostBuckets, row.currencyCode, row.historicalCostBasis);
+        }
+
+        // Include realized overview securities that are not currently active in portfolio.
+        // This mirrors the realized overview formula exactly to keep header total in sync.
+        for (Security security : getSortedSoldSecurities(store)) {
+            String securityKey = getTrackingSecurityKey(security);
+            if (securityKey.isBlank() || activeSecurityKeys.contains(securityKey)) {
+                continue;
+            }
+
+            double realizedDividends = security.isFullyRealized() ? security.getDividends() : 0.0;
+            double realizedOnlyReturn = security.getRealizedGain() + realizedDividends;
+            double realizedCostBasis = security.getRealizedCostBasis();
+            if (Math.abs(realizedOnlyReturn) < 1e-9 && Math.abs(realizedCostBasis) < 1e-9) {
+                continue;
+            }
+
+            String currency = security.getCurrencyCode();
+            addToCurrencyBuckets(totalReturnBuckets, currency, realizedOnlyReturn);
+            addToCurrencyBuckets(totalHistoricalCostBuckets, currency, realizedCostBasis);
         }
 
         LinkedHashMap<String, Double> cashBuckets = new LinkedHashMap<>();
@@ -1094,6 +1118,13 @@ public class ReportWriter {
         writer.write("    var row = container.querySelector('.chart-title-row');\n");
         writer.write("    if (!row) return;\n");
         writer.write("    var toolbar = ensureToolbar(container, row);\n");
+        writer.write("    var viewport = svg.closest('.chart-viewport');\n");
+        writer.write("    if (!viewport) {\n");
+        writer.write("      viewport = document.createElement('div');\n");
+        writer.write("      viewport.className = 'chart-viewport';\n");
+        writer.write("      svg.parentNode.insertBefore(viewport, svg);\n");
+        writer.write("      viewport.appendChild(svg);\n");
+        writer.write("    }\n");
         writer.write("    var zoomInBtn = document.createElement('button');\n");
         writer.write("    zoomInBtn.type = 'button';\n");
         writer.write("    zoomInBtn.className = 'chart-tool-btn';\n");
@@ -1118,18 +1149,32 @@ public class ReportWriter {
         writer.write("    function applyTransform() {\n");
         writer.write("      svg.style.transform = 'translate(' + state.tx + 'px,' + state.ty + 'px) scale(' + state.scale + ')';\n");
         writer.write("    }\n");
-        writer.write("    function setScale(nextScale) {\n");
-        writer.write("      state.scale = Math.max(1, Math.min(4, nextScale));\n");
+        writer.write("    function zoomTo(nextScale, anchorClientX, anchorClientY) {\n");
+        writer.write("      var clamped = Math.max(1, Math.min(4, nextScale));\n");
+        writer.write("      if (Math.abs(clamped - state.scale) < 0.0001) return;\n");
+        writer.write("      var rect = svg.getBoundingClientRect();\n");
+        writer.write("      var anchorX = rect.width / 2;\n");
+        writer.write("      var anchorY = rect.height / 2;\n");
+        writer.write("      if (typeof anchorClientX === 'number' && typeof anchorClientY === 'number') {\n");
+        writer.write("        anchorX = Math.max(0, Math.min(rect.width, anchorClientX - rect.left));\n");
+        writer.write("        anchorY = Math.max(0, Math.min(rect.height, anchorClientY - rect.top));\n");
+        writer.write("      }\n");
+        writer.write("      var contentX = (anchorX - state.tx) / state.scale;\n");
+        writer.write("      var contentY = (anchorY - state.ty) / state.scale;\n");
+        writer.write("      state.scale = clamped;\n");
+        writer.write("      state.tx = anchorX - contentX * state.scale;\n");
+        writer.write("      state.ty = anchorY - contentY * state.scale;\n");
         writer.write("      if (state.scale <= 1) { state.tx = 0; state.ty = 0; }\n");
         writer.write("      applyTransform();\n");
         writer.write("    }\n");
-        writer.write("    zoomInBtn.addEventListener('click', function() { setScale(state.scale + 0.2); });\n");
-        writer.write("    zoomOutBtn.addEventListener('click', function() { setScale(state.scale - 0.2); });\n");
+        writer.write("    zoomInBtn.addEventListener('click', function() { zoomTo(state.scale + 0.2); });\n");
+        writer.write("    zoomOutBtn.addEventListener('click', function() { zoomTo(state.scale - 0.2); });\n");
         writer.write("    resetBtn.addEventListener('click', function() { state.scale = 1; state.tx = 0; state.ty = 0; applyTransform(); filterInput.value = ''; applyFilter(''); });\n");
         writer.write("    svg.addEventListener('wheel', function(event) {\n");
+        writer.write("      if (!(event.ctrlKey || event.metaKey)) return;\n");
         writer.write("      event.preventDefault();\n");
-        writer.write("      var step = event.deltaY < 0 ? 0.12 : -0.12;\n");
-        writer.write("      setScale(state.scale + step);\n");
+        writer.write("      var zoomFactor = Math.exp(-event.deltaY * 0.0015);\n");
+        writer.write("      zoomTo(state.scale * zoomFactor, event.clientX, event.clientY);\n");
         writer.write("    }, { passive: false });\n");
         writer.write("    svg.addEventListener('mousedown', function(event) {\n");
         writer.write("      if (event.button !== 0 || state.scale <= 1) return;\n");
