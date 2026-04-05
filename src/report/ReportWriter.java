@@ -70,29 +70,30 @@ public class ReportWriter {
             writer.write("        h2 { margin:26px 2px 12px; font-size:1.14rem; color:var(--ink); }\n");
             writer.write("        table { width:100%; border-collapse:collapse; min-width:0; table-layout:fixed; background:var(--card); }\n");
             writer.write("        th, td { padding:5px 5px; border-bottom:1px solid #edf2f7; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }\n");
-            writer.write("        th { background:#f5f8fb; text-align:left; font-size:.70rem; text-transform:uppercase; letter-spacing:.2px; color:#374556; border-bottom:1px solid var(--line); }\n");
-            writer.write("        td { font-size:.70rem; }\n");
+            writer.write("        th { background:#f5f8fb; text-align:left; font-size:.72rem; text-transform:uppercase; letter-spacing:.2px; color:#374556; border-bottom:1px solid var(--line); }\n");
+            writer.write("        td { font-size:.72rem; }\n");
             writer.write("        td.num, th.num { text-align:right; }\n");
-            writer.write("        .table-wrap { background:var(--card); border:1px solid var(--line); border-radius:14px; overflow-x:hidden; overflow-y:hidden; -webkit-overflow-scrolling:touch; scrollbar-gutter:stable both-edges; box-shadow:0 5px 14px rgba(15,23,33,.06); }\n");
+            writer.write("        .table-wrap { background:var(--card); border:1px solid var(--line); border-radius:14px; overflow-x:auto; overflow-y:hidden; -webkit-overflow-scrolling:touch; scrollbar-gutter:stable both-edges; box-shadow:0 5px 14px rgba(15,23,33,.06); }\n");
             writer.write("        .table-wrap::-webkit-scrollbar { height:12px; }\n");
             writer.write("        .table-wrap::-webkit-scrollbar-track { background:#e7eef5; border-radius:999px; }\n");
             writer.write("        .table-wrap::-webkit-scrollbar-thumb { background:#9db0c3; border-radius:999px; border:2px solid #e7eef5; }\n");
-            writer.write("        .overview-table { table-layout:auto; }\n");
-            writer.write("        .overview-table tr > *:nth-child(1) { width:72px; max-width:72px; min-width:72px; overflow:visible; text-overflow:clip; }\n");
-            writer.write("        .overview-table tr > *:nth-child(2) { width:auto; min-width:10ch; max-width:none; }\n");
-            writer.write("        .overview-table tr > *:nth-child(3) { width:auto; min-width:16ch; max-width:none; }\n");
-            writer.write("        .overview-table tr > *:nth-child(n+4) { white-space:nowrap; overflow:visible; text-overflow:clip; }\n");
+            writer.write("        .overview-table { table-layout:auto; min-width:1020px; }\n");
+            writer.write("        .overview-table tr > *:nth-child(1) { width:120px; max-width:120px; min-width:120px; overflow:hidden; text-overflow:ellipsis; }\n");
+            writer.write("        .overview-table tr > *:nth-child(2) { width:auto; min-width:24ch; max-width:none; }\n");
+            writer.write("        .overview-table tr > *:nth-child(3) { width:90px; min-width:90px; max-width:90px; }\n");
+            writer.write("        .overview-table tr > *:nth-child(n+4) { min-width:13ch; white-space:nowrap; overflow:visible; text-overflow:clip; }\n");
             writer.write("        .realized-table { table-layout:auto; }\n");
             writer.write("        .realized-table tr > *:nth-child(1) { width:106px; max-width:106px; min-width:106px; overflow:visible; text-overflow:clip; }\n");
             writer.write("        .realized-table tr > *:nth-child(2) { width:auto; min-width:9ch; max-width:none; overflow:visible; text-overflow:clip; }\n");
             writer.write("        .realized-table tr > *:nth-child(3) { width:auto; min-width:14ch; max-width:none; overflow:visible; text-overflow:clip; }\n");
             writer.write("        .realized-table tr > *:nth-child(8) { width:160px; max-width:160px; }\n");
-            writer.write("        .ticker-scroll, .security-scroll { display:block; position:relative; width:100%; max-width:100%; overflow-x:auto; overflow-y:hidden; white-space:nowrap; text-overflow:clip; scrollbar-width:none; -ms-overflow-style:none; padding-bottom:6px; cursor:grab; }\n");
-            writer.write("        .ticker-scroll::-webkit-scrollbar, .security-scroll::-webkit-scrollbar { display:none; width:0; height:0; }\n");
-            writer.write("        .ticker-scroll::after, .security-scroll::after { content:''; position:absolute; left:5px; right:5px; bottom:1px; height:4px; border-radius:999px; background:rgba(140,160,178,.18); opacity:.28; transition:opacity .12s ease, background .12s ease; }\n");
-            writer.write("        .ticker-scroll:hover::after, .security-scroll:hover::after { opacity:.5; background:rgba(140,160,178,.28); }\n");
-            writer.write("        .ticker-scroll.is-dragging::after, .security-scroll.is-dragging::after { opacity:.85; background:rgba(120,145,168,.45); }\n");
-            writer.write("        .ticker-scroll.is-dragging, .security-scroll.is-dragging { cursor:grabbing; }\n");
+            writer.write("        .ticker-scroll { display:block; width:100%; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; padding-bottom:0; }\n");
+            writer.write("        .security-scroll { display:block; position:relative; width:100%; max-width:100%; overflow-x:auto; overflow-y:hidden; white-space:nowrap; text-overflow:clip; scrollbar-width:none; -ms-overflow-style:none; padding-bottom:6px; cursor:grab; }\n");
+            writer.write("        .security-scroll::-webkit-scrollbar { display:none; width:0; height:0; }\n");
+            writer.write("        .security-scroll::after { content:''; position:absolute; left:5px; right:5px; bottom:1px; height:4px; border-radius:999px; background:rgba(140,160,178,.18); opacity:.28; transition:opacity .12s ease, background .12s ease; }\n");
+            writer.write("        .security-scroll:hover::after { opacity:.5; background:rgba(140,160,178,.28); }\n");
+            writer.write("        .security-scroll.is-dragging::after { opacity:.85; background:rgba(120,145,168,.45); }\n");
+            writer.write("        .security-scroll.is-dragging { cursor:grabbing; }\n");
             writer.write("        body.inline-cell-dragging { user-select:none; cursor:grabbing; }\n");
             writer.write("        .total-row { font-weight:700; background:#f3f7fb; color:#1a2b3a; }\n");
             writer.write("        .asset-split td { border-top:3px solid #8a9eb3 !important; }\n");
@@ -131,6 +132,7 @@ public class ReportWriter {
             writer.write("        .timeline-info-body ul { margin:0; padding-left:18px; }\n");
             writer.write("        .timeline-info-body li { margin:0 0 6px; }\n");
             writer.write("        .hero-side-note { color:#d4e3f0; font-size:.92rem; }\n");
+            writer.write("        .app-shell-note { color:#3b5570; font-size:.86rem; font-weight:600; line-height:1.35; }\n");
             writer.write("        .sparkline-widget { display:block; }\n");
             writer.write("        .sparkline-metric-controls { display:flex; flex-wrap:wrap; gap:7px; margin:0 0 8px; }\n");
             writer.write("        .sparkline-metric-btn { border:1px solid #b7c7d7; background:#f2f7fc; color:#27415a; border-radius:999px; padding:3px 9px; font-size:.72rem; font-weight:700; letter-spacing:.2px; cursor:pointer; }\n");
@@ -162,14 +164,8 @@ public class ReportWriter {
             writer.write("        .annual-summary-value { font-size:1.05rem; font-weight:700; }\n");
             writer.write("        .annual-summary-sub { margin-top:4px; font-size:.78rem; color:#5f7488; }\n");
             writer.write("        .annual-value-warning { margin-top:6px; padding:6px 7px; font-size:.74rem; line-height:1.35; border:1px solid #f0d8a8; border-radius:8px; background:#fff5df; color:#7b4a00; }\n");
-            writer.write("        .annual-value-warning a { color:#6b3c00; font-weight:700; }\n");
-            writer.write("        .annual-warning-links { margin-top:5px; display:flex; flex-wrap:wrap; gap:5px; }\n");
-            writer.write("        .annual-warning-links a { display:inline-flex; align-items:center; padding:2px 6px; border-radius:999px; border:1px solid #e7c88d; background:#fff7e8; color:#724300; font-size:.7rem; text-decoration:none; }\n");
-            writer.write("        .annual-warning-links a:hover { background:#fdeed0; }\n");
             writer.write("        .annual-summary-card .performer { margin-top:5px; color:#253d53; font-size:.82rem; }\n");
             writer.write("        .annual-summary-card .performer strong { margin-bottom:1px; font-size:.88rem; color:#1f3345; }\n");
-            writer.write("        .annual-price-warning-badge { margin-left:6px; display:inline-flex; align-items:center; border:1px solid #e2b96f; border-radius:999px; padding:1px 6px; font-size:.67rem; font-weight:700; letter-spacing:.15px; color:#754000; background:#fff1d6; vertical-align:middle; }\n");
-            writer.write("        .annual-warning-row td { background:#fffaf0; }\n");
             writer.write("        .annual-graphs-section { margin:0 0 18px; padding:12px; border:1px solid var(--line); border-radius:14px; background:var(--card); box-shadow:0 5px 14px rgba(15,23,33,.06); }\n");
             writer.write("        .annual-graphs-heading { display:flex; flex-wrap:wrap; align-items:baseline; justify-content:space-between; gap:8px; margin:0 0 10px; }\n");
             writer.write("        .annual-graphs-heading h2 { margin:0; font-size:1.02rem; color:var(--ink); }\n");
@@ -241,13 +237,8 @@ public class ReportWriter {
             writer.write("        body.theme-dark .annual-summary-card h4 { color:#c8d9eb; }\n");
             writer.write("        body.theme-dark .annual-summary-sub { color:#d6e4f1; }\n");
             writer.write("        body.theme-dark .annual-value-warning { background:#3d2e19; border-color:#8e6a33; color:#ffdca8; }\n");
-            writer.write("        body.theme-dark .annual-value-warning a { color:#ffe4bd; }\n");
-            writer.write("        body.theme-dark .annual-warning-links a { background:#44321c; border-color:#8e6a33; color:#ffddb0; }\n");
-            writer.write("        body.theme-dark .annual-warning-links a:hover { background:#553d1f; }\n");
             writer.write("        body.theme-dark .annual-summary-card .performer { color:#d4e3f2; }\n");
             writer.write("        body.theme-dark .annual-summary-card .performer strong { color:#e9f2fc; }\n");
-            writer.write("        body.theme-dark .annual-price-warning-badge { background:#4b3519; border-color:#9a7242; color:#ffdca8; }\n");
-            writer.write("        body.theme-dark .annual-warning-row td { background:#203246; }\n");
             writer.write("        body.theme-dark .annual-graphs-heading h2 { color:#e5edf7; }\n");
             writer.write("        body.theme-dark .annual-graphs-heading p { color:#bad0e5; }\n");
             writer.write("        body.theme-dark .annual-graph-card { border-color:#2e4258; background:#1a2d42; box-shadow:none; }\n");
@@ -264,7 +255,7 @@ public class ReportWriter {
             writer.write("        body.theme-dark .chart-security-label { fill:#e7f0fa !important; stroke:#0b1624 !important; stroke-width:1.05; }\n");
             writer.write("        body.theme-dark .market-value-bar-chart line[stroke='#495057'] { stroke:#dce8f4 !important; }\n");
             writer.write("        body.theme-dark .market-value-bar-chart text[fill='#495057'] { fill:#dce8f4 !important; }\n");
-            writer.write("        body.theme-dark .app-shell-note, body.theme-dark .hero-side-note { color:#bed0e3; }\n");
+            writer.write("        body.theme-dark .app-shell-note, body.theme-dark .hero-side-note { color:#d1e0ef; }\n");
             writer.write("        .expand-btn { border:1px solid #86a4bf; background:#f3f8fd; color:#1e3951; border-radius:7px; min-width:62px; padding:2px 8px; font-size:.66rem; font-weight:700; cursor:pointer; text-align:center; }\n");
             writer.write("        .expand-btn:hover { background:#e6f1fb; }\n");
             writer.write("        .details-head { display:inline-flex; align-items:center; gap:6px; }\n");
@@ -273,9 +264,9 @@ public class ReportWriter {
             writer.write("        .details-row { display:none; }\n");
             writer.write("        .details-cell { padding:0 !important; background:#f9fcff; }\n");
             writer.write("        .details-wrap { padding:10px 12px 12px; overflow-x:auto; overflow-y:hidden; }\n");
-            writer.write("        .details-wrap h4 { margin:0 0 8px; font-size:.85rem; color:#31495f; text-transform:uppercase; letter-spacing:.25px; }\n");
+            writer.write("        .details-wrap h4 { margin:0 0 8px; font-size:.88rem; color:#2b4358; text-transform:uppercase; letter-spacing:.25px; }\n");
             writer.write("        .details-table { width:max-content; min-width:100%; border-collapse:collapse; background:#fff; border:1px solid #dfe7ef; }\n");
-            writer.write("        .details-table th, .details-table td { padding:6px 7px; border-bottom:1px solid #edf2f7; font-size:.70rem; white-space:nowrap; overflow:visible; text-overflow:clip; }\n");
+            writer.write("        .details-table th, .details-table td { padding:6px 7px; border-bottom:1px solid #edf2f7; font-size:.72rem; white-space:nowrap; overflow:visible; text-overflow:clip; }\n");
             writer.write("        .details-table th { background:#f4f8fc; color:#405a70; }\n");
             writer.write("        .details-buy { color:#1d5d92; font-weight:600; }\n");
             writer.write("        .details-dividend { color:#1f8b4d; font-weight:600; }\n");
@@ -345,6 +336,13 @@ public class ReportWriter {
 
         LinkedHashMap<String, Double> cashBuckets = new LinkedHashMap<>();
         cashBuckets.put(DEFAULT_TOTAL_CURRENCY, metrics.cashHoldingsNok);
+        LinkedHashMap<String, Double> valueBuckets = singleCurrencyBuckets(DEFAULT_TOTAL_CURRENCY, summary.endValueNok);
+        LinkedHashMap<String, Double> portfolioReturnBuckets = singleCurrencyBuckets(DEFAULT_TOTAL_CURRENCY, summary.portfolioReturnNok);
+        LinkedHashMap<String, Double> realizedGainBuckets = singleCurrencyBuckets(DEFAULT_TOTAL_CURRENCY, summary.realizedGainNok);
+        LinkedHashMap<String, Double> dividendsBuckets = singleCurrencyBuckets(DEFAULT_TOTAL_CURRENCY, summary.dividendsNok);
+        LinkedHashMap<String, Double> realizedTotalBuckets = singleCurrencyBuckets(DEFAULT_TOTAL_CURRENCY, summary.realizedTotalNok);
+        LinkedHashMap<String, Double> bestReturnBuckets = singleCurrencyBuckets(DEFAULT_TOTAL_CURRENCY, metrics.best.returnNok);
+        LinkedHashMap<String, Double> worstReturnBuckets = singleCurrencyBuckets(DEFAULT_TOTAL_CURRENCY, metrics.worst.returnNok);
 
         String portfolioClass = summary.portfolioReturnNok >= 0 ? "positive" : "negative";
         double benchmarkDelta = summary.hasBenchmarkData ? (summary.portfolioReturnPct - summary.benchmarkReturnPct) : 0.0;
@@ -354,34 +352,33 @@ public class ReportWriter {
         String valueWarningHtml = buildAnnualValueWarningHtml(snapshotRows);
 
         writer.write("<article class=\"kpi-card annual-summary-card\"><h4>Value</h4><div class=\"annual-summary-value\">"
-            + HtmlFormatter.formatMoney(summary.endValueNok, DEFAULT_TOTAL_CURRENCY, 2)
+            + renderConvertibleMoneyCell(valueBuckets, 2, ratesToNok)
             + "</div><div class=\"annual-summary-sub\">Portfolio value at end of year</div>"
             + valueWarningHtml
             + "</article>\n");
 
-        writer.write("<article class=\"kpi-card annual-summary-card\"><h4>Cash Holdings</h4><div class=\"annual-summary-value js-convert-money\" data-buckets=\""
-            + escapeHtml(toBucketsJson(cashBuckets)) + "\" data-decimals=\"0\">"
-            + formatBucketsInTarget(cashBuckets, DEFAULT_TOTAL_CURRENCY, 0, ratesToNok)
+        writer.write("<article class=\"kpi-card annual-summary-card\"><h4>Cash Holdings</h4><div class=\"annual-summary-value\">"
+            + renderConvertibleMoneyCell(cashBuckets, 0, ratesToNok)
             + "</div><div class=\"annual-summary-sub\">Available cash at year end</div></article>\n");
 
         writer.write("<article class=\"kpi-card annual-summary-card\"><h4>Portfolio Return</h4><div class=\"annual-summary-value " + portfolioClass + "\">"
-            + HtmlFormatter.formatMoney(summary.portfolioReturnNok, DEFAULT_TOTAL_CURRENCY, 2)
+            + renderConvertibleMoneyCell(portfolioReturnBuckets, 2, ratesToNok)
             + "</div><div class=\"annual-summary-sub " + portfolioClass + "\">"
             + HtmlFormatter.formatPercent(summary.portfolioReturnPct)
             + "</div><div class=\"annual-summary-sub\">Time-weighted annual return, adjusted for external cash flows.</div></article>\n");
 
         String realizedGainClass = summary.realizedGainNok >= 0 ? "positive" : "negative";
         writer.write("<article class=\"kpi-card annual-summary-card\"><h4>Realized Gain/Loss</h4><div class=\"annual-summary-value " + realizedGainClass + "\">"
-            + HtmlFormatter.formatMoney(summary.realizedGainNok, DEFAULT_TOTAL_CURRENCY, 2)
+            + renderConvertibleMoneyCell(realizedGainBuckets, 2, ratesToNok)
             + "</div><div class=\"annual-summary-sub\">Closed sales in selected year</div></article>\n");
 
         writer.write("<article class=\"kpi-card annual-summary-card\"><h4>Dividends</h4><div class=\"annual-summary-value\">"
-            + HtmlFormatter.formatMoney(summary.dividendsNok, DEFAULT_TOTAL_CURRENCY, 2)
+            + renderConvertibleMoneyCell(dividendsBuckets, 2, ratesToNok)
             + "</div><div class=\"annual-summary-sub\">Dividend cash flows in selected year</div></article>\n");
 
         String realizedTotalClass = summary.realizedTotalNok >= 0 ? "positive" : "negative";
         writer.write("<article class=\"kpi-card annual-summary-card\"><h4>Total Realized</h4><div class=\"annual-summary-value " + realizedTotalClass + "\">"
-            + HtmlFormatter.formatMoney(summary.realizedTotalNok, DEFAULT_TOTAL_CURRENCY, 2)
+            + renderConvertibleMoneyCell(realizedTotalBuckets, 2, ratesToNok)
             + "</div><div class=\"annual-summary-sub\">Realized gain/loss plus dividends</div></article>\n");
 
         if (summary.hasBenchmarkData) {
@@ -393,7 +390,7 @@ public class ReportWriter {
                 + HtmlFormatter.formatPercent(benchmarkDelta)
                 + "</div><div class=\"annual-summary-sub\">Portfolio minus benchmark</div></article>\n");
         } else {
-            writer.write("<article class=\"kpi-card annual-summary-card\"><h4>Benchmark (" + escapeHtml(summary.benchmarkTicker) + ")</h4><div class=\"annual-summary-value\">0.00%</div><div class=\"annual-summary-sub\">No benchmark data available for this year, using 0.00% fallback.</div></article>\n");
+            writer.write("<article class=\"kpi-card annual-summary-card\"><h4>Benchmark (" + escapeHtml(summary.benchmarkTicker) + ")</h4><div class=\"annual-summary-value\">0.00%</div><div class=\"annual-summary-sub\">No benchmark data available for this year.</div></article>\n");
             writer.write("<article class=\"kpi-card annual-summary-card\"><h4>Relative vs Benchmark</h4><div class=\"annual-summary-value " + portfolioClass + "\">"
                 + HtmlFormatter.formatPercent(summary.portfolioReturnPct)
                 + "</div><div class=\"annual-summary-sub\">Portfolio minus 0.00% fallback benchmark</div></article>\n");
@@ -402,12 +399,12 @@ public class ReportWriter {
         writer.write("<article class=\"kpi-card annual-summary-card\"><h4>Best / Worst</h4><div class=\"performer " + bestClass + "\"><strong>"
             + escapeHtml(metrics.best.label)
             + "</strong><span class=\"performer-metrics\">"
-            + HtmlFormatter.formatMoney(metrics.best.returnNok, DEFAULT_TOTAL_CURRENCY, 0)
+            + renderConvertibleMoneyCell(bestReturnBuckets, 0, ratesToNok)
             + " | " + HtmlFormatter.formatPercent(metrics.best.returnPct)
             + "</span></div><div class=\"performer " + worstClass + "\"><strong>"
             + escapeHtml(metrics.worst.label)
             + "</strong><span class=\"performer-metrics\">"
-            + HtmlFormatter.formatMoney(metrics.worst.returnNok, DEFAULT_TOTAL_CURRENCY, 0)
+            + renderConvertibleMoneyCell(worstReturnBuckets, 0, ratesToNok)
             + " | " + HtmlFormatter.formatPercent(metrics.worst.returnPct)
             + "</span></div></article>\n");
 
@@ -418,35 +415,12 @@ public class ReportWriter {
             return "";
         }
 
-        ArrayList<AnnualSnapshotRow> warningRows = new ArrayList<>();
         for (AnnualSnapshotRow row : snapshotRows) {
             if (row != null && row.hasEstimatedPrice) {
-                warningRows.add(row);
+                return "<div class=\"annual-value-warning\">Estimated value: prices closest to 31.12 were used where exact year-end closes were unavailable.</div>";
             }
         }
-
-        if (warningRows.isEmpty()) {
-            return "";
-        }
-
-        StringBuilder html = new StringBuilder();
-        html.append("<div class=\"annual-value-warning\">Estimated year-end pricing was used for ")
-            .append(warningRows.size())
-            .append(warningRows.size() == 1 ? " security. " : " securities. ")
-            .append("<a href=\"#annual-price-warnings\">See affected securities</a>.</div>");
-
-        html.append("<div class=\"annual-warning-links\">");
-        for (AnnualSnapshotRow row : warningRows) {
-            html.append("<a href=\"#")
-                .append(escapeHtml(row.warningAnchorId))
-                .append("\" title=\"")
-                .append(escapeHtml(row.priceWarning))
-                .append("\">")
-                .append(escapeHtml(row.securityName))
-                .append("</a>");
-        }
-        html.append("</div>");
-        return html.toString();
+        return "";
     }
 
     private static final class AnnualSecurityPerformance {
@@ -557,7 +531,7 @@ public class ReportWriter {
 
         writer.write("<article class=\"annual-graph-card\">\n");
         writer.write("<h3>Portfolio Return</h3>\n");
-        writer.write("<p class=\"annual-graph-note\">Toggle between return in NOK and return percentage.</p>\n");
+        writer.write("<p class=\"annual-graph-note\">Month-end portfolio return in selected year.</p>\n");
         writer.write("<div class=\"annual-graph-content\">\n");
         if (returnChartSvg == null || returnChartSvg.isBlank()) {
             writer.write("<div class=\"app-shell-note\">Return timeline is not available for the selected year.</div>\n");
@@ -730,8 +704,6 @@ public class ReportWriter {
         private final double unrealizedPct;
         private final boolean hasPrice;
         private final boolean hasEstimatedPrice;
-        private final String priceWarning;
-        private final String warningAnchorId;
 
         private AnnualSnapshotRow(
                 String ticker,
@@ -746,9 +718,7 @@ public class ReportWriter {
                 double unrealized,
                 double unrealizedPct,
                 boolean hasPrice,
-                boolean hasEstimatedPrice,
-                String priceWarning,
-                String warningAnchorId) {
+                boolean hasEstimatedPrice) {
             this.ticker = ticker;
             this.securityName = securityName;
             this.assetType = assetType;
@@ -762,8 +732,6 @@ public class ReportWriter {
             this.unrealizedPct = unrealizedPct;
             this.hasPrice = hasPrice;
             this.hasEstimatedPrice = hasEstimatedPrice;
-            this.priceWarning = priceWarning;
-            this.warningAnchorId = warningAnchorId;
         }
     }
 
@@ -775,7 +743,7 @@ public class ReportWriter {
 
         int safeYear = Math.max(2000, Math.min(2100, reportYear));
 
-        writer.write("<h2 id=\"annual-price-warnings\">PORTFOLIO OVERVIEW - 31.12." + safeYear + "</h2>\n");
+        writer.write("<h2>PORTFOLIO OVERVIEW - 31.12." + safeYear + "</h2>\n");
         if (rows.isEmpty()) {
             writer.write("<p class=\"app-shell-note\">No holdings found at 31.12." + safeYear + ".</p>\n");
             return;
@@ -796,23 +764,13 @@ public class ReportWriter {
             addToCurrencyBuckets(totalUnrealizedBuckets, row.currencyCode, row.unrealized);
 
             String rowClass = isStockFundBoundary(previousAssetType, row.assetType) ? "asset-split" : null;
-                if (row.hasEstimatedPrice) {
-                rowClass = appendRowClass(rowClass, "annual-warning-row");
-                }
             String unrealizedText = row.hasPrice
                     ? HtmlFormatter.formatMoney(row.unrealized, row.currencyCode, 2) + " (" + HtmlFormatter.formatPercent(row.unrealizedPct, 2) + ")"
                     : "-";
 
-                String securityCell = "<span class=\"security-scroll\">" + escapeHtml(row.securityName) + "</span>";
-                if (row.hasEstimatedPrice) {
-                securityCell = "<span id=\"" + escapeHtml(row.warningAnchorId) + "\"></span>"
-                    + securityCell
-                    + "<span class=\"annual-price-warning-badge\" title=\"" + escapeHtml(row.priceWarning) + "\">Est. price</span>";
-                }
-
             writeHtmlRowWithClass(writer, rowClass,
                     "<span class=\"ticker-scroll\">" + escapeHtml(row.ticker) + "</span>",
-                    securityCell,
+                    "<span class=\"security-scroll\">" + escapeHtml(row.securityName) + "</span>",
                     HtmlFormatter.formatUnits(row.units),
                     HtmlFormatter.formatMoney(row.averageCost, row.currencyCode, 2),
                     row.hasPrice ? HtmlFormatter.formatMoney(row.latestPrice, row.currencyCode, 2) : "-",
@@ -872,8 +830,6 @@ public class ReportWriter {
             double unrealized = hasPrice ? marketValue - costBasis : 0.0;
             double unrealizedPct = costBasis > 0.0 ? (unrealized / costBasis) * 100.0 : 0.0;
         boolean hasEstimatedPrice = !hasPrice || priceResolution.isEstimated();
-        String priceWarning = hasEstimatedPrice ? buildAnnualPriceWarningMessage(priceResolution, snapshotDate) : "";
-        String warningAnchorId = hasEstimatedPrice ? "annual-price-warning-" + (rows.size() + 1) : "";
 
             rows.add(new AnnualSnapshotRow(
                     security.getTicker(),
@@ -888,9 +844,7 @@ public class ReportWriter {
                     unrealized,
                     unrealizedPct,
                     hasPrice,
-                    hasEstimatedPrice,
-                    priceWarning,
-                    warningAnchorId
+                    hasEstimatedPrice
             ));
         }
 
@@ -900,50 +854,6 @@ public class ReportWriter {
                 .thenComparing(row -> row.securityName, String.CASE_INSENSITIVE_ORDER));
 
         return rows;
-    }
-
-    private static String buildAnnualPriceWarningMessage(
-            PortfolioCalculator.PriceResolution priceResolution,
-            LocalDate snapshotDate) {
-
-        if (priceResolution == null) {
-            return "Estimated price used because a year-end market close was unavailable.";
-        }
-
-        PortfolioCalculator.PriceSource source = priceResolution.getSource();
-        LocalDate referenceDate = priceResolution.getReferenceDate();
-        String referenceDateText = referenceDate == null ? "" : " (reference date " + referenceDate + ")";
-
-        if (source == PortfolioCalculator.PriceSource.HISTORICAL_CLOSE_FORWARD) {
-            return "Used first available market close after snapshot date"
-                + referenceDateText + ".";
-        }
-        if (source == PortfolioCalculator.PriceSource.OBSERVED_NEAREST) {
-            return "Used nearest observed transaction price around snapshot date. "
-                + "Market close at " + snapshotDate + " was unavailable.";
-        }
-        if (source == PortfolioCalculator.PriceSource.OBSERVED_TRADE_BEFORE) {
-            return "Used latest observed transaction price before snapshot date. "
-                + "Market close at " + snapshotDate + " was unavailable.";
-        }
-        if (source == PortfolioCalculator.PriceSource.OBSERVED_TRADE_AFTER) {
-            return "Used earliest observed transaction price after snapshot date. "
-                + "Market close at " + snapshotDate + " was unavailable.";
-        }
-        if (source == PortfolioCalculator.PriceSource.SALE_TRADE) {
-            return "Used sale-trade price as fallback because no closer market/transaction price was available.";
-        }
-        if (source == PortfolioCalculator.PriceSource.AVERAGE_COST) {
-            return "Used average cost as fallback because no valid year-end price was available.";
-        }
-        if (source == PortfolioCalculator.PriceSource.LATEST_PRICE) {
-            return "Used latest known price as fallback because no valid snapshot-date price was available.";
-        }
-        if (source == PortfolioCalculator.PriceSource.NONE) {
-            return "No valid price could be resolved for snapshot date. Market value is shown as zero.";
-        }
-
-        return "Estimated price used because a year-end market close was unavailable.";
     }
 
     private static double resolveAnnualSnapshotAverageCost(
@@ -1451,7 +1361,7 @@ public class ReportWriter {
         }
         String currency = security.getCurrencyCode();
         if (saleTrades.isEmpty()) {
-            html.append("<div class=\"hero-side-note\">No sale trades available.</div>\n");
+            html.append("<div class=\"app-shell-note\">No sale trades available.</div>\n");
         } else {
             html.append("<table class=\"details-table\">\n");
             html.append("<tr><th>Sale Date</th><th>Units</th><th>Price/Unit</th><th>Cost Basis</th><th>Sale Value</th><th>Gain/Loss</th><th>Return (%)</th></tr>\n");
@@ -1567,7 +1477,7 @@ public class ReportWriter {
         html.append("<h4>Transaction Details - ").append(escapeHtml(row.securityDisplayName)).append("</h4>\n");
 
         if (security == null) {
-            html.append("<div class=\"hero-side-note\">Details are not available for this security.</div>\n");
+            html.append("<div class=\"app-shell-note\">Details are not available for this security.</div>\n");
             html.append("</div>\n");
             return html.toString();
         }
@@ -1639,7 +1549,7 @@ public class ReportWriter {
                 .thenComparingInt(e -> e.order));
 
         if (entries.isEmpty()) {
-            html.append("<div class=\"hero-side-note\">No active buy/dividend entries for current holdings.</div>\n");
+            html.append("<div class=\"app-shell-note\">No active buy/dividend entries for current holdings.</div>\n");
             html.append("</div>\n");
             return html.toString();
         }
@@ -1705,16 +1615,6 @@ public class ReportWriter {
             writer.write("    <td>" + (cell != null ? cell : "") + "</td>\n");
         }
         writer.write("</tr>\n");
-    }
-
-    private static String appendRowClass(String currentClass, String extraClass) {
-        if (extraClass == null || extraClass.isBlank()) {
-            return currentClass;
-        }
-        if (currentClass == null || currentClass.isBlank()) {
-            return extraClass;
-        }
-        return currentClass + " " + extraClass;
     }
 
     private static boolean isStockFundBoundary(String previousAssetType, String currentAssetType) {
@@ -2249,7 +2149,7 @@ public class ReportWriter {
         writer.write("  });\n");
         writer.write("  window.addEventListener('mouseup', stopDrag);\n");
         writer.write("  window.addEventListener('mouseleave', stopDrag);\n");
-        writer.write("  document.querySelectorAll('.ticker-scroll, .security-scroll').forEach(function (node) {\n");
+        writer.write("  document.querySelectorAll('.security-scroll').forEach(function (node) {\n");
         writer.write("    if (node.dataset.dragHandleInit === '1') return;\n");
         writer.write("    node.dataset.dragHandleInit = '1';\n");
         writer.write("    node.addEventListener('mousedown', function (event) {\n");
