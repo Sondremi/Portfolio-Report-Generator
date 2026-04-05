@@ -82,6 +82,7 @@ public class Security {
 
     private final ArrayDeque<BuyLot> buyLots = new ArrayDeque<>();
     private final ArrayList<SaleTrade> saleTrades = new ArrayList<>();
+    private final ArrayList<PriceObservation> priceObservations = new ArrayList<>();
     private final ArrayList<DividendEvent> currentDividendEvents = new ArrayList<>();
     private final ArrayList<DividendEvent> allDividendEvents = new ArrayList<>();
 
@@ -103,6 +104,16 @@ public class Security {
             this.tradeDate = tradeDate;
             this.remainingUnits = remainingUnits;
             this.unitCost = unitCost;
+        }
+    }
+
+    private static class PriceObservation {
+        private final LocalDate tradeDate;
+        private final double unitPrice;
+
+        private PriceObservation(LocalDate tradeDate, double unitPrice) {
+            this.tradeDate = tradeDate;
+            this.unitPrice = unitPrice;
         }
     }
 
@@ -255,6 +266,88 @@ public class Security {
         ArrayList<SaleTrade> sorted = new ArrayList<>(saleTrades);
         sorted.sort(Comparator.comparing(SaleTrade::getTradeDate));
         return sorted;
+    }
+
+    public double getLatestObservedTradePriceOnOrBefore(LocalDate date) {
+        if (date == null || priceObservations.isEmpty()) {
+            return 0.0;
+        }
+
+        LocalDate bestDate = null;
+        double bestPrice = 0.0;
+        for (PriceObservation observation : priceObservations) {
+            if (observation == null || observation.tradeDate == null || observation.tradeDate.equals(LocalDate.MIN)) {
+                continue;
+            }
+            if (observation.unitPrice <= EPSILON || observation.tradeDate.isAfter(date)) {
+                continue;
+            }
+            if (bestDate == null || observation.tradeDate.isAfter(bestDate)) {
+                bestDate = observation.tradeDate;
+                bestPrice = observation.unitPrice;
+            }
+        }
+
+        return bestPrice;
+    }
+
+    public double getEarliestObservedTradePriceAfter(LocalDate date) {
+        if (date == null || priceObservations.isEmpty()) {
+            return 0.0;
+        }
+
+        LocalDate bestDate = null;
+        double bestPrice = 0.0;
+        for (PriceObservation observation : priceObservations) {
+            if (observation == null || observation.tradeDate == null || observation.tradeDate.equals(LocalDate.MIN)) {
+                continue;
+            }
+            if (observation.unitPrice <= EPSILON || !observation.tradeDate.isAfter(date)) {
+                continue;
+            }
+            if (bestDate == null || observation.tradeDate.isBefore(bestDate)) {
+                bestDate = observation.tradeDate;
+                bestPrice = observation.unitPrice;
+            }
+        }
+
+        return bestPrice;
+    }
+
+    public double getClosestObservedTradePriceAround(LocalDate date) {
+        if (date == null || priceObservations.isEmpty()) {
+            return 0.0;
+        }
+
+        long bestDistance = Long.MAX_VALUE;
+        LocalDate bestDate = null;
+        double bestPrice = 0.0;
+
+        for (PriceObservation observation : priceObservations) {
+            if (observation == null || observation.tradeDate == null || observation.tradeDate.equals(LocalDate.MIN)) {
+                continue;
+            }
+            if (observation.unitPrice <= EPSILON) {
+                continue;
+            }
+
+            long distance = Math.abs(java.time.temporal.ChronoUnit.DAYS.between(observation.tradeDate, date));
+            if (distance < bestDistance) {
+                bestDistance = distance;
+                bestDate = observation.tradeDate;
+                bestPrice = observation.unitPrice;
+                continue;
+            }
+
+            if (distance == bestDistance && bestDate != null
+                    && observation.tradeDate.isBefore(bestDate)
+                    && !observation.tradeDate.isAfter(date)) {
+                bestDate = observation.tradeDate;
+                bestPrice = observation.unitPrice;
+            }
+        }
+
+        return bestPrice;
     }
 
     public double getTotalSoldUnits() {
@@ -450,6 +543,11 @@ public class Security {
                 && (firstHoldingDate == null || tradeDate.isBefore(firstHoldingDate))) {
             firstHoldingDate = tradeDate;
         }
+
+        // Persist observed transaction prices for historical fallback valuation.
+        if (price > EPSILON) {
+            priceObservations.add(new PriceObservation(tradeDate, price));
+        }
     }
 
     private void registerSale(LocalDate tradeDate, double units, double amount, double price, double totalFees, double reportedResult) {
@@ -486,6 +584,9 @@ public class Security {
         double returnPct = costBasis > EPSILON ? (gainLoss / costBasis) * 100.0 : (gainLoss > EPSILON ? 100.0 : 0.0);
 
         saleTrades.add(new SaleTrade(tradeDate, units, price, saleValue, costBasis, gainLoss, returnPct));
+        if (price > EPSILON) {
+            priceObservations.add(new PriceObservation(tradeDate, price));
+        }
 
         unitsOwned -= units;
         if (Math.abs(unitsOwned) < EPSILON) {
