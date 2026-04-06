@@ -1,32 +1,31 @@
-# Portfolio Report Generator
+# Portfolio Reporting Platform
 
-Portfolio Report Generator is a program that reads investment transactions and generates a browser-based portfolio report. It gives you a consolidated view of current holdings, realized and unrealized return, dividends, detailed sale-trade history across both stocks and funds, and visual charts for total return and market value allocation.
+Portfolio Reporting Platform is a program that reads investment transactions and generates a browser-based portfolio report. It gives you a consolidated view of current holdings, realized and unrealized return, dividends, detailed sale-trade history across both stocks and funds, and visual charts for total return and market value allocation.
 
-Request access to the web app by email: [link](https://indsetsportfolioreport.web.app)
+Request access to the web app by email. 
 
-The web app includes:
+[Web app](https://indsetsportfolioreport.web.app)
+
+## The web app includes:
 - Email/password login
-- A menu for uploading files and generating reports
-- Per-user storage of uploaded transaction files and the latest generated report
+- Upload and manage transaction files per user
+- Select portfolio and report type (Portfolio report or Annual report)
+- Send report requests to the report API and render results in the browser
+- Store uploaded files and generated reports for each user
 
-You can also run the program locally on your own machine.
+You can also run the program locally on your own machine without the web features.
 
-## Key features
-- Reads all supported `.csv` files from `transaction_files/`
-- Supports comma, semicolon, and tab-separated exports
-- Handles UTF-8 and UTF-16 encoded files
-- Tracks buys, sells, and dividends across stocks and funds
-- Calculates FIFO-based realized gain/loss and return percentages
-- Resolves ticker, exchange, and company name using Yahoo Finance data
-- Includes visual charts in the report:
-	- Total Return bar chart
-	- Market Value allocation charts (holdings allocation + asset mix)
-- Includes a Realized Overview table (combined realized sales per security)
-- Includes Sale Trades tables (every sell transaction per security)
+## What The Java Program Does
+- Reads CSV exports from one or more brokers/banks
+- Supports comma, semicolon, and tab-separated formats
+- Tracks buys, sells, dividends, and current holdings
+- Calculates realized and unrealized return (FIFO)
+- Resolves ticker and metadata for better report labeling
+- Generates a complete HTML report with tables and charts
 
 ## Quick Start
-1. Export transaction history from your brokers/banks as CSV files.
-2. Put the files in `transaction_files/` (Files with `example` in the filename are ignored).
+1. Export transaction history to CSV.
+2. Put files in `transaction_files/` (files with `example` in the filename are ignored).
 3. Compile and run:
 
 ```bash
