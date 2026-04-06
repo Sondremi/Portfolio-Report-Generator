@@ -78,6 +78,8 @@ public class CsvLoader {
                         .thenComparingLong(row -> parseSortIdOrDefault(getCell(row, indexes.transactionId))));
             }
 
+            inferRenamedSecurityMappings(rows, indexes, store);
+
             for (ArrayList<String> row : rows) {
                 if (processRow(row, indexes, store)) {
                     rowsRead++;
@@ -198,7 +200,21 @@ public class CsvLoader {
             boolean isCancelled = indexes.cancellationDate >= 0
                     && !getCell(row, indexes.cancellationDate).isBlank();
             if (!isCancelled && "BYTTE INNLEGG VP".equals(transactionType) && quantity > 0.0) {
-                security.reconcileUnitsFromCorporateAction(quantity);
+                String tradeDateText = getCell(row, indexes.tradeDate);
+                double corporateActionCostBasis = parseDoubleOrZero(getCell(row, indexes.purchaseValue));
+
+                if (security.getUnitsOwned() <= 1e-9) {
+                    if (corporateActionCostBasis > 1e-9) {
+                        security.addCorporateActionUnits(quantity, tradeDateText, corporateActionCostBasis);
+                    } else {
+                        security.addZeroCostUnits(quantity, tradeDateText);
+                    }
+                } else {
+                    security.reconcileUnitsFromCorporateAction(quantity);
+                    if (corporateActionCostBasis > 1e-9) {
+                        security.alignCurrentCostBasisToTotal(corporateActionCostBasis);
+                    }
+                }
             }
             return;
         }
@@ -345,10 +361,12 @@ public class CsvLoader {
                 case "isin" -> indexes.isin = i;
                 case "transaksjonstype" -> indexes.transactionType = i;
                 case "belop", "beløp", "handelsbelop", "handelsbeløp" -> indexes.amount = i;
+                case "kjopsverdi", "kjøpsverdi", "anskaffelsesverdi" -> indexes.purchaseValue = i;
                 case "antall" -> indexes.quantity = i;
                 case "kurs", "kurs per andel" -> indexes.price = i;
                 case "resultat" -> indexes.result = i;
                 case "totale avgifter", "omkostninger" -> indexes.totalFees = i;
+                case "transaksjonstekst", "transaction text" -> indexes.transactionText = i;
                 case "bokforingsdag", "bokføringsdag" -> {
                     if (indexes.tradeDate < 0) indexes.tradeDate = i;
                 }
@@ -416,7 +434,124 @@ public class CsvLoader {
     private static String canonicalizeIsin(String isin, TransactionStore store) {
         if (isin == null || isin.isBlank()) return isin;
         String normalized = isin.trim().toUpperCase(Locale.ROOT);
-        return store.getRenamedSecurityIsin().getOrDefault(normalized, normalized);
+        String current = normalized;
+        HashSet<String> seen = new HashSet<>();
+
+        while (!current.isBlank() && !seen.contains(current)) {
+            seen.add(current);
+            String next = store.getRenamedSecurityIsin().get(current);
+            if (next == null || next.isBlank() || next.equals(current)) {
+                break;
+            }
+            current = next;
+        }
+
+        return current;
+    }
+
+    private static void inferRenamedSecurityMappings(ArrayList<ArrayList<String>> rows, HeaderIndexes indexes, TransactionStore store) {
+        if (rows == null || rows.isEmpty()) {
+            return;
+        }
+        if (indexes.transactionId < 0 || indexes.transactionType < 0 || indexes.isin < 0) {
+            return;
+        }
+
+        Map<String, String> oldIsinBySwapKey = new LinkedHashMap<>();
+        Map<String, String> newIsinBySwapKey = new LinkedHashMap<>();
+        Map<String, LinkedHashSet<String>> oldIsinByBucket = new LinkedHashMap<>();
+        Map<String, LinkedHashSet<String>> newIsinByBucket = new LinkedHashMap<>();
+
+        for (ArrayList<String> row : rows) {
+            String transactionType = normalizeTransactionType(getCell(row, indexes.transactionType));
+            if (transactionType.startsWith("MAK ")) {
+                continue;
+            }
+            if (!"BYTTE UTTAK VP".equals(transactionType) && !"BYTTE INNLEGG VP".equals(transactionType)) {
+                continue;
+            }
+
+            String isin = getCell(row, indexes.isin);
+            if (isin.isBlank()) {
+                continue;
+            }
+            String normalizedIsin = isin.trim().toUpperCase(Locale.ROOT);
+            String swapKey = buildSwapInferenceKey(row, indexes);
+            String bucketKey = buildSwapInferenceBucketKey(row, indexes);
+
+            if ("BYTTE UTTAK VP".equals(transactionType)) {
+                oldIsinBySwapKey.putIfAbsent(swapKey, normalizedIsin);
+                oldIsinByBucket.computeIfAbsent(bucketKey, ignored -> new LinkedHashSet<>()).add(normalizedIsin);
+            } else if ("BYTTE INNLEGG VP".equals(transactionType)) {
+                newIsinBySwapKey.putIfAbsent(swapKey, normalizedIsin);
+                newIsinByBucket.computeIfAbsent(bucketKey, ignored -> new LinkedHashSet<>()).add(normalizedIsin);
+            }
+        }
+
+        for (Map.Entry<String, String> entry : oldIsinBySwapKey.entrySet()) {
+            String oldIsin = entry.getValue();
+            String newIsin = newIsinBySwapKey.get(entry.getKey());
+            if (newIsin == null || newIsin.isBlank()) {
+                continue;
+            }
+            store.rememberRenamedSecurityIsin(oldIsin, newIsin);
+        }
+
+        LinkedHashSet<String> allBucketKeys = new LinkedHashSet<>();
+        allBucketKeys.addAll(oldIsinByBucket.keySet());
+        allBucketKeys.addAll(newIsinByBucket.keySet());
+
+        for (String bucketKey : allBucketKeys) {
+            LinkedHashSet<String> oldSet = oldIsinByBucket.getOrDefault(bucketKey, new LinkedHashSet<>());
+            LinkedHashSet<String> newSet = newIsinByBucket.getOrDefault(bucketKey, new LinkedHashSet<>());
+            if (oldSet.size() != 1 || newSet.size() != 1) {
+                continue;
+            }
+            store.rememberRenamedSecurityIsin(oldSet.iterator().next(), newSet.iterator().next());
+        }
+    }
+
+    private static String buildSwapInferenceKey(ArrayList<String> row, HeaderIndexes indexes) {
+        String bucket = buildSwapInferenceBucketKey(row, indexes);
+        String text = normalizeFreeText(getCell(row, indexes.transactionText));
+        String transactionId = getCell(row, indexes.transactionId);
+
+        if (!text.isBlank()) {
+            return bucket + "|TXT:" + text;
+        }
+        if (!transactionId.isBlank()) {
+            return bucket + "|ID:" + transactionId;
+        }
+        return bucket + "|*";
+    }
+
+    private static String buildSwapInferenceBucketKey(ArrayList<String> row, HeaderIndexes indexes) {
+        String tradeDateKey = "";
+        if (indexes.tradeDate >= 0) {
+            LocalDate parsed = DateParser.parseTradeDate(getCell(row, indexes.tradeDate));
+            if (parsed != null && !parsed.equals(LocalDate.MIN)) {
+                tradeDateKey = parsed.toString();
+            } else {
+                tradeDateKey = getCell(row, indexes.tradeDate);
+            }
+        }
+
+        String portfolio = getCell(row, indexes.portfolioId).toUpperCase(Locale.ROOT);
+        return tradeDateKey + "|" + portfolio;
+    }
+
+    private static String normalizeFreeText(String value) {
+        if (value == null || value.isBlank()) {
+            return "";
+        }
+        return value.toUpperCase(Locale.ROOT).replaceAll("\\s+", " ").trim();
+    }
+
+    private static String normalizeTransactionType(String transactionType) {
+        if (transactionType == null || transactionType.isBlank()) {
+            return "";
+        }
+        return transactionType.toUpperCase(Locale.ROOT).replaceAll("\\s+", " ").trim();
     }
 
     // ====================== Transaction Type Helpers ======================
@@ -428,7 +563,7 @@ public class CsvLoader {
             !store.getRenamedSecurityIsin().containsValue(normalizedIsin)) {
             return false;
         }
-        String normalized = transactionType.toUpperCase(Locale.ROOT).replaceAll("\\s+", " ").trim();
+        String normalized = normalizeTransactionType(transactionType);
         return "BYTTE INNLEGG VP".equals(normalized) ||
                "BYTTE UTTAK VP".equals(normalized) ||
                "MAK BYTTE INNLEGG VP".equals(normalized) ||

@@ -11,9 +11,11 @@ public class HeaderIndexes {
     public int price = -1;
     public int result = -1;
     public int totalFees = -1;
+    public int purchaseValue = -1;
     public int tradeDate = -1;
     public int cancellationDate = -1;
     public int portfolioId = -1;
+    public int transactionText = -1;
     public int cashBalance = -1;
     public int transactionCurrency = -1;
     public int amountCurrency = -1;

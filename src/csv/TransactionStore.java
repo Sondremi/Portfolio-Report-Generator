@@ -7,12 +7,7 @@ import java.util.*;
 
 public class TransactionStore {
 
-    // User-editable mapping for renamed/merged instruments: old ISIN -> new ISIN.
-    // Add entries here when the broker reports a replacement as separate ISINs,
-    // so history and current holdings are treated as one continuous position.
-    private static final Map<String, String> RENAMED_SECURITY_ISIN = Map.of(
-            "NO0010782519", "NO0012948878"
-    );
+    private final Map<String, String> renamedSecurityIsin = new LinkedHashMap<>();
 
     private final ArrayList<Security> securities = new ArrayList<>();
     private final Map<String, Security> securitiesByKey = new LinkedHashMap<>();
@@ -62,6 +57,20 @@ public class TransactionStore {
         canonicalSecurityNameByIsin.putIfAbsent(norm, securityName);
     }
 
+    public void rememberRenamedSecurityIsin(String oldIsin, String newIsin) {
+        if (oldIsin == null || newIsin == null) {
+            return;
+        }
+
+        String oldNorm = oldIsin.trim().toUpperCase(Locale.ROOT);
+        String newNorm = newIsin.trim().toUpperCase(Locale.ROOT);
+        if (oldNorm.isBlank() || newNorm.isBlank() || oldNorm.equals(newNorm)) {
+            return;
+        }
+
+        renamedSecurityIsin.putIfAbsent(oldNorm, newNorm);
+    }
+
     public List<Security> getSecurities() {
         return new ArrayList<>(securities);
     }
@@ -83,7 +92,7 @@ public class TransactionStore {
     }
 
     public Map<String, String> getRenamedSecurityIsin() {
-        return RENAMED_SECURITY_ISIN;
+        return Collections.unmodifiableMap(renamedSecurityIsin);
     }
 
     public int getLoadedCsvFileCount() {

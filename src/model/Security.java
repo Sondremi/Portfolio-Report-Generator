@@ -7,6 +7,7 @@ import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.text.DecimalFormat;
@@ -85,6 +86,7 @@ public class Security {
     private final ArrayList<PriceObservation> priceObservations = new ArrayList<>();
     private final ArrayList<DividendEvent> currentDividendEvents = new ArrayList<>();
     private final ArrayList<DividendEvent> allDividendEvents = new ArrayList<>();
+    private final ArrayList<ReinvestEvent> currentReinvestEvents = new ArrayList<>();
 
     private double unitsOwned = 0.0;
     private double dividends = 0.0;
@@ -114,6 +116,14 @@ public class Security {
         private PriceObservation(LocalDate tradeDate, double unitPrice) {
             this.tradeDate = tradeDate;
             this.unitPrice = unitPrice;
+        }
+    }
+
+    private static class ReinvestEvent {
+        private final LocalDate tradeDate;
+
+        private ReinvestEvent(LocalDate tradeDate) {
+            this.tradeDate = tradeDate;
         }
     }
 
@@ -359,11 +369,8 @@ public class Security {
             return 0.0;
         }
 
-        double remainingCost = 0.0;
-        for (BuyLot lot : buyLots) {
-            remainingCost += lot.remainingUnits * lot.unitCost;
-        }
-        return remainingCost / unitsOwned;
+        double adjustedCostBasis = getAdjustedCurrentCostBasis();
+        return adjustedCostBasis / unitsOwned;
     }
 
     public void addDividend(double amount) {
@@ -415,14 +422,21 @@ public class Security {
 
         if (isBuy) {
             if (isReinvestTransaction(transactionType)) {
-                // Reinvested dividends add units but do not represent new external capital.
-                registerBuy(units, 0.0, 0.0, 0.0, tradeDate);
-            } else {
-                registerBuy(units, amount, price, totalFees, tradeDate);
+                currentReinvestEvents.add(new ReinvestEvent(tradeDate));
             }
+            registerBuy(units, amount, price, totalFees, tradeDate);
         } else {
             registerSale(tradeDate, units, amount, price, totalFees, reportedResult);
         }
+    }
+
+    private boolean isReinvestTransaction(String transactionType) {
+        if (transactionType == null || transactionType.isBlank()) {
+            return false;
+        }
+
+        String normalized = transactionType.toUpperCase(Locale.ROOT);
+        return normalized.contains("REINVEST");
     }
 
     public void addZeroCostUnits(double quantity) {
@@ -437,6 +451,40 @@ public class Security {
 
         LocalDate tradeDate = parseDate(tradeDateText);
         registerBuy(units, 0.0, 0.0, 0.0, tradeDate);
+    }
+
+    public void addCorporateActionUnits(double quantity, String tradeDateText, double totalCostBasis) {
+        double units = Math.abs(quantity);
+        if (units < EPSILON) {
+            return;
+        }
+
+        LocalDate tradeDate = parseDate(tradeDateText);
+        double safeCostBasis = Math.max(0.0, totalCostBasis);
+        registerBuy(units, safeCostBasis, 0.0, 0.0, tradeDate);
+    }
+
+    public void alignCurrentCostBasisToTotal(double targetTotalCostBasis) {
+        if (targetTotalCostBasis <= EPSILON || buyLots.isEmpty()) {
+            return;
+        }
+
+        double currentTotalCost = 0.0;
+        for (BuyLot lot : buyLots) {
+            currentTotalCost += lot.remainingUnits * lot.unitCost;
+        }
+        if (currentTotalCost <= EPSILON) {
+            return;
+        }
+
+        double scale = targetTotalCostBasis / currentTotalCost;
+        if (!Double.isFinite(scale) || scale <= EPSILON) {
+            return;
+        }
+
+        for (BuyLot lot : buyLots) {
+            lot.unitCost *= scale;
+        }
     }
 
     public void applyCostRefund(double refundAmount) {
@@ -520,15 +568,6 @@ public class Security {
         return amount < 0;
     }
 
-    private boolean isReinvestTransaction(String transactionType) {
-        if (transactionType == null || transactionType.isBlank()) {
-            return false;
-        }
-
-        String normalized = transactionType.toUpperCase(Locale.ROOT);
-        return normalized.contains("REINVEST");
-    }
-
     private void registerBuy(double units, double amount, double price, double totalFees, LocalDate tradeDate) {
         double cashOut = Math.abs(amount);
         if (cashOut < EPSILON && price > 0) {
@@ -592,11 +631,52 @@ public class Security {
         if (Math.abs(unitsOwned) < EPSILON) {
             unitsOwned = 0.0;
             currentDividendEvents.clear();
+            currentReinvestEvents.clear();
         }
 
         realizedSalesValue += saleValue;
         realizedCostBasis += costBasis;
         realizedGain += gainLoss;
+    }
+
+    private double getAdjustedCurrentCostBasis() {
+        double rawCostBasis = 0.0;
+        for (BuyLot lot : buyLots) {
+            rawCostBasis += lot.remainingUnits * lot.unitCost;
+        }
+
+        double adjustment = getReinvestedDividendAdjustment();
+        return Math.max(0.0, rawCostBasis - adjustment);
+    }
+
+    private double getReinvestedDividendAdjustment() {
+        if (currentReinvestEvents.isEmpty() || currentDividendEvents.isEmpty()) {
+            return 0.0;
+        }
+
+        LinkedHashSet<LocalDate> reinvestDates = new LinkedHashSet<>();
+        for (ReinvestEvent event : currentReinvestEvents) {
+            if (event == null || event.tradeDate == null || event.tradeDate.equals(LocalDate.MIN)) {
+                continue;
+            }
+            reinvestDates.add(event.tradeDate);
+        }
+        if (reinvestDates.isEmpty()) {
+            return 0.0;
+        }
+
+        double dividendAdjustment = 0.0;
+        for (DividendEvent event : currentDividendEvents) {
+            if (event == null || event.tradeDate == null || event.tradeDate.equals(LocalDate.MIN)) {
+                continue;
+            }
+            if (!reinvestDates.contains(event.tradeDate)) {
+                continue;
+            }
+            dividendAdjustment += Math.max(0.0, event.amount);
+        }
+
+        return dividendAdjustment;
     }
 
     private double consumeLotsUsingFifo(double unitsToSell) {
@@ -713,7 +793,7 @@ public class Security {
     }
 
     private void applyGeneralTickerAndNameFallback() {
-        if (ticker == null || ticker.isBlank()) {
+        if ((ticker == null || ticker.isBlank()) && looksLikeTicker(name)) {
             SearchCandidate byNameCandidate = searchCandidateByQuery(name);
             if (byNameCandidate != null) {
                 applyCandidateMetadata(byNameCandidate);
@@ -754,14 +834,13 @@ public class Security {
                 return null;
             }
 
-            SearchCandidate candidate;
+            SearchCandidate candidate = null;
             if (looksLikeTicker(normalizedQuery)) {
                 candidate = chooseBestHoldingCandidate(candidates, normalizedQuery.toUpperCase(Locale.ROOT));
-                if (candidate == null) {
-                    candidate = chooseBestCandidate(candidates);
-                }
-            } else {
-                candidate = chooseBestCandidate(candidates);
+            }
+
+            if (candidate == null) {
+                return null;
             }
 
             candidate = refineCandidateBySymbolListings(candidate);
@@ -1104,7 +1183,6 @@ public class Security {
         String normalizedSymbol = symbol == null ? "" : symbol.toUpperCase(Locale.ROOT);
         SearchCandidate exact = null;
         SearchCandidate startsWith = null;
-        SearchCandidate fallback = null;
 
         for (SearchCandidate candidate : candidates) {
             if (candidate == null || candidate.symbol == null || candidate.symbol.isBlank()) {
@@ -1112,10 +1190,6 @@ public class Security {
             }
 
             String candidateSymbol = candidate.symbol.toUpperCase(Locale.ROOT);
-            if (fallback == null) {
-                fallback = candidate;
-            }
-
             if (candidateSymbol.equals(normalizedSymbol)) {
                 exact = candidate;
                 break;
@@ -1132,7 +1206,7 @@ public class Security {
         if (startsWith != null) {
             return startsWith;
         }
-        return fallback;
+        return null;
     }
 
     private LinkedHashMap<String, Double> fetchFundSectorWeights(String symbol) {
