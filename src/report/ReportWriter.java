@@ -226,6 +226,10 @@ public class ReportWriter {
             writer.write("        .chart-svg.is-panning { cursor:grabbing; }\n");
             writer.write("        .hero-theme-btn { border:1px solid rgba(235,245,255,.45); background:rgba(255,255,255,.12); color:#f3f7fc; border-radius:999px; padding:4px 10px; font-size:.78rem; font-weight:700; cursor:pointer; }\n");
             writer.write("        .hero-theme-btn:hover { background:rgba(255,255,255,.2); }\n");
+            writer.write("        .hero-refresh-btn { border:1px solid rgba(235,245,255,.45); background:rgba(255,255,255,.12); color:#f3f7fc; border-radius:999px; padding:4px 10px; font-size:.78rem; font-weight:700; cursor:pointer; }\n");
+            writer.write("        .hero-refresh-btn:hover:not(:disabled) { background:rgba(255,255,255,.2); }\n");
+            writer.write("        .hero-refresh-btn:disabled { opacity:.6; cursor:not-allowed; }\n");
+            writer.write("        .price-refresh-status { font-size:.76rem; color:#d7e6f4; margin-top:8px; min-height:1.1em; }\n");
             writer.write("        body.theme-dark .table-wrap, body.theme-dark .overview-chart, body.theme-dark .allocation-card, body.theme-dark .allocation-panel, body.theme-dark .details-table, body.theme-dark .annual-kpi-deck, body.theme-dark .annual-graphs-section { border-color:#2a3a4f; box-shadow:none; }\n");
             writer.write("        body.theme-dark .total-row { background:#1a2a3b; color:#ecf3fb; }\n");
             writer.write("        body.theme-dark td, body.theme-dark th { border-bottom-color:#2a3a4d; }\n");
@@ -1079,12 +1083,16 @@ public class ReportWriter {
         writer.write("<span class=\"meta-chip\">Transactions: <strong>" + s.transactionCount + "</strong></span>\n");
         writer.write("<span class=\"meta-chip\">Holdings: <strong>" + s.holdingsCount + "</strong></span>\n");
         writer.write("<span class=\"meta-chip\">Currency: <strong><input id=\"portfolio-currency-input\" class=\"currency-input\" type=\"text\" value=\"" + DEFAULT_TOTAL_CURRENCY + "\" maxlength=\"3\" autocomplete=\"off\" spellcheck=\"false\" title=\"Skriv valutakode (f.eks. NOK, USD) og trykk Enter\"></strong></span>\n");
+        writer.write("<button id=\"refresh-prices-btn\" class=\"hero-refresh-btn\" type=\"button\">Update Prices</button>\n");
         writer.write("<button id=\"report-theme-toggle\" class=\"hero-theme-btn\" type=\"button\">Dark mode</button>\n");
         writer.write("</div>\n");
+        writer.write("<div id=\"refresh-prices-status\" class=\"price-refresh-status\"></div>\n");
         writer.write("<div class=\"hero-kpis\">\n");
         LinkedHashMap<String, Double> totalMarketBuckets = new LinkedHashMap<>();
         LinkedHashMap<String, Double> totalReturnBuckets = new LinkedHashMap<>();
         LinkedHashMap<String, Double> totalHistoricalCostBuckets = new LinkedHashMap<>();
+        LinkedHashMap<String, Double> soldOnlyReturnBuckets = new LinkedHashMap<>();
+        LinkedHashMap<String, Double> soldOnlyHistoricalCostBuckets = new LinkedHashMap<>();
         Set<String> activeSecurityKeys = new LinkedHashSet<>();
         for (OverviewRow row : overviewRows) {
             activeSecurityKeys.add(row.securityKey);
@@ -1111,6 +1119,8 @@ public class ReportWriter {
             String currency = security.getCurrencyCode();
             addToCurrencyBuckets(totalReturnBuckets, currency, realizedOnlyReturn);
             addToCurrencyBuckets(totalHistoricalCostBuckets, currency, realizedCostBasis);
+            addToCurrencyBuckets(soldOnlyReturnBuckets, currency, realizedOnlyReturn);
+            addToCurrencyBuckets(soldOnlyHistoricalCostBuckets, currency, realizedCostBasis);
         }
 
         LinkedHashMap<String, Double> cashBuckets = new LinkedHashMap<>();
@@ -1123,7 +1133,7 @@ public class ReportWriter {
             : 0.0;
         String totalClass = totalReturnInDefaultCurrency >= 0 ? "positive" : "negative";
 
-        writer.write("<article class=\"kpi-card\"><div class=\"kpi-label\">Total Market Value</div><div class=\"kpi-value js-convert-money\" data-buckets=\""
+        writer.write("<article class=\"kpi-card\"><div class=\"kpi-label\">Total Market Value</div><div id=\"hero-total-market-value\" class=\"kpi-value js-convert-money\" data-buckets=\""
             + escapeHtml(toBucketsJson(totalMarketBuckets)) + "\" data-decimals=\"0\">"
             + formatBucketsInTarget(totalMarketBuckets, DEFAULT_TOTAL_CURRENCY, 0, ratesToNok) + "</div></article>\n");
 
@@ -1131,10 +1141,13 @@ public class ReportWriter {
             + escapeHtml(toBucketsJson(cashBuckets)) + "\" data-decimals=\"0\">"
             + formatBucketsInTarget(cashBuckets, DEFAULT_TOTAL_CURRENCY, 0, ratesToNok) + "</div></article>\n");
 
-        writer.write("<article class=\"kpi-card\"><div class=\"kpi-label\">Total Return</div><div class=\"kpi-value js-convert-money " + totalClass
-            + "\" data-buckets=\"" + escapeHtml(toBucketsJson(totalReturnBuckets)) + "\" data-decimals=\"0\">"
+        writer.write("<article class=\"kpi-card\"><div class=\"kpi-label\">Total Return</div><div id=\"hero-total-return-value\" class=\"kpi-value js-convert-money " + totalClass
+            + "\" data-buckets=\"" + escapeHtml(toBucketsJson(totalReturnBuckets))
+            + "\" data-sold-only-return-buckets=\"" + escapeHtml(toBucketsJson(soldOnlyReturnBuckets))
+            + "\" data-sold-only-historical-buckets=\"" + escapeHtml(toBucketsJson(soldOnlyHistoricalCostBuckets))
+            + "\" data-decimals=\"0\">"
             + formatBucketsInTarget(totalReturnBuckets, DEFAULT_TOTAL_CURRENCY, 0, ratesToNok)
-            + "</div><div class=\"kpi-label " + totalClass + "\">" + HtmlFormatter.formatPercent(totalReturnPct) + "</div></article>\n");
+            + "</div><div id=\"hero-total-return-pct\" class=\"kpi-label " + totalClass + "\">" + HtmlFormatter.formatPercent(totalReturnPct) + "</div></article>\n");
 
         writer.write("<article class=\"kpi-card\"><div class=\"kpi-label\">Best / Worst</div><div class=\"performer " + bestClass + "\"><strong>"
             + escapeHtml(s.bestLabel)
@@ -1206,19 +1219,29 @@ public class ReportWriter {
             String totalReturnCombined = HtmlFormatter.formatMoney(row.totalReturn, row.currencyCode, 2)
                 + " (" + HtmlFormatter.formatPercent(row.totalReturnPct, 2) + ")";
 
-            writeHtmlRowWithClass(writer, rowClass,
+            String rowAttributes = "data-overview-row=\"1\""
+                + " data-ticker=\"" + escapeHtml(row.tickerText) + "\""
+                + " data-currency=\"" + escapeHtml(normalizeCurrencyCode(row.currencyCode)) + "\""
+                + " data-units=\"" + String.format(Locale.US, "%.8f", row.units) + "\""
+                + " data-position-cost-basis=\"" + String.format(Locale.US, "%.8f", row.positionCostBasis) + "\""
+                + " data-realized=\"" + String.format(Locale.US, "%.8f", row.realized) + "\""
+                + " data-dividends=\"" + String.format(Locale.US, "%.8f", row.dividends) + "\""
+                + " data-historical-cost-basis=\"" + String.format(Locale.US, "%.8f", row.historicalCostBasis) + "\""
+                + " data-latest-price=\"" + String.format(Locale.US, "%.8f", Math.max(0.0, row.latestPrice)) + "\"";
+
+            writeHtmlRowWithClassAndAttributes(writer, rowClass, rowAttributes,
                 "<button class=\"expand-btn\" data-target=\"" + detailsRowId + "\" onclick=\"toggleOverviewDetails('" + detailsRowId + "', this)\">Show</button>",
                     "<span class=\"ticker-scroll\">" + escapeHtml(row.tickerText) + "</span>",
                     "<span class=\"security-scroll\">" + escapeHtml(row.securityDisplayName) + "</span>",
                     HtmlFormatter.formatUnits(row.units),
                     HtmlFormatter.formatMoney(row.averageCost, row.currencyCode, 2),
-                    row.latestPrice > 0 ? HtmlFormatter.formatMoney(row.latestPrice, row.currencyCode, 2) : "-",
+                    "<span class=\"js-row-last-price\">" + (row.latestPrice > 0 ? HtmlFormatter.formatMoney(row.latestPrice, row.currencyCode, 2) : "-") + "</span>",
                     HtmlFormatter.formatMoney(row.positionCostBasis, row.currencyCode, 2),
-                    row.latestPrice > 0 ? HtmlFormatter.formatMoney(row.marketValue, row.currencyCode, 2) : "-",
-                    unrealizedCombined,
+                    "<span class=\"js-row-market-value\">" + (row.latestPrice > 0 ? HtmlFormatter.formatMoney(row.marketValue, row.currencyCode, 2) : "-") + "</span>",
+                    "<span class=\"js-row-unrealized\">" + unrealizedCombined + "</span>",
                     realizedCombined,
                     HtmlFormatter.formatMoney(row.dividends, row.currencyCode, 2),
-                    totalReturnCombined);
+                    "<span class=\"js-row-total-return\">" + totalReturnCombined + "</span>");
 
                     writer.write("<tr id=\"" + detailsRowId + "\" class=\"details-row\" data-group=\"overview-details\">\n");
                     writer.write("    <td class=\"details-cell\" colspan=\"12\">\n");
@@ -1244,12 +1267,12 @@ public class ReportWriter {
 
         writer.write("<tr class=\"total-row\">\n");
         writer.write("    <td></td><td></td><td><strong>TOTAL</strong></td><td></td><td></td><td></td>\n");
-        writer.write("    <td>" + renderConvertibleMoneyCell(totalCostBasisBuckets, 2, ratesToNok) + "</td>\n");
-        writer.write("    <td>" + renderConvertibleMoneyCell(totalMarketValueBuckets, 2, ratesToNok) + "</td>\n");
-        writer.write("    <td>" + renderConvertibleMoneyCell(totalUnrealizedBuckets, 2, ratesToNok) + " (" + HtmlFormatter.formatPercent(totalUnrealizedPct, 2) + ")</td>\n");
-        writer.write("    <td>" + renderConvertibleMoneyCell(totalRealizedBuckets, 2, ratesToNok) + " (" + HtmlFormatter.formatPercent(totalRealizedPct, 2) + ")</td>\n");
-        writer.write("    <td>" + renderConvertibleMoneyCell(totalDividendsBuckets, 2, ratesToNok) + "</td>\n");
-        writer.write("    <td>" + renderConvertibleMoneyCell(totalReturnBuckets, 2, ratesToNok) + " (" + HtmlFormatter.formatPercent(totalReturnPct, 2) + ")</td>\n");
+        writer.write("    <td>" + renderConvertibleMoneyCellWithId("overview-total-cost-basis", totalCostBasisBuckets, 2, ratesToNok) + "</td>\n");
+        writer.write("    <td>" + renderConvertibleMoneyCellWithId("overview-total-market-value", totalMarketValueBuckets, 2, ratesToNok) + "</td>\n");
+        writer.write("    <td>" + renderConvertibleMoneyCellWithId("overview-total-unrealized", totalUnrealizedBuckets, 2, ratesToNok) + " (<span id=\"overview-total-unrealized-pct\">" + HtmlFormatter.formatPercent(totalUnrealizedPct, 2) + "</span>)</td>\n");
+        writer.write("    <td>" + renderConvertibleMoneyCellWithId("overview-total-realized", totalRealizedBuckets, 2, ratesToNok) + " (<span id=\"overview-total-realized-pct\">" + HtmlFormatter.formatPercent(totalRealizedPct, 2) + "</span>)</td>\n");
+        writer.write("    <td>" + renderConvertibleMoneyCellWithId("overview-total-dividends", totalDividendsBuckets, 2, ratesToNok) + "</td>\n");
+        writer.write("    <td>" + renderConvertibleMoneyCellWithId("overview-total-return", totalReturnBuckets, 2, ratesToNok) + " (<span id=\"overview-total-return-pct\">" + HtmlFormatter.formatPercent(totalReturnPct, 2) + "</span>)</td>\n");
         writer.write("</tr>\n");
 
         writer.write("</table>\n</div>\n\n");
@@ -1619,8 +1642,13 @@ public class ReportWriter {
     }
 
     private static void writeHtmlRowWithClass(FileWriter writer, String rowClass, String... cells) throws IOException {
+        writeHtmlRowWithClassAndAttributes(writer, rowClass, "", cells);
+    }
+
+    private static void writeHtmlRowWithClassAndAttributes(FileWriter writer, String rowClass, String rowAttributes, String... cells) throws IOException {
         String classAttribute = (rowClass == null || rowClass.isBlank()) ? "" : " class=\"" + escapeHtml(rowClass) + "\"";
-        writer.write("<tr" + classAttribute + ">\n");
+        String attributeSuffix = (rowAttributes == null || rowAttributes.isBlank()) ? "" : " " + rowAttributes.trim();
+        writer.write("<tr" + classAttribute + attributeSuffix + ">\n");
         for (String cell : cells) {
             writer.write("    <td>" + (cell != null ? cell : "") + "</td>\n");
         }
@@ -1788,6 +1816,16 @@ public class ReportWriter {
                 + "</span>";
     }
 
+    private static String renderConvertibleMoneyCellWithId(String id, Map<String, Double> buckets, int decimals, Map<String, Double> ratesToNok) {
+        return "<span id=\"" + escapeHtml(id) + "\" class=\"js-convert-money\" data-buckets=\""
+                + escapeHtml(toBucketsJson(buckets))
+                + "\" data-decimals=\""
+                + decimals
+                + "\">"
+                + formatBucketsInTarget(buckets, DEFAULT_TOTAL_CURRENCY, decimals, ratesToNok)
+                + "</span>";
+    }
+
     private static void writeCurrencyConversionScript(FileWriter writer, Map<String, Double> ratesToNok) throws IOException {
         writer.write("const REPORT_RATES_TO_NOK = " + CurrencyConversionService.toJson(ratesToNok) + ";\n");
         writer.write("function normalizeCurrencyCodeInput(value) {\n");
@@ -1866,6 +1904,255 @@ public class ReportWriter {
         writer.write("    node.textContent = text;\n");
         writer.write("  });\n");
         writer.write("  return true;\n");
+        writer.write("}\n");
+        writer.write("function parseBucketsJson(raw) {\n");
+        writer.write("  if (!raw) return {};\n");
+        writer.write("  try {\n");
+        writer.write("    var parsed = JSON.parse(raw);\n");
+        writer.write("    return parsed && typeof parsed === 'object' ? parsed : {};\n");
+        writer.write("  } catch (_) {\n");
+        writer.write("    return {};\n");
+        writer.write("  }\n");
+        writer.write("}\n");
+        writer.write("function addBucketValue(target, currency, amount) {\n");
+        writer.write("  var code = normalizeCurrencyCodeInput(currency || 'NOK');\n");
+        writer.write("  if (!code) code = 'NOK';\n");
+        writer.write("  var value = Number(amount || 0);\n");
+        writer.write("  target[code] = Number(target[code] || 0) + value;\n");
+        writer.write("}\n");
+        writer.write("function mergeBuckets(base, extra) {\n");
+        writer.write("  var merged = {};\n");
+        writer.write("  Object.keys(base || {}).forEach(function(code) {\n");
+        writer.write("    merged[code] = Number(base[code] || 0);\n");
+        writer.write("  });\n");
+        writer.write("  Object.keys(extra || {}).forEach(function(code) {\n");
+        writer.write("    merged[code] = Number(merged[code] || 0) + Number(extra[code] || 0);\n");
+        writer.write("  });\n");
+        writer.write("  return merged;\n");
+        writer.write("}\n");
+        writer.write("function getActiveReportCurrency() {\n");
+        writer.write("  var input = document.getElementById('portfolio-currency-input');\n");
+        writer.write("  var target = normalizeCurrencyCodeInput(input && input.value ? input.value : 'NOK');\n");
+        writer.write("  if (!target || !REPORT_RATES_TO_NOK[target]) return 'NOK';\n");
+        writer.write("  return target;\n");
+        writer.write("}\n");
+        writer.write("function formatPercentValue(value, decimals) {\n");
+        writer.write("  return formatGroupedNumber(Number(value || 0), decimals) + '%';\n");
+        writer.write("}\n");
+        writer.write("function resolvePriceRefreshApiUrl() {\n");
+        writer.write("  if (window.__portfolioReportPriceApiUrl) return String(window.__portfolioReportPriceApiUrl);\n");
+        writer.write("  if (window.REPORT_PRICE_API_URL) return String(window.REPORT_PRICE_API_URL);\n");
+        writer.write("  try {\n");
+        writer.write("    if (window.parent && window.parent !== window) {\n");
+        writer.write("      if (window.parent.__portfolioReportPriceApiUrl) return String(window.parent.__portfolioReportPriceApiUrl);\n");
+        writer.write("      if (window.parent.REPORT_PRICE_API_URL) return String(window.parent.REPORT_PRICE_API_URL);\n");
+        writer.write("    }\n");
+        writer.write("  } catch (_) {\n");
+        writer.write("    // Ignore parent access issues.\n");
+        writer.write("  }\n");
+        writer.write("  return '';\n");
+        writer.write("}\n");
+        writer.write("async function fetchLatestPricesFromApi(tickers) {\n");
+        writer.write("  var apiUrl = resolvePriceRefreshApiUrl();\n");
+        writer.write("  if (!apiUrl) throw new Error('No price API configured.');\n");
+        writer.write("  var response = await fetch(apiUrl, {\n");
+        writer.write("    method: 'POST',\n");
+        writer.write("    headers: { 'Content-Type': 'application/json' },\n");
+        writer.write("    body: JSON.stringify({ tickers: tickers })\n");
+        writer.write("  });\n");
+        writer.write("  if (!response.ok) {\n");
+        writer.write("    var message = 'Price refresh failed with status ' + response.status;\n");
+        writer.write("    try {\n");
+        writer.write("      var payload = await response.json();\n");
+        writer.write("      if (payload && payload.error) message = payload.error;\n");
+        writer.write("    } catch (_) {\n");
+        writer.write("      // Keep status-based message when no payload is available.\n");
+        writer.write("    }\n");
+        writer.write("    throw new Error(message);\n");
+        writer.write("  }\n");
+        writer.write("  var data = await response.json();\n");
+        writer.write("  return data && data.prices && typeof data.prices === 'object' ? data.prices : {};\n");
+        writer.write("}\n");
+        writer.write("async function fetchLatestPriceFromYahooDirect(ticker) {\n");
+        writer.write("  var symbol = String(ticker || '').trim().toUpperCase();\n");
+        writer.write("  if (!symbol) return 0;\n");
+        writer.write("  var url = 'https://query2.finance.yahoo.com/v8/finance/chart/' + encodeURIComponent(symbol) + '?interval=1d&range=5d';\n");
+        writer.write("  var response = await fetch(url, { method: 'GET', headers: { 'Accept': 'application/json' } });\n");
+        writer.write("  if (!response.ok) return 0;\n");
+        writer.write("  var data = await response.json();\n");
+        writer.write("  var result = data && data.chart && data.chart.result && data.chart.result[0];\n");
+        writer.write("  if (!result) return 0;\n");
+        writer.write("  var marketPrice = Number(result.meta && result.meta.regularMarketPrice || 0);\n");
+        writer.write("  if (Number.isFinite(marketPrice) && marketPrice > 0) return marketPrice;\n");
+        writer.write("  var closes = result.indicators && result.indicators.quote && result.indicators.quote[0] && result.indicators.quote[0].close;\n");
+        writer.write("  if (!Array.isArray(closes)) return 0;\n");
+        writer.write("  for (var i = closes.length - 1; i >= 0; i -= 1) {\n");
+        writer.write("    var value = Number(closes[i]);\n");
+        writer.write("    if (Number.isFinite(value) && value > 0) return value;\n");
+        writer.write("  }\n");
+        writer.write("  return 0;\n");
+        writer.write("}\n");
+        writer.write("async function fetchLatestPricesDirect(tickers) {\n");
+        writer.write("  var prices = {};\n");
+        writer.write("  for (var i = 0; i < tickers.length; i += 1) {\n");
+        writer.write("    var symbol = String(tickers[i] || '').trim().toUpperCase();\n");
+        writer.write("    if (!symbol) continue;\n");
+        writer.write("    try {\n");
+        writer.write("      prices[symbol] = await fetchLatestPriceFromYahooDirect(symbol);\n");
+        writer.write("    } catch (_) {\n");
+        writer.write("      prices[symbol] = 0;\n");
+        writer.write("    }\n");
+        writer.write("  }\n");
+        writer.write("  return prices;\n");
+        writer.write("}\n");
+        writer.write("async function fetchLatestPrices(tickers) {\n");
+        writer.write("  try {\n");
+        writer.write("    return await fetchLatestPricesFromApi(tickers);\n");
+        writer.write("  } catch (_) {\n");
+        writer.write("    return fetchLatestPricesDirect(tickers);\n");
+        writer.write("  }\n");
+        writer.write("}\n");
+        writer.write("function applyOverviewRowPrice(row, nextPrice) {\n");
+        writer.write("  if (!row || !Number.isFinite(nextPrice) || nextPrice <= 0) return false;\n");
+        writer.write("  var currency = normalizeCurrencyCodeInput(row.getAttribute('data-currency') || 'NOK');\n");
+        writer.write("  var units = Number(row.getAttribute('data-units') || 0);\n");
+        writer.write("  var positionCostBasis = Number(row.getAttribute('data-position-cost-basis') || 0);\n");
+        writer.write("  var realized = Number(row.getAttribute('data-realized') || 0);\n");
+        writer.write("  var dividends = Number(row.getAttribute('data-dividends') || 0);\n");
+        writer.write("  var historicalCostBasis = Number(row.getAttribute('data-historical-cost-basis') || 0);\n");
+        writer.write("  var marketValue = units * nextPrice;\n");
+        writer.write("  var unrealized = marketValue - positionCostBasis;\n");
+        writer.write("  var unrealizedPct = positionCostBasis > 0 ? (unrealized / positionCostBasis) * 100 : 0;\n");
+        writer.write("  var totalReturn = unrealized + realized + dividends;\n");
+        writer.write("  var totalReturnPct = historicalCostBasis > 0 ? (totalReturn / historicalCostBasis) * 100 : 0;\n");
+        writer.write("  row.setAttribute('data-latest-price', String(nextPrice));\n");
+        writer.write("  row.setAttribute('data-market-value', String(marketValue));\n");
+        writer.write("  row.setAttribute('data-unrealized-value', String(unrealized));\n");
+        writer.write("  row.setAttribute('data-total-return-value', String(totalReturn));\n");
+        writer.write("  var priceCell = row.querySelector('.js-row-last-price');\n");
+        writer.write("  var marketCell = row.querySelector('.js-row-market-value');\n");
+        writer.write("  var unrealizedCell = row.querySelector('.js-row-unrealized');\n");
+        writer.write("  var totalReturnCell = row.querySelector('.js-row-total-return');\n");
+        writer.write("  if (priceCell) priceCell.textContent = formatMoneyValue(nextPrice, currency, 2);\n");
+        writer.write("  if (marketCell) marketCell.textContent = formatMoneyValue(marketValue, currency, 2);\n");
+        writer.write("  if (unrealizedCell) unrealizedCell.textContent = formatMoneyValue(unrealized, currency, 2) + ' (' + formatPercentValue(unrealizedPct, 2) + ')';\n");
+        writer.write("  if (totalReturnCell) totalReturnCell.textContent = formatMoneyValue(totalReturn, currency, 2) + ' (' + formatPercentValue(totalReturnPct, 2) + ')';\n");
+        writer.write("  return true;\n");
+        writer.write("}\n");
+        writer.write("function recalculateOverviewAndHeaderTotalsAfterPriceRefresh() {\n");
+        writer.write("  var rows = Array.prototype.slice.call(document.querySelectorAll('tr[data-overview-row=\"1\"]'));\n");
+        writer.write("  var totalMarketBuckets = {};\n");
+        writer.write("  var totalCostBasisBuckets = {};\n");
+        writer.write("  var totalUnrealizedBuckets = {};\n");
+        writer.write("  var totalRealizedBuckets = {};\n");
+        writer.write("  var totalDividendsBuckets = {};\n");
+        writer.write("  var totalHistoricalBuckets = {};\n");
+        writer.write("  var activeTotalReturnBuckets = {};\n");
+        writer.write("  rows.forEach(function(row) {\n");
+        writer.write("    var currency = normalizeCurrencyCodeInput(row.getAttribute('data-currency') || 'NOK');\n");
+        writer.write("    var latestPrice = Number(row.getAttribute('data-latest-price') || 0);\n");
+        writer.write("    var units = Number(row.getAttribute('data-units') || 0);\n");
+        writer.write("    var positionCostBasis = Number(row.getAttribute('data-position-cost-basis') || 0);\n");
+        writer.write("    var realized = Number(row.getAttribute('data-realized') || 0);\n");
+        writer.write("    var dividends = Number(row.getAttribute('data-dividends') || 0);\n");
+        writer.write("    var historicalCostBasis = Number(row.getAttribute('data-historical-cost-basis') || 0);\n");
+        writer.write("    var hasPrice = Number.isFinite(latestPrice) && latestPrice > 0;\n");
+        writer.write("    var marketValue = hasPrice ? (units * latestPrice) : 0;\n");
+        writer.write("    var unrealized = hasPrice ? (marketValue - positionCostBasis) : 0;\n");
+        writer.write("    var totalReturn = unrealized + realized + dividends;\n");
+        writer.write("    addBucketValue(totalMarketBuckets, currency, marketValue);\n");
+        writer.write("    addBucketValue(totalCostBasisBuckets, currency, positionCostBasis);\n");
+        writer.write("    addBucketValue(totalUnrealizedBuckets, currency, unrealized);\n");
+        writer.write("    addBucketValue(totalRealizedBuckets, currency, realized);\n");
+        writer.write("    addBucketValue(totalDividendsBuckets, currency, dividends);\n");
+        writer.write("    addBucketValue(totalHistoricalBuckets, currency, historicalCostBasis);\n");
+        writer.write("    addBucketValue(activeTotalReturnBuckets, currency, totalReturn);\n");
+        writer.write("  });\n");
+        writer.write("  var totalReturnBuckets = mergeBuckets(totalUnrealizedBuckets, mergeBuckets(totalRealizedBuckets, totalDividendsBuckets));\n");
+        writer.write("  var totalCostBasisNok = Number(convertBucketsToCurrency(totalCostBasisBuckets, 'NOK') || 0);\n");
+        writer.write("  var totalUnrealizedNok = Number(convertBucketsToCurrency(totalUnrealizedBuckets, 'NOK') || 0);\n");
+        writer.write("  var totalRealizedNok = Number(convertBucketsToCurrency(totalRealizedBuckets, 'NOK') || 0);\n");
+        writer.write("  var totalReturnNok = Number(convertBucketsToCurrency(totalReturnBuckets, 'NOK') || 0);\n");
+        writer.write("  var totalHistoricalNok = Number(convertBucketsToCurrency(totalHistoricalBuckets, 'NOK') || 0);\n");
+        writer.write("  var unrealizedPct = totalCostBasisNok > 0 ? (totalUnrealizedNok / totalCostBasisNok) * 100 : 0;\n");
+        writer.write("  var realizedPct = totalCostBasisNok > 0 ? (totalRealizedNok / totalCostBasisNok) * 100 : 0;\n");
+        writer.write("  var totalReturnPct = totalHistoricalNok > 0 ? (totalReturnNok / totalHistoricalNok) * 100 : 0;\n");
+        writer.write("  var mapping = [\n");
+        writer.write("    ['overview-total-cost-basis', totalCostBasisBuckets],\n");
+        writer.write("    ['overview-total-market-value', totalMarketBuckets],\n");
+        writer.write("    ['overview-total-unrealized', totalUnrealizedBuckets],\n");
+        writer.write("    ['overview-total-realized', totalRealizedBuckets],\n");
+        writer.write("    ['overview-total-dividends', totalDividendsBuckets],\n");
+        writer.write("    ['overview-total-return', totalReturnBuckets],\n");
+        writer.write("    ['hero-total-market-value', totalMarketBuckets]\n");
+        writer.write("  ];\n");
+        writer.write("  mapping.forEach(function(entry) {\n");
+        writer.write("    var node = document.getElementById(entry[0]);\n");
+        writer.write("    if (!node) return;\n");
+        writer.write("    node.setAttribute('data-buckets', JSON.stringify(entry[1]));\n");
+        writer.write("  });\n");
+        writer.write("  var overviewUnrealizedPct = document.getElementById('overview-total-unrealized-pct');\n");
+        writer.write("  var overviewRealizedPct = document.getElementById('overview-total-realized-pct');\n");
+        writer.write("  var overviewTotalPct = document.getElementById('overview-total-return-pct');\n");
+        writer.write("  if (overviewUnrealizedPct) overviewUnrealizedPct.textContent = formatPercentValue(unrealizedPct, 2);\n");
+        writer.write("  if (overviewRealizedPct) overviewRealizedPct.textContent = formatPercentValue(realizedPct, 2);\n");
+        writer.write("  if (overviewTotalPct) overviewTotalPct.textContent = formatPercentValue(totalReturnPct, 2);\n");
+        writer.write("  var heroTotalReturn = document.getElementById('hero-total-return-value');\n");
+        writer.write("  var heroTotalReturnPct = document.getElementById('hero-total-return-pct');\n");
+        writer.write("  if (heroTotalReturn) {\n");
+        writer.write("    var soldOnlyReturnBuckets = parseBucketsJson(heroTotalReturn.getAttribute('data-sold-only-return-buckets'));\n");
+        writer.write("    var soldOnlyHistoricalBuckets = parseBucketsJson(heroTotalReturn.getAttribute('data-sold-only-historical-buckets'));\n");
+        writer.write("    var fullReturnBuckets = mergeBuckets(soldOnlyReturnBuckets, activeTotalReturnBuckets);\n");
+        writer.write("    var fullHistoricalBuckets = mergeBuckets(soldOnlyHistoricalBuckets, totalHistoricalBuckets);\n");
+        writer.write("    heroTotalReturn.setAttribute('data-buckets', JSON.stringify(fullReturnBuckets));\n");
+        writer.write("    var fullReturnNok = Number(convertBucketsToCurrency(fullReturnBuckets, 'NOK') || 0);\n");
+        writer.write("    var fullHistoricalNok = Number(convertBucketsToCurrency(fullHistoricalBuckets, 'NOK') || 0);\n");
+        writer.write("    var fullReturnPct = fullHistoricalNok > 0 ? (fullReturnNok / fullHistoricalNok) * 100 : 0;\n");
+        writer.write("    heroTotalReturn.classList.remove('positive', 'negative');\n");
+        writer.write("    heroTotalReturn.classList.add(fullReturnNok >= 0 ? 'positive' : 'negative');\n");
+        writer.write("    if (heroTotalReturnPct) {\n");
+        writer.write("      heroTotalReturnPct.textContent = formatPercentValue(fullReturnPct, 2);\n");
+        writer.write("      heroTotalReturnPct.classList.remove('positive', 'negative');\n");
+        writer.write("      heroTotalReturnPct.classList.add(fullReturnNok >= 0 ? 'positive' : 'negative');\n");
+        writer.write("    }\n");
+        writer.write("  }\n");
+        writer.write("  var activeCurrency = getActiveReportCurrency();\n");
+        writer.write("  refreshReportTotalsCurrency(activeCurrency);\n");
+        writer.write("  refreshReportChartsCurrency(activeCurrency);\n");
+        writer.write("}\n");
+        writer.write("function initPriceRefreshButton() {\n");
+        writer.write("  var button = document.getElementById('refresh-prices-btn');\n");
+        writer.write("  var status = document.getElementById('refresh-prices-status');\n");
+        writer.write("  if (!button) return;\n");
+        writer.write("  button.addEventListener('click', async function() {\n");
+        writer.write("    var rows = Array.prototype.slice.call(document.querySelectorAll('tr[data-overview-row=\"1\"]'));\n");
+        writer.write("    var tickers = Array.from(new Set(rows.map(function(row) {\n");
+        writer.write("      return String(row.getAttribute('data-ticker') || '').trim().toUpperCase();\n");
+        writer.write("    }).filter(function(value) { return value.length > 0; })));\n");
+        writer.write("    if (!tickers.length) {\n");
+        writer.write("      if (status) status.textContent = 'No holdings available for price refresh.';\n");
+        writer.write("      return;\n");
+        writer.write("    }\n");
+        writer.write("    button.disabled = true;\n");
+        writer.write("    if (status) status.textContent = 'Updating latest prices...';\n");
+        writer.write("    try {\n");
+        writer.write("      var prices = await fetchLatestPrices(tickers);\n");
+        writer.write("      var updatedRows = 0;\n");
+        writer.write("      rows.forEach(function(row) {\n");
+        writer.write("        var ticker = String(row.getAttribute('data-ticker') || '').trim().toUpperCase();\n");
+        writer.write("        var nextPrice = Number(prices[ticker] || 0);\n");
+        writer.write("        if (applyOverviewRowPrice(row, nextPrice)) {\n");
+        writer.write("          updatedRows += 1;\n");
+        writer.write("        }\n");
+        writer.write("      });\n");
+        writer.write("      recalculateOverviewAndHeaderTotalsAfterPriceRefresh();\n");
+        writer.write("      if (status) status.textContent = 'Updated prices for ' + updatedRows + ' holdings at ' + new Date().toLocaleTimeString();\n");
+        writer.write("    } catch (error) {\n");
+        writer.write("      if (status) status.textContent = 'Could not update prices: ' + (error && error.message ? error.message : 'Unknown error');\n");
+        writer.write("    } finally {\n");
+        writer.write("      button.disabled = false;\n");
+        writer.write("    }\n");
+        writer.write("  });\n");
         writer.write("}\n");
         writer.write("function initChartHoverEffects() {\n");
         writer.write("  var tooltip = document.createElement('div');\n");
@@ -2288,6 +2575,7 @@ public class ReportWriter {
         writer.write("  initChartHoverEffects();\n");
         writer.write("  initInteractiveChartControls();\n");
         writer.write("  initThemeToggle();\n");
+        writer.write("  initPriceRefreshButton();\n");
         writer.write("})();\n");
     }
 
