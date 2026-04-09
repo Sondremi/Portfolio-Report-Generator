@@ -216,14 +216,7 @@ public class PortfolioCalculator {
             return "";
         }
 
-        LinkedHashMap<String, ArrayList<PortfolioValuePoint>> byRange = new LinkedHashMap<>();
-        byRange.put("1M", takeLastPoints(allPoints, 2));
-        byRange.put("3M", takeLastPoints(allPoints, 4));
-        byRange.put("6M", takeLastPoints(allPoints, 7));
-        byRange.put("1Y", takeLastPoints(allPoints, 12));
-        byRange.put("YTD", takeYearToDatePoints(allPoints));
-        byRange.put("3Y", takeLastPoints(allPoints, 36));
-        byRange.put("5Y", takeLastPoints(allPoints, 60));
+        LinkedHashMap<String, ArrayList<PortfolioValuePoint>> byRange = buildStandardSparklineRanges(allPoints);
 
         String defaultRange = byRange.containsKey("1Y") ? "1Y" : byRange.keySet().iterator().next();
         String defaultMetric = "value";
@@ -280,6 +273,27 @@ public class PortfolioCalculator {
 
         html.append("</div>\n");
         return html.toString();
+    }
+
+    private static LinkedHashMap<String, ArrayList<PortfolioValuePoint>> buildStandardSparklineRanges(ArrayList<PortfolioValuePoint> allPoints) {
+        LinkedHashMap<String, ArrayList<PortfolioValuePoint>> byRange = new LinkedHashMap<>();
+        if (allPoints == null || allPoints.isEmpty()) {
+            return byRange;
+        }
+
+        byRange.put("1M", takeLastPoints(allPoints, 2));
+        byRange.put("3M", takeLastPoints(allPoints, 4));
+        byRange.put("6M", takeLastPoints(allPoints, 7));
+        byRange.put("1Y", takeLastPoints(allPoints, 12));
+        byRange.put("YTD", takeYearToDatePoints(allPoints));
+        byRange.put("3Y", takeLastPoints(allPoints, 36));
+        byRange.put("5Y", takeLastPoints(allPoints, 60));
+
+        byRange.entrySet().removeIf(entry -> entry.getValue() == null || entry.getValue().isEmpty());
+        if (byRange.isEmpty()) {
+            byRange.put("ALL", new ArrayList<>(allPoints));
+        }
+        return byRange;
     }
 
     private static String buildPortfolioValueSparkline(ArrayList<PortfolioValuePoint> points, SparklineMetric metric) {
@@ -1364,6 +1378,112 @@ public class PortfolioCalculator {
         }
 
         return buildPortfolioValueSparkline(yearPoints, SparklineMetric.VALUE);
+    }
+
+    public static String buildStandardPortfolioValueSparklineSvg(
+            TransactionStore store,
+            Map<String, Double> ratesToNok) {
+
+        ArrayList<PortfolioValuePoint> timelinePoints = buildPortfolioValueTimeline(store, ratesToNok, 60);
+        if (timelinePoints.isEmpty()) {
+            return "";
+        }
+
+        LinkedHashMap<String, ArrayList<PortfolioValuePoint>> byRange = buildStandardSparklineRanges(timelinePoints);
+        if (byRange.isEmpty()) {
+            return "";
+        }
+
+        String defaultRange = byRange.containsKey("1Y") ? "1Y" : byRange.keySet().iterator().next();
+        StringBuilder html = new StringBuilder();
+        html.append("<div class=\"sparkline-widget\">\n");
+        html.append("<div class=\"sparkline-metric-controls\">\n");
+        html.append("<button type=\"button\" class=\"sparkline-metric-btn is-active\" data-metric=\"value\">Value</button>\n");
+        html.append("</div>\n");
+        html.append("<div class=\"sparkline-controls\">\n");
+        for (String range : byRange.keySet()) {
+            String active = range.equals(defaultRange) ? " is-active" : "";
+            html.append("<button type=\"button\" class=\"sparkline-range-btn")
+                .append(active)
+                .append("\" data-range=\"")
+                .append(range)
+                .append("\">")
+                .append(range)
+                .append("</button>\n");
+        }
+        html.append("</div>\n");
+
+        for (Map.Entry<String, ArrayList<PortfolioValuePoint>> entry : byRange.entrySet()) {
+            String range = entry.getKey();
+            html.append("<div class=\"sparkline-panel")
+                .append(range.equals(defaultRange) ? " is-active" : "")
+                .append("\" data-range=\"")
+                .append(range)
+                .append("\" data-metric=\"value\">\n")
+                .append(buildPortfolioValueSparkline(entry.getValue(), SparklineMetric.VALUE))
+                .append("</div>\n");
+        }
+
+        html.append("</div>\n");
+        return html.toString();
+    }
+
+    public static String buildStandardPortfolioReturnSparklineSvg(
+            TransactionStore store,
+            Map<String, Double> ratesToNok) {
+
+        ArrayList<PortfolioValuePoint> timelinePoints = buildPortfolioValueTimeline(store, ratesToNok, 60);
+        if (timelinePoints.isEmpty()) {
+            return "";
+        }
+
+        LinkedHashMap<String, ArrayList<PortfolioValuePoint>> byRange = buildStandardSparklineRanges(timelinePoints);
+        if (byRange.isEmpty()) {
+            return "";
+        }
+
+        String defaultRange = byRange.containsKey("1Y") ? "1Y" : byRange.keySet().iterator().next();
+        StringBuilder html = new StringBuilder();
+        html.append("<div class=\"sparkline-widget\">\n");
+        html.append("<div class=\"sparkline-metric-controls\">\n");
+        html.append("<button type=\"button\" class=\"sparkline-metric-btn js-return-amount-label is-active\" data-metric=\"return-nok\">Return (NOK)</button>\n");
+        html.append("<button type=\"button\" class=\"sparkline-metric-btn\" data-metric=\"return-pct\">Return (%)</button>\n");
+        html.append("</div>\n");
+
+        html.append("<div class=\"sparkline-controls\">\n");
+        for (String range : byRange.keySet()) {
+            String active = range.equals(defaultRange) ? " is-active" : "";
+            html.append("<button type=\"button\" class=\"sparkline-range-btn")
+                .append(active)
+                .append("\" data-range=\"")
+                .append(range)
+                .append("\">")
+                .append(range)
+                .append("</button>\n");
+        }
+        html.append("</div>\n");
+
+        for (Map.Entry<String, ArrayList<PortfolioValuePoint>> entry : byRange.entrySet()) {
+            String range = entry.getKey();
+            ArrayList<PortfolioValuePoint> points = entry.getValue();
+
+            html.append("<div class=\"sparkline-panel")
+                .append(range.equals(defaultRange) ? " is-active" : "")
+                .append("\" data-range=\"")
+                .append(range)
+                .append("\" data-metric=\"return-nok\">\n")
+                .append(buildPortfolioValueSparkline(points, SparklineMetric.RETURN_NOK))
+                .append("</div>\n");
+
+            html.append("<div class=\"sparkline-panel\" data-range=\"")
+                .append(range)
+                .append("\" data-metric=\"return-pct\">\n")
+                .append(buildPortfolioValueSparkline(points, SparklineMetric.RETURN_PCT))
+                .append("</div>\n");
+        }
+
+        html.append("</div>\n");
+        return html.toString();
     }
 
     public static String buildAnnualPortfolioReturnSparklineSvg(

@@ -64,9 +64,9 @@ public class ReportWriter {
             writer.write("        :root { --bg:#eef3f7; --line:#d8e0e9; --card:#ffffff; --ink:#16202a; --muted:#5a6877; --good:#1f8b4d; --bad:#b23a31; --spark-text:#5c7187; --spark-axis:#9eb1c3; --spark-axis-soft:#b8c7d6; --spark-grid:#cfdbe6; --spark-line:#223c55; --spark-point:#223c55; }\n");
             writer.write("        body.theme-dark { --bg:#0f1722; --line:#253245; --card:#162231; --ink:#e5edf7; --muted:#aebdce; --good:#59c887; --bad:#f07f7f; --spark-text:#d5e1ef; --spark-axis:#7f95ab; --spark-axis-soft:#9ab0c6; --spark-grid:#8ea4ba; --spark-line:#edf4fc; --spark-point:#edf4fc; }\n");
             writer.write("        * { box-sizing: border-box; }\n");
-            writer.write("        body { font-family: 'Segoe UI','Avenir Next','Helvetica Neue',Arial,sans-serif; margin:0; background: radial-gradient(circle at top,#f8fbfe 0%,var(--bg) 58%); color:var(--ink); }\n");
+            writer.write("        body { font-family: 'Segoe UI','Avenir Next','Helvetica Neue',Arial,sans-serif; margin:0; background: radial-gradient(circle at top,#f8fbfe 0%,var(--bg) 58%); color:var(--ink); overflow-x:hidden; }\n");
             writer.write("        body.theme-dark { background: radial-gradient(circle at top,#1c2b3f 0%, var(--bg) 62%); }\n");
-            writer.write("        .page { width:100vw; max-width:none; margin:0; padding:24px 8px 32px; }\n");
+            writer.write("        .page { width:100%; max-width:100%; margin:0; padding:24px 8px 32px; }\n");
             writer.write("        h2 { margin:26px 2px 12px; font-size:1.14rem; color:var(--ink); }\n");
             writer.write("        table { width:100%; border-collapse:collapse; min-width:0; table-layout:fixed; background:var(--card); }\n");
             writer.write("        th, td { padding:5px 5px; border-bottom:1px solid #edf2f7; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }\n");
@@ -77,16 +77,18 @@ public class ReportWriter {
             writer.write("        th.sortable-header.sort-desc::after { content:'▼'; opacity:.85; }\n");
             writer.write("        td { font-size:.72rem; }\n");
             writer.write("        td.num, th.num { text-align:right; }\n");
-            writer.write("        .table-wrap { background:var(--card); border:1px solid var(--line); border-radius:14px; overflow-x:auto; overflow-y:hidden; -webkit-overflow-scrolling:touch; scrollbar-gutter:stable both-edges; box-shadow:0 5px 14px rgba(15,23,33,.06); }\n");
+            writer.write("        .table-wrap { background:var(--card); border:1px solid var(--line); border-radius:14px; overflow-x:auto; overflow-y:hidden; -webkit-overflow-scrolling:touch; scrollbar-gutter:auto; box-shadow:0 5px 14px rgba(15,23,33,.06); }\n");
             writer.write("        .table-wrap::-webkit-scrollbar { height:12px; }\n");
-            writer.write("        .table-wrap::-webkit-scrollbar-track { background:#e7eef5; border-radius:999px; }\n");
-            writer.write("        .table-wrap::-webkit-scrollbar-thumb { background:#9db0c3; border-radius:999px; border:2px solid #e7eef5; }\n");
+            writer.write("        .table-wrap::-webkit-scrollbar-track { background:transparent; border-radius:999px; }\n");
+            writer.write("        .table-wrap::-webkit-scrollbar-thumb { background:#9db0c3; border-radius:999px; border:2px solid transparent; background-clip:padding-box; }\n");
             writer.write("        .report-standard .overview-table { table-layout:auto; width:100%; }\n");
             writer.write("        .report-standard .overview-table th, .report-standard .overview-table td { white-space:nowrap; overflow:visible; text-overflow:clip; }\n");
-            writer.write("        .report-standard .overview-table tr > *:nth-child(1)  { width:96px; min-width:96px; max-width:96px; }\n");
-            writer.write("        .report-standard .overview-table tr > *:nth-child(2)  { max-width:120px; overflow:hidden !important; text-overflow:ellipsis !important; }\n");
-            writer.write("        .report-standard .overview-table tr > *:nth-child(3)  { max-width:220px; overflow:hidden !important; text-overflow:ellipsis !important; }\n");
+            writer.write("        .report-standard .overview-table tr > *:nth-child(1)  { width:80px; min-width:80px; max-width:80px; }\n");
+            writer.write("        .report-standard .overview-table tr > *:nth-child(2)  { width:108px; min-width:108px; max-width:108px; overflow:hidden !important; text-overflow:ellipsis !important; }\n");
+            writer.write("        .report-standard .overview-table tr > *:nth-child(3)  { width:178px; min-width:178px; max-width:178px; overflow:hidden !important; text-overflow:ellipsis !important; }\n");
             writer.write("        .report-standard .ticker-scroll, .report-standard .security-scroll { display:block; position:relative; width:100%; max-width:100%; overflow-x:auto; overflow-y:hidden; white-space:nowrap; text-overflow:clip; scrollbar-width:none; -ms-overflow-style:none; padding-bottom:6px; cursor:grab; }\n");
+            writer.write("        .report-standard .ticker-scroll { max-width:108px; }\n");
+            writer.write("        .report-standard .security-scroll { max-width:178px; }\n");
             writer.write("        .report-standard .ticker-scroll::-webkit-scrollbar, .report-standard .security-scroll::-webkit-scrollbar { display:none; width:0; height:0; }\n");
             writer.write("        .report-standard .ticker-scroll::after, .report-standard .security-scroll::after { content:''; position:absolute; left:5px; right:5px; bottom:1px; height:4px; border-radius:999px; background:rgba(140,160,178,.18); opacity:.28; transition:opacity .12s ease, background .12s ease; }\n");
             writer.write("        .report-standard .ticker-scroll:hover::after, .report-standard .security-scroll:hover::after { opacity:.5; background:rgba(140,160,178,.28); }\n");
@@ -98,9 +100,9 @@ public class ReportWriter {
             writer.write("        .report-annual .realized-table tr > *:nth-child(8) { width:160px; max-width:160px; }\n");
             writer.write("        .report-standard .realized-table { table-layout:auto; width:100%; }\n");
             writer.write("        .report-standard .realized-table th, .report-standard .realized-table td { white-space:nowrap; overflow:visible; text-overflow:clip; }\n");
-            writer.write("        .report-standard .realized-table tr > *:nth-child(1)  { width:96px; min-width:96px; max-width:96px; }\n");
-            writer.write("        .report-standard .realized-table tr > *:nth-child(2)  { max-width:120px; overflow:hidden !important; text-overflow:ellipsis !important; }\n");
-            writer.write("        .report-standard .realized-table tr > *:nth-child(3)  { max-width:220px; overflow:hidden !important; text-overflow:ellipsis !important; }\n");
+            writer.write("        .report-standard .realized-table tr > *:nth-child(1)  { width:80px; min-width:80px; max-width:80px; }\n");
+            writer.write("        .report-standard .realized-table tr > *:nth-child(2)  { width:108px; min-width:108px; max-width:108px; overflow:hidden !important; text-overflow:ellipsis !important; }\n");
+            writer.write("        .report-standard .realized-table tr > *:nth-child(3)  { width:178px; min-width:178px; max-width:178px; overflow:hidden !important; text-overflow:ellipsis !important; }\n");
             writer.write("        .ticker-scroll { display:block; width:100%; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; padding-bottom:0; }\n");
             writer.write("        .security-scroll { display:block; position:relative; width:100%; max-width:100%; overflow-x:auto; overflow-y:hidden; white-space:nowrap; text-overflow:clip; scrollbar-width:none; -ms-overflow-style:none; padding-bottom:6px; cursor:grab; }\n");
             writer.write("        .security-scroll::-webkit-scrollbar { display:none; width:0; height:0; }\n");
@@ -124,6 +126,24 @@ public class ReportWriter {
             writer.write("        .hero-kpis { margin-top:14px; display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; }\n");
             writer.write("        .annual-headline-grid { margin-top:0; }\n");
             writer.write("        .kpi-card { background:rgba(255,255,255,.08); border:1px solid rgba(235,245,255,.2); border-radius:10px; padding:10px 11px; }\n");
+            writer.write("        .report-standard .kpi-card { background:linear-gradient(180deg,#f9fcff 0%,#f2f8fd 100%); border-color:#d4dfeb; color:#1f3549; }\n");
+            writer.write("        .report-standard .kpi-label { color:#5b7288; }\n");
+            writer.write("        .report-standard .kpi-value { color:#1f3549; }\n");
+            writer.write("        .report-standard .performer { color:#314c64; }\n");
+            writer.write("        .report-standard .performer strong { color:#1f3549; }\n");
+            writer.write("        .report-standard .cash-holdings-add-btn { border-color:#8da9c4; background:#eef5fb; color:#1f3a52; }\n");
+            writer.write("        .report-standard .cash-holdings-add-btn:hover { background:#e4eff9; }\n");
+            writer.write("        .report-standard .manual-cash-holding-line { color:#4f6780; }\n");
+            writer.write("        .report-standard .manual-cash-holding-line.is-portfolio { color:#1f3a52; }\n");
+            writer.write("        body.theme-dark.report-standard .kpi-card { background:#1a2d42; border-color:#2e4258; color:#dbe8f4; }\n");
+            writer.write("        body.theme-dark.report-standard .kpi-label { color:#b8cde1; }\n");
+            writer.write("        body.theme-dark.report-standard .kpi-value { color:#edf5ff; }\n");
+            writer.write("        body.theme-dark.report-standard .performer { color:#d4e3f2; }\n");
+            writer.write("        body.theme-dark.report-standard .performer strong { color:#edf5ff; }\n");
+            writer.write("        body.theme-dark.report-standard .cash-holdings-add-btn { border-color:#56799a; background:#243c55; color:#e2edf8; }\n");
+            writer.write("        body.theme-dark.report-standard .cash-holdings-add-btn:hover { background:#2d4a67; }\n");
+            writer.write("        body.theme-dark.report-standard .manual-cash-holding-line { color:#c2d6ea; }\n");
+            writer.write("        body.theme-dark.report-standard .manual-cash-holding-line.is-portfolio { color:#edf5ff; }\n");
             writer.write("        .cash-holdings-header { display:flex; align-items:center; justify-content:space-between; gap:8px; }\n");
             writer.write("        .cash-holdings-add-btn { border:1px solid rgba(235,245,255,.45); background:rgba(255,255,255,.12); color:#f3f7fc; border-radius:999px; padding:2px 8px; font-size:.72rem; font-weight:700; cursor:pointer; display:none; }\n");
             writer.write("        .cash-holdings-add-btn:hover { background:rgba(255,255,255,.2); }\n");
@@ -164,6 +184,8 @@ public class ReportWriter {
             writer.write("        .hero-side-title { color:#d4e3f0; font-size:.86rem; text-transform:uppercase; margin:0; }\n");
             writer.write("        .timeline-info-btn { width:18px; height:18px; border-radius:999px; border:1px solid rgba(235,245,255,.55); background:rgba(255,255,255,.14); color:#e8f2fb; font-size:.72rem; font-weight:800; line-height:1; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; padding:0; }\n");
             writer.write("        .timeline-info-btn:hover { background:rgba(255,255,255,.24); }\n");
+            writer.write("        .annual-graphs-section .timeline-info-btn { border-color:#8fa9c2; background:#eaf2fb; color:#24415a; }\n");
+            writer.write("        .annual-graphs-section .timeline-info-btn:hover { background:#ddeaf7; }\n");
             writer.write("        .timeline-info-overlay[hidden] { display:none !important; }\n");
             writer.write("        .timeline-info-overlay { position:fixed; inset:0; background:rgba(6,14,24,.58); z-index:12000; display:flex; align-items:center; justify-content:center; padding:18px; }\n");
             writer.write("        .timeline-info-dialog { width:min(560px,92vw); background:#f7fbff; color:#1a3348; border:1px solid #a8bfd4; border-radius:12px; box-shadow:0 18px 36px rgba(8,20,33,.34); }\n");
@@ -200,7 +222,7 @@ public class ReportWriter {
             writer.write("        .annual-summary { margin:14px 0 18px; padding:14px; border:1px solid var(--line); border-radius:14px; background:var(--card); box-shadow:0 5px 14px rgba(15,23,33,.06); }\n");
             writer.write("        .annual-summary h3 { margin:0 0 10px; font-size:1rem; }\n");
             writer.write("        .annual-kpi-deck { margin:0 0 14px; padding:12px; border:1px solid var(--line); border-radius:14px; background:var(--card); box-shadow:0 5px 14px rgba(15,23,33,.06); }\n");
-            writer.write("        .annual-kpi-deck-title { margin:0 0 9px; font-size:.9rem; font-weight:700; letter-spacing:.12px; color:var(--muted); text-transform:uppercase; }\n");
+            writer.write("        .annual-kpi-deck-title { margin:0 0 10px; font-size:1.02rem; font-weight:700; letter-spacing:0; color:var(--ink); text-transform:none; }\n");
             writer.write("        .annual-summary-grid { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:10px; }\n");
             writer.write("        .annual-summary-card { border:1px solid #d4dfeb; border-radius:11px; padding:11px; background:linear-gradient(180deg,#f9fcff 0%,#f2f8fd 100%); }\n");
             writer.write("        .annual-summary-card h4 { margin:0 0 4px; font-size:.82rem; color:#40576c; text-transform:uppercase; }\n");
@@ -215,7 +237,8 @@ public class ReportWriter {
             writer.write("        .annual-graphs-heading p { margin:0; font-size:.8rem; color:var(--muted); }\n");
             writer.write("        .annual-graphs-row { display:grid; grid-template-columns:1fr 1fr; gap:14px; margin:0; }\n");
             writer.write("        .annual-graph-card { display:flex; flex-direction:column; min-height:332px; padding:14px; border:1px solid #d4dfeb; border-radius:13px; background:linear-gradient(180deg,#f9fcff 0%,#f2f8fd 100%); box-shadow:0 2px 8px rgba(19,35,51,.06); overflow:hidden; }\n");
-            writer.write("        .annual-graph-card h3 { margin:0 0 8px; font-size:1rem; color:#1e3448; }\n");
+            writer.write("        .annual-graph-card.full-span { grid-column:1 / -1; }\n");
+            writer.write("        .annual-graph-card h3 { margin:0 0 6px; font-size:.84rem; font-weight:600; text-transform:uppercase; letter-spacing:.3px; color:#41576d; }\n");
             writer.write("        .annual-graph-note { margin:0 0 10px; font-size:.78rem; color:#5f7488; }\n");
             writer.write("        .annual-graph-content { flex:1; display:flex; flex-direction:column; justify-content:flex-end; min-height:0; }\n");
             writer.write("        .annual-graph-content > svg { display:block; width:100%; margin-top:auto; }\n");
@@ -228,7 +251,7 @@ public class ReportWriter {
             writer.write("        .allocation-row-top { grid-template-columns:repeat(3,minmax(0,1fr)); }\n");
             writer.write("        .allocation-row-bottom { grid-template-columns:repeat(2,minmax(0,1fr)); }\n");
             writer.write("        .allocation-panel { border:1px solid var(--line); border-radius:10px; padding:16px; background:#fafcfe; overflow:hidden; }\n");
-            writer.write("        .allocation-panel-title { margin:0 0 6px; font-size:.84rem; text-transform:uppercase; color:#41576d; letter-spacing:.3px; white-space:nowrap; }\n");
+            writer.write("        .allocation-panel-title { margin:0 0 6px; font-size:.84rem; font-weight:600; text-transform:uppercase; color:#41576d; letter-spacing:.3px; white-space:nowrap; }\n");
             writer.write("        .chart-svg { width:100%; height:auto; background:var(--card); border:1px solid var(--line); border-radius:8px; }\n");
             writer.write("        .allocation-panel .chart-svg { width:96%; margin:6px auto 10px; display:block; }\n");
             writer.write("        .security-pie-panel .chart-svg, .security-bar-panel .chart-svg { height:340px; width:100%; }\n");
@@ -279,7 +302,7 @@ public class ReportWriter {
             writer.write("        body.theme-dark .timeline-info-header { border-bottom-color:#2b4360; }\n");
             writer.write("        body.theme-dark .timeline-info-close { background:#1a3149; border-color:#3a5879; color:#d8e7f5; }\n");
             writer.write("        body.theme-dark .annual-summary { border-color:#2a3a4f; box-shadow:none; }\n");
-            writer.write("        body.theme-dark .annual-kpi-deck-title { color:#bdd1e4; }\n");
+            writer.write("        body.theme-dark .annual-kpi-deck-title { color:#e5edf7; }\n");
             writer.write("        body.theme-dark .annual-summary-card { border-color:#2e4258; background:#1a2d42; }\n");
             writer.write("        body.theme-dark .annual-summary-card h4 { color:#c8d9eb; }\n");
             writer.write("        body.theme-dark .annual-summary-sub { color:#d6e4f1; }\n");
@@ -288,8 +311,10 @@ public class ReportWriter {
             writer.write("        body.theme-dark .annual-summary-card .performer strong { color:#e9f2fc; }\n");
             writer.write("        body.theme-dark .annual-graphs-heading h2 { color:#e5edf7; }\n");
             writer.write("        body.theme-dark .annual-graphs-heading p { color:#bad0e5; }\n");
+            writer.write("        body.theme-dark .annual-graphs-section .timeline-info-btn { border-color:#4d6a87; background:#21374e; color:#d7e8f8; }\n");
+            writer.write("        body.theme-dark .annual-graphs-section .timeline-info-btn:hover { background:#2a4663; }\n");
             writer.write("        body.theme-dark .annual-graph-card { border-color:#2e4258; background:#1a2d42; box-shadow:none; }\n");
-            writer.write("        body.theme-dark .annual-graph-card h3 { color:#e5edf7; }\n");
+            writer.write("        body.theme-dark .annual-graph-card h3 { color:#bdd1e4; }\n");
             writer.write("        body.theme-dark .annual-graph-note { color:#bad0e5; }\n");
             writer.write("        body.theme-dark .sparkline-metric-btn, body.theme-dark .sparkline-range-btn { border-color:#45627f; background:#22374d; color:#cfe0f2; }\n");
             writer.write("        body.theme-dark .sparkline-metric-btn:hover, body.theme-dark .sparkline-range-btn:hover { background:#2b4560; }\n");
@@ -318,7 +343,7 @@ public class ReportWriter {
             writer.write("        .details-buy { color:#1d5d92; font-weight:600; }\n");
             writer.write("        .details-dividend { color:#1f8b4d; font-weight:600; }\n");
             writer.write("        @media (max-width:1200px) { .allocation-row-top{grid-template-columns:1fr 1fr;} .annual-summary-grid{grid-template-columns:repeat(3,minmax(0,1fr));} }\n");
-            writer.write("        @media (max-width:1060px) { .report-hero{grid-template-columns:1fr;} .hero-kpis,.annual-headline-grid{grid-template-columns:1fr;} .annual-summary-grid{grid-template-columns:repeat(2,minmax(0,1fr));} .annual-graphs-row{grid-template-columns:1fr;} .overview-charts{grid-template-columns:1fr;} .allocation-row-top,.allocation-row-bottom{grid-template-columns:1fr;} .page{width:100vw; padding:16px 8px 22px;} .table-wrap{overflow-x:auto;} .report-standard .overview-table{min-width:0;} .report-standard .realized-table{min-width:0;} .report-annual .table-wrap table{min-width:980px;} }\n");
+            writer.write("        @media (max-width:1060px) { .report-hero{grid-template-columns:1fr;} .hero-kpis,.annual-headline-grid{grid-template-columns:1fr;} .annual-summary-grid{grid-template-columns:repeat(2,minmax(0,1fr));} .annual-graphs-row{grid-template-columns:1fr;} .overview-charts{grid-template-columns:1fr;} .allocation-row-top,.allocation-row-bottom{grid-template-columns:1fr;} .page{width:100%; padding:16px 8px 22px;} .table-wrap{overflow-x:auto;} .report-standard .overview-table{min-width:0;} .report-standard .realized-table{min-width:0;} .report-annual .table-wrap table{min-width:980px;} }\n");
             writer.write("        @media (max-width:760px) { .annual-summary-grid{grid-template-columns:1fr;} .annual-graphs-heading{flex-direction:column; align-items:flex-start;} }\n");
             writer.write("    </style>\n");
             writer.write("</head>\n");
@@ -1109,8 +1134,8 @@ public class ReportWriter {
         String bestClass = s.bestReturn >= 0 ? "positive" : "negative";
         String worstClass = s.worstReturn >= 0 ? "positive" : "negative";
 
-        writer.write("<section class=\"report-hero\">\n");
-        writer.write("<div class=\"hero-title\">\n");
+        writer.write("<section class=\"report-hero annual-hero\">\n");
+        writer.write("<div class=\"hero-title annual-hero-header\">\n");
         writer.write("<h1>Portfolio Report</h1>\n");
         writer.write("<div class=\"hero-meta\">\n");
         writer.write("<span class=\"meta-chip\">Date: <strong>" + escapeHtml(s.generatedDate) + "</strong></span>\n");
@@ -1122,17 +1147,24 @@ public class ReportWriter {
         writer.write("<button id=\"report-theme-toggle\" class=\"hero-theme-btn\" type=\"button\">Dark mode</button>\n");
         writer.write("</div>\n");
         writer.write("<div id=\"refresh-prices-status\" class=\"price-refresh-status\"></div>\n");
-        writer.write("<div class=\"hero-kpis\">\n");
+        writer.write("</div>\n");
+        writer.write("</section>\n");
+        writer.write("<section class=\"annual-kpi-deck\">\n");
+        writer.write("<h2 class=\"annual-kpi-deck-title\">Portfolio Highlights</h2>\n");
+        writer.write("<div class=\"annual-summary-grid\">\n");
         LinkedHashMap<String, Double> totalMarketBuckets = new LinkedHashMap<>();
         LinkedHashMap<String, Double> totalReturnBuckets = new LinkedHashMap<>();
+        LinkedHashMap<String, Double> totalDividendsBuckets = new LinkedHashMap<>();
         LinkedHashMap<String, Double> totalHistoricalCostBuckets = new LinkedHashMap<>();
         LinkedHashMap<String, Double> soldOnlyReturnBuckets = new LinkedHashMap<>();
+        LinkedHashMap<String, Double> soldOnlyDividendsBuckets = new LinkedHashMap<>();
         LinkedHashMap<String, Double> soldOnlyHistoricalCostBuckets = new LinkedHashMap<>();
         Set<String> activeSecurityKeys = new LinkedHashSet<>();
         for (OverviewRow row : overviewRows) {
             activeSecurityKeys.add(row.securityKey);
             addToCurrencyBuckets(totalMarketBuckets, row.currencyCode, row.marketValue);
             addToCurrencyBuckets(totalReturnBuckets, row.currencyCode, row.totalReturn);
+            addToCurrencyBuckets(totalDividendsBuckets, row.currencyCode, row.dividends);
             addToCurrencyBuckets(totalHistoricalCostBuckets, row.currencyCode, row.historicalCostBasis);
         }
 
@@ -1153,8 +1185,10 @@ public class ReportWriter {
 
             String currency = security.getCurrencyCode();
             addToCurrencyBuckets(totalReturnBuckets, currency, realizedOnlyReturn);
+            addToCurrencyBuckets(totalDividendsBuckets, currency, realizedDividends);
             addToCurrencyBuckets(totalHistoricalCostBuckets, currency, realizedCostBasis);
             addToCurrencyBuckets(soldOnlyReturnBuckets, currency, realizedOnlyReturn);
+            addToCurrencyBuckets(soldOnlyDividendsBuckets, currency, realizedDividends);
             addToCurrencyBuckets(soldOnlyHistoricalCostBuckets, currency, realizedCostBasis);
         }
 
@@ -1185,6 +1219,13 @@ public class ReportWriter {
             + formatBucketsInTarget(totalReturnBuckets, DEFAULT_TOTAL_CURRENCY, 0, ratesToNok)
             + "</div><div id=\"hero-total-return-pct\" class=\"kpi-label " + totalClass + "\">" + HtmlFormatter.formatPercent(totalReturnPct) + "</div></article>\n");
 
+        writer.write("<article class=\"kpi-card\"><div class=\"kpi-label\">Dividends</div><div id=\"hero-dividends-value\" class=\"kpi-value js-convert-money\" data-buckets=\""
+            + escapeHtml(toBucketsJson(totalDividendsBuckets))
+            + "\" data-sold-only-dividends-buckets=\"" + escapeHtml(toBucketsJson(soldOnlyDividendsBuckets))
+            + "\" data-decimals=\"0\">"
+            + formatBucketsInTarget(totalDividendsBuckets, DEFAULT_TOTAL_CURRENCY, 0, ratesToNok)
+            + "</div></article>\n");
+
         writer.write("<article id=\"cash-holdings-card\" class=\"kpi-card\"><div class=\"cash-holdings-header\"><div class=\"kpi-label\">Cash Holdings</div><button id=\"cash-holdings-add-btn\" class=\"cash-holdings-add-btn\" type=\"button\">Add</button></div><div id=\"cash-holdings-total\" class=\"kpi-value js-convert-money\" data-buckets=\""
             + escapeHtml(toBucketsJson(cashBuckets)) + "\" data-base-buckets=\"" + escapeHtml(toBucketsJson(cashBuckets)) + "\" data-decimals=\"0\">"
             + formatBucketsInTarget(cashBuckets, DEFAULT_TOTAL_CURRENCY, 0, ratesToNok) + "</div><div id=\"manual-cash-holdings-list\" class=\"manual-cash-holdings-list\"></div></article>\n");
@@ -1202,15 +1243,38 @@ public class ReportWriter {
             + "\" data-decimals=\"0\">"
             + formatBucketsInTarget(singleCurrencyBuckets(s.worstCurrencyCode, s.worstReturn), DEFAULT_TOTAL_CURRENCY, 0, ratesToNok)
             + "</span> | " + HtmlFormatter.formatPercent(s.worstReturnPct) + "</span></div></article>\n");
-        writer.write("</div></div>\n");
-        writer.write("<aside class=\"hero-side\"><div class=\"timeline-title-row\"><div class=\"hero-side-title\">Portfolio Value Timeline</div><button type=\"button\" class=\"timeline-info-btn\" aria-label=\"Show calculation info\" title=\"Show calculation info\">i</button></div>");
-        if (s.sparklineSvg != null && !s.sparklineSvg.isBlank()) {
-            writer.write(s.sparklineSvg);
+        writer.write("</div>\n");
+        String valueTimelineSvg = PortfolioCalculator.buildStandardPortfolioValueSparklineSvg(store, ratesToNok);
+        String returnTimelineSvg = PortfolioCalculator.buildStandardPortfolioReturnSparklineSvg(store, ratesToNok);
+
+        writer.write("</section>\n");
+        writer.write("<section class=\"annual-graphs-section\">\n");
+        writer.write("<div class=\"annual-graphs-heading\"><div class=\"timeline-title-row\"><h2>Yearly Trend</h2><button type=\"button\" class=\"timeline-info-btn\" aria-label=\"Show calculation info\" title=\"Show calculation info\">i</button></div></div>\n");
+        writer.write("<div class=\"annual-graphs-row\">\n");
+        writer.write("<article class=\"annual-graph-card\">\n");
+        writer.write("<h3>Portfolio Value</h3>\n");
+        writer.write("<div class=\"annual-graph-content\">\n");
+        if (valueTimelineSvg != null && !valueTimelineSvg.isBlank()) {
+            writer.write(valueTimelineSvg);
         } else {
             writer.write("<div class=\"hero-side-note\">Timeline data not available yet for this dataset.</div>");
         }
-        writer.write("<div class=\"timeline-info-overlay\" hidden><div class=\"timeline-info-dialog\" role=\"dialog\" aria-modal=\"true\" aria-label=\"Portfolio timeline info\"><div class=\"timeline-info-header\"><h4>Portfolio Value Timeline - Info</h4><button type=\"button\" class=\"timeline-info-close\" aria-label=\"Close\">×</button></div><div class=\"timeline-info-body\"><p>This chart is an indicative estimate based on imported transactions, cash snapshots, and historical prices.</p><ul><li><strong>Value:</strong> Estimated portfolio value at each month-end in the selected display currency.</li><li><strong>Return (NOK):</strong> Cumulative cashflow-adjusted return (TWR-based) for the selected range, expressed in NOK from the range start value.</li><li><strong>Return (%):</strong> Cumulative time-weighted return (TWR) from the selected range start.</li><li><strong>External cash flows:</strong> Deposits, withdrawals, and transfers are neutralized in return calculations so contributions/withdrawals do not count as performance.</li><li><strong>Pricing:</strong> Historical close prices are primarily fetched from Yahoo Finance. If data points are missing, transaction-derived fallback pricing is used.</li><li><strong>Disclaimer:</strong> Values are for analysis and may differ from official broker reporting.</li></ul></div></div></div>");
-        writer.write("</aside>\n");
+        writer.write("</div>\n");
+        writer.write("</article>\n");
+
+        writer.write("<article class=\"annual-graph-card\">\n");
+        writer.write("<h3>Portfolio Return</h3>\n");
+        writer.write("<div class=\"annual-graph-content\">\n");
+        if (returnTimelineSvg != null && !returnTimelineSvg.isBlank()) {
+            writer.write(returnTimelineSvg);
+        } else {
+            writer.write("<div class=\"hero-side-note\">Return timeline is not available for this dataset.</div>");
+        }
+        writer.write("</div>\n");
+        writer.write("</article>\n");
+        writer.write("</div>\n");
+
+        writer.write("<div class=\"timeline-info-overlay\" hidden><div class=\"timeline-info-dialog\" role=\"dialog\" aria-modal=\"true\" aria-label=\"Portfolio timeline info\"><div class=\"timeline-info-header\"><h4>Portfolio Value Timeline - Info</h4><button type=\"button\" class=\"timeline-info-close\" aria-label=\"Close\">×</button></div><div class=\"timeline-info-body\"><p>This chart is an indicative estimate based on imported transactions, cash snapshots, and historical prices.</p><ul><li><strong>Value:</strong> Estimated portfolio value at each month-end in the selected display currency.</li><li><strong>Return (<span class=\"js-report-currency-code\">NOK</span>):</strong> Cumulative cashflow-adjusted return (TWR-based) for the selected range, expressed in <span class=\"js-report-currency-code\">NOK</span> from the range start value.</li><li><strong>Return (%):</strong> Cumulative time-weighted return (TWR) from the selected range start.</li><li><strong>External cash flows:</strong> Deposits, withdrawals, and transfers are neutralized in return calculations so contributions/withdrawals do not count as performance.</li><li><strong>Pricing:</strong> Historical close prices are primarily fetched from Yahoo Finance. If data points are missing, transaction-derived fallback pricing is used.</li><li><strong>Disclaimer:</strong> Values are for analysis and may differ from official broker reporting.</li></ul></div></div></div>\n");
         writer.write("</section>\n");
     }
 
@@ -1218,14 +1282,17 @@ public class ReportWriter {
         writer.write("<h2>PORTFOLIO OVERVIEW - CURRENT HOLDINGS</h2>\n");
         Map<String, Security> securityByKey = buildSecurityLookupByKey(store);
 
-        writer.write("<div class=\"overview-charts\">\n");
-        writer.write("<section class=\"overview-chart total-return-chart\"><h3 class=\"js-total-return-money-title\">Total Return (" + DEFAULT_TOTAL_CURRENCY + ")</h3>\n");
+        writer.write("<section class=\"annual-graphs-section total-return-graphs-section\">\n");
+        writer.write("<div class=\"annual-graphs-heading\"><h2>Total Return</h2></div>\n");
+        writer.write("<div class=\"annual-graphs-row\">\n");
+        writer.write("<article class=\"annual-graph-card overview-chart total-return-chart\"><h3 class=\"js-total-return-money-title\">Total Return (" + DEFAULT_TOTAL_CURRENCY + ")</h3>\n");
         writer.write(ChartBuilder.buildOverviewBarChartSvg(rows, false, ratesToNok));
-        writer.write("</section>\n");
-        writer.write("<section class=\"overview-chart total-return-chart\"><h3>Total Return (%)</h3>\n");
+        writer.write("</article>\n");
+        writer.write("<article class=\"annual-graph-card overview-chart total-return-chart\"><h3>Total Return (%)</h3>\n");
         writer.write(ChartBuilder.buildOverviewBarChartSvg(rows, true, ratesToNok));
-        writer.write("</section>\n");
+        writer.write("</article>\n");
         writer.write("</div>\n");
+        writer.write("</section>\n");
 
         writer.write("<div class=\"table-wrap\">\n<table class=\"overview-table\">\n");
         writeHtmlRow(writer, true,
@@ -1916,6 +1983,9 @@ public class ReportWriter {
         writer.write("      // Keep existing content if parsing fails.\n");
         writer.write("    }\n");
         writer.write("  });\n");
+        writer.write("  document.querySelectorAll('.js-report-currency-code').forEach(function(node) {\n");
+        writer.write("    node.textContent = target;\n");
+        writer.write("  });\n");
         writer.write("  return true;\n");
         writer.write("}\n");
         writer.write("function refreshReportChartsCurrency(targetCurrency) {\n");
@@ -2162,6 +2232,12 @@ public class ReportWriter {
         writer.write("      heroTotalReturnPct.classList.remove('positive', 'negative');\n");
         writer.write("      heroTotalReturnPct.classList.add(fullReturnNok >= 0 ? 'positive' : 'negative');\n");
         writer.write("    }\n");
+        writer.write("  }\n");
+        writer.write("  var heroDividends = document.getElementById('hero-dividends-value');\n");
+        writer.write("  if (heroDividends) {\n");
+        writer.write("    var soldOnlyDividendsBuckets = parseBucketsJson(heroDividends.getAttribute('data-sold-only-dividends-buckets'));\n");
+        writer.write("    var fullDividendsBuckets = mergeBuckets(soldOnlyDividendsBuckets, totalDividendsBuckets);\n");
+        writer.write("    heroDividends.setAttribute('data-buckets', JSON.stringify(fullDividendsBuckets));\n");
         writer.write("  }\n");
         writer.write("  refreshPortfolioValueBuckets();\n");
         writer.write("  var activeCurrency = getActiveReportCurrency();\n");
@@ -2982,10 +3058,12 @@ public class ReportWriter {
         writer.write("  });\n");
         writer.write("}\n");
         writer.write("function initTimelineInfoPopup() {\n");
-        writer.write("  document.querySelectorAll('.hero-side').forEach(function(side) {\n");
-        writer.write("    var openBtn = side.querySelector('.timeline-info-btn');\n");
-        writer.write("    var overlay = side.querySelector('.timeline-info-overlay');\n");
-        writer.write("    if (!openBtn || !overlay) return;\n");
+        writer.write("  document.querySelectorAll('.timeline-info-btn').forEach(function(openBtn) {\n");
+        writer.write("    if (openBtn.dataset.timelineInfoBound === '1') return;\n");
+        writer.write("    openBtn.dataset.timelineInfoBound = '1';\n");
+        writer.write("    var host = openBtn.closest('.hero-side, .annual-graphs-section');\n");
+        writer.write("    var overlay = host ? host.querySelector('.timeline-info-overlay') : null;\n");
+        writer.write("    if (!overlay) return;\n");
         writer.write("    var closeBtn = overlay.querySelector('.timeline-info-close');\n");
         writer.write("    function closeDialog() { overlay.hidden = true; }\n");
         writer.write("    function openDialog() { overlay.hidden = false; }\n");
