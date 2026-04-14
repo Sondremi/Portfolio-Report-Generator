@@ -6,7 +6,9 @@ import model.Security;
 
 import java.io.FileWriter;
 import java.io.IOException;
+import java.time.Instant;
 import java.time.LocalDate;
+import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -85,27 +87,43 @@ public class ReportWriter {
             writer.write("        .overview-mode-btn.is-active { background:var(--card); color:var(--ink); }\n");
             writer.write("        body.theme-dark .overview-mode-btn { background:#1f3347; color:#d8e7f5; border-color:#2f445a; }\n");
             writer.write("        body.theme-dark .overview-mode-btn.is-active { background:#162231; color:#edf5ff; }\n");
-            writer.write("        .report-standard .overview-table-wrap { width:100%; max-width:100%; overflow-x:hidden; }\n");
+            writer.write("        .report-standard .overview-table-wrap { width:100%; max-width:100%; overflow-x:auto; }\n");
             writer.write("        .report-standard .overview-table { table-layout:fixed; width:100%; max-width:100%; }\n");
-            writer.write("        .report-standard .overview-table th, .report-standard .overview-table td { white-space:nowrap; overflow:visible; text-overflow:clip; font-size:.68rem; padding:4px 4px; }\n");
+            writer.write("        .report-standard .overview-table th, .report-standard .overview-table td { white-space:nowrap; overflow:visible; text-overflow:clip; font-size:.67rem; padding:4px 4px; }\n");
             writer.write("        .report-standard .overview-table tr > * { min-width:0; }\n");
-            writer.write("        .report-standard .overview-table tr > *:nth-child(1)  { width:8%; min-width:74px; max-width:96px; overflow:hidden !important; text-overflow:ellipsis !important; }\n");
-            writer.write("        .report-standard .overview-table tr > *:nth-child(2)  { width:11%; min-width:104px; max-width:138px; overflow:hidden !important; text-overflow:ellipsis !important; }\n");
-            writer.write("        .report-standard .overview-table tr > *:nth-child(3)  { width:7%; min-width:74px; }\n");
-            writer.write("        .report-standard .overview-table tr > *:nth-child(4)  { width:7%; }\n");
-            writer.write("        .report-standard .overview-table tr > *:nth-child(5)  { width:7%; }\n");
-            writer.write("        .report-standard .overview-table tr > *:nth-child(6)  { width:6%; }\n");
-            writer.write("        .report-standard .overview-table tr > *:nth-child(7)  { width:7%; }\n");
-            writer.write("        .report-standard .overview-table tr > *:nth-child(8)  { width:7%; }\n");
-            writer.write("        .report-standard .overview-table tr > *:nth-child(9)  { width:8%; }\n");
-            writer.write("        .report-standard .overview-table tr > *:nth-child(10) { width:8%; }\n");
-            writer.write("        .report-standard .overview-table tr > *:nth-child(11) { width:10%; }\n");
-            writer.write("        .report-standard .overview-table tr > *:nth-child(12) { width:8%; }\n");
-            writer.write("        .report-standard .overview-table tr > *:nth-child(13) { width:7%; }\n");
-            writer.write("        .report-standard .overview-table tr > *:nth-child(14) { width:7%; }\n");
+            writer.write("        .report-standard .overview-summary-table tr > *:nth-child(1)  { width:8%; min-width:72px; max-width:94px; overflow:hidden !important; text-overflow:ellipsis !important; }\n");
+            writer.write("        .report-standard .overview-summary-table tr > *:nth-child(2)  { width:14%; min-width:112px; max-width:172px; overflow:hidden !important; text-overflow:ellipsis !important; }\n");
+            writer.write("        .report-standard .overview-summary-table tr > *:nth-child(3)  { width:7%; }\n");
+            writer.write("        .report-standard .overview-summary-table tr > *:nth-child(4)  { width:7%; }\n");
+            writer.write("        .report-standard .overview-summary-table tr > *:nth-child(5)  { width:9%; }\n");
+            writer.write("        .report-standard .overview-summary-table tr > *:nth-child(6)  { width:13%; }\n");
+            writer.write("        .report-standard .overview-summary-table tr > *:nth-child(7)  { width:7%; }\n");
+            writer.write("        .report-standard .overview-summary-table tr > *:nth-child(8)  { width:8%; }\n");
+            writer.write("        .report-standard .overview-summary-table tr > *:nth-child(9)  { width:8%; }\n");
+            writer.write("        .report-standard .overview-summary-table tr > *:nth-child(10) { width:9%; }\n");
+            writer.write("        .report-standard .overview-summary-table tr > *:nth-child(11) { width:10%; }\n");
+            writer.write("        .report-standard .overview-holdings-table tr > *:nth-child(1)  { width:7%; min-width:72px; max-width:94px; overflow:hidden !important; text-overflow:ellipsis !important; }\n");
+            writer.write("        .report-standard .overview-holdings-table tr > *:nth-child(2)  { width:12%; min-width:112px; max-width:172px; overflow:hidden !important; text-overflow:ellipsis !important; }\n");
+            writer.write("        .report-standard .overview-holdings-table tr > *:nth-child(3)  { width:6%; }\n");
+            writer.write("        .report-standard .overview-holdings-table tr > *:nth-child(4)  { width:7%; }\n");
+            writer.write("        .report-standard .overview-holdings-table tr > *:nth-child(5)  { width:6%; }\n");
+            writer.write("        .report-standard .overview-holdings-table tr > *:nth-child(6)  { width:7%; }\n");
+            writer.write("        .report-standard .overview-holdings-table tr > *:nth-child(7)  { width:7%; }\n");
+            writer.write("        .report-standard .overview-holdings-table tr > *:nth-child(8)  { width:9%; }\n");
+            writer.write("        .report-standard .overview-holdings-table tr > *:nth-child(9)  { width:9%; }\n");
+            writer.write("        .report-standard .overview-holdings-table tr > *:nth-child(10) { width:8%; }\n");
+            writer.write("        .report-standard .overview-holdings-table tr > *:nth-child(11) { width:7%; }\n");
+            writer.write("        .report-standard .overview-holdings-table tr > *:nth-child(12) { width:7%; }\n");
+            writer.write("        .report-standard .overview-holdings-table tr > *:nth-child(13) { width:8%; }\n");
             writer.write("        .report-standard .overview-table tr > *:nth-child(n+3) { overflow:visible !important; text-overflow:clip !important; }\n");
             writer.write("        .report-standard .overview-fundamentals-table { table-layout:auto; width:100%; }\n");
             writer.write("        .report-standard .overview-fundamentals-table th, .report-standard .overview-fundamentals-table td { overflow:visible !important; text-overflow:clip !important; white-space:nowrap; }\n");
+            writer.write("        .wk-range-cell { min-width:118px; }\n");
+            writer.write("        .wk-range-track { position:relative; height:4px; border-radius:999px; background:#c7d3df; margin:0 2px 6px; }\n");
+            writer.write("        .wk-range-marker { position:absolute; top:50%; width:10px; height:10px; border-radius:50%; background:#2b67bc; transform:translate(-50%, -50%); box-shadow:0 0 0 1px rgba(255,255,255,.85); }\n");
+            writer.write("        .wk-range-labels { display:flex; justify-content:space-between; gap:6px; font-size:.68rem; color:#2f3f4f; }\n");
+            writer.write("        body.theme-dark .wk-range-track { background:#4a5d72; }\n");
+            writer.write("        body.theme-dark .wk-range-labels { color:#d5e3f1; }\n");
             writer.write("        .mini-day-chart { display:block; width:78px; height:22px; }\n");
             writer.write("        .mini-day-chart-line { fill:none; stroke:#2e5f88; stroke-width:1.5; stroke-linecap:round; stroke-linejoin:round; }\n");
             writer.write("        .mini-day-chart-line.positive { stroke:#1f8b4d; }\n");
@@ -1460,6 +1478,14 @@ public class ReportWriter {
     private static void writeOverviewTableHtml(FileWriter writer, List<OverviewRow> rows, TransactionStore store, Map<String, Double> ratesToNok) throws IOException {
         writer.write("<h2>PORTFOLIO OVERVIEW - CURRENT HOLDINGS</h2>\n");
         Map<String, Security> securityByKey = buildSecurityLookupByKey(store);
+        Map<String, Security.FundamentalsSnapshot> fundamentalsByKey = new HashMap<>();
+        for (OverviewRow row : rows) {
+            Security security = securityByKey.get(row.securityKey);
+            if (security == null) {
+                continue;
+            }
+            fundamentalsByKey.put(row.securityKey, security.getFundamentalsSnapshot());
+        }
 
         writer.write("<section class=\"annual-graphs-section total-return-graphs-section\">\n");
         writer.write("<div class=\"annual-graphs-heading\"><h2>Total Return</h2></div>\n");
@@ -1478,10 +1504,10 @@ public class ReportWriter {
         writer.write("<button type=\"button\" class=\"overview-mode-btn\" data-overview-mode=\"holdings\">Holdings</button>\n");
         writer.write("<button type=\"button\" class=\"overview-mode-btn\" data-overview-mode=\"fundamentals\">Fundamentals</button>\n");
         writer.write("</div>\n");
-        writer.write("<div class=\"table-wrap overview-table-wrap js-overview-mode-panel\" data-overview-mode-panel=\"summary\">\n<table class=\"overview-table\">\n");
+        writer.write("<div class=\"table-wrap overview-table-wrap js-overview-mode-panel\" data-overview-mode-panel=\"summary\">\n<table class=\"overview-table overview-summary-table\">\n");
         ReportTemplateHelper.writeHtmlRow(writer, true,
-            ReportTemplateHelper.buildTickerHeaderCell("overview-details"), "Security", "Change %", "Change", "Day Chart", "Units", "Avg Cost", "Last Price",
-                "Cost Basis", "Market Value", "Unrealized", "Realized", "Dividends", "Total Return");
+            ReportTemplateHelper.buildTickerHeaderCell("overview-details"), "Security", "Change %", "Change", "Day Chart", "52-Wk Range", "Shares", "Avg Cost", "Last Price",
+                "Cost Basis", "Market Value");
 
         LinkedHashMap<String, Double> totalMarketValueBuckets = new LinkedHashMap<>();
         LinkedHashMap<String, Double> totalCostBasisBuckets = new LinkedHashMap<>();
@@ -1502,16 +1528,10 @@ public class ReportWriter {
             String rowClass = isStockFundBoundary(previousAssetType, row.assetType) ? "asset-split" : null;
             String detailsRowId = "overview-details-" + detailsIndex;
             Security security = securityByKey.get(row.securityKey);
-            String unrealizedCombined = row.hasPrice
-                ? HtmlFormatter.formatMoney(row.unrealized, row.currencyCode, 2) + " (" + HtmlFormatter.formatPercent(row.unrealizedPct, 2) + ")"
-                : "-";
-            String realizedCombined = HtmlFormatter.formatMoney(row.realized, row.currencyCode, 2)
-                + " (" + row.realizedReturnPctText + "%)";
-            String totalReturnCombined = HtmlFormatter.formatMoney(row.totalReturn, row.currencyCode, 2)
-                + " (" + HtmlFormatter.formatPercent(row.totalReturnPct, 2) + ")";
             String dayChangeCell = formatDayChangeCell(row.dayChangePct, row.hasDayChangePct);
             String dayChangeValueCell = formatDayChangeValueCell(row);
             String dayChartCell = formatDayChartCell(row);
+            String fiftyTwoWeekRangeCell = format52WeekRangeCell(row, fundamentalsByKey.get(row.securityKey));
 
             String rowAttributes = "data-overview-row=\"1\""
                 + " data-ticker=\"" + escapeHtml(row.tickerText) + "\""
@@ -1533,18 +1553,15 @@ public class ReportWriter {
                     dayChangeCell,
                     dayChangeValueCell,
                     dayChartCell,
+                    fiftyTwoWeekRangeCell,
                     HtmlFormatter.formatUnits(row.units),
                     HtmlFormatter.formatMoney(row.averageCost, row.currencyCode, 2),
                     "<span class=\"js-row-last-price\">" + (row.latestPrice > 0 ? HtmlFormatter.formatMoney(row.latestPrice, row.currencyCode, 2) : "-") + "</span>",
                     HtmlFormatter.formatMoney(row.positionCostBasis, row.currencyCode, 2),
-                    "<span class=\"js-row-market-value\">" + (row.latestPrice > 0 ? HtmlFormatter.formatMoney(row.marketValue, row.currencyCode, 2) : "-") + "</span>",
-                    "<span class=\"js-row-unrealized\">" + unrealizedCombined + "</span>",
-                    realizedCombined,
-                    HtmlFormatter.formatMoney(row.dividends, row.currencyCode, 2),
-                    "<span class=\"js-row-total-return\">" + totalReturnCombined + "</span>");
+                    "<span class=\"js-row-market-value\">" + (row.latestPrice > 0 ? HtmlFormatter.formatMoney(row.marketValue, row.currencyCode, 2) : "-") + "</span>");
 
                     writer.write("<tr id=\"" + detailsRowId + "\" class=\"details-row\" data-group=\"overview-details\">\n");
-                    writer.write("    <td class=\"details-cell\" colspan=\"14\">\n");
+                    writer.write("    <td class=\"details-cell\" colspan=\"11\">\n");
                     writer.write(buildHoldingDetailsTableHtml(security, row));
                     writer.write("    </td>\n");
                     writer.write("</tr>\n");
@@ -1566,25 +1583,24 @@ public class ReportWriter {
         double totalRealizedPct = totalCostBasisForPct > 0 ? (totalRealizedForPct / totalCostBasisForPct) * 100.0 : 0.0;
 
         writer.write("<tr class=\"total-row\">\n");
-        writer.write("    <td></td><td><strong>TOTAL</strong></td><td></td><td></td><td></td><td></td><td></td><td></td>\n");
+        writer.write("    <td></td><td><strong>TOTAL</strong></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>\n");
         writer.write("    <td>" + renderConvertibleMoneyCellWithId("overview-total-cost-basis", totalCostBasisBuckets, 2, ratesToNok) + "</td>\n");
         writer.write("    <td>" + renderConvertibleMoneyCellWithId("overview-total-market-value", totalMarketValueBuckets, 2, ratesToNok) + "</td>\n");
-        writer.write("    <td>" + renderConvertibleMoneyCellWithId("overview-total-unrealized", totalUnrealizedBuckets, 2, ratesToNok) + " (<span id=\"overview-total-unrealized-pct\">" + HtmlFormatter.formatPercent(totalUnrealizedPct, 2) + "</span>)</td>\n");
-        writer.write("    <td>" + renderConvertibleMoneyCellWithId("overview-total-realized", totalRealizedBuckets, 2, ratesToNok) + " (<span id=\"overview-total-realized-pct\">" + HtmlFormatter.formatPercent(totalRealizedPct, 2) + "</span>)</td>\n");
-        writer.write("    <td>" + renderConvertibleMoneyCellWithId("overview-total-dividends", totalDividendsBuckets, 2, ratesToNok) + "</td>\n");
-        writer.write("    <td>" + renderConvertibleMoneyCellWithId("overview-total-return", totalReturnBuckets, 2, ratesToNok) + " (<span id=\"overview-total-return-pct\">" + HtmlFormatter.formatPercent(totalReturnPct, 2) + "</span>)</td>\n");
         writer.write("</tr>\n");
 
         writer.write("</table>\n</div>\n");
 
-        writer.write("<div class=\"table-wrap overview-table-wrap js-overview-mode-panel\" data-overview-mode-panel=\"holdings\" hidden>\n<table class=\"overview-table\">\n");
+        writer.write("<div class=\"table-wrap overview-table-wrap js-overview-mode-panel\" data-overview-mode-panel=\"holdings\" hidden>\n<table class=\"overview-table overview-holdings-table\">\n");
         ReportTemplateHelper.writeHtmlRow(writer, true,
-                "Ticker", "Security", "Change %", "Change (Portfolio)", "Units", "Avg Cost", "Last Price",
+            "Ticker", "Security", "Change %", "Change", "Shares", "Avg Cost", "Last Price",
                 "Cost Basis", "Market Value", "Unrealized", "Realized", "Dividends", "Total Return");
 
         previousAssetType = null;
+        int holdingsDetailsIndex = 0;
         for (OverviewRow row : rows) {
             String rowClass = isStockFundBoundary(previousAssetType, row.assetType) ? "asset-split" : null;
+            Security security = securityByKey.get(row.securityKey);
+            String detailsRowId = "holdings-details-" + holdingsDetailsIndex;
             String unrealizedCombined = row.hasPrice
                     ? HtmlFormatter.formatMoney(row.unrealized, row.currencyCode, 2) + " (" + HtmlFormatter.formatPercent(row.unrealizedPct, 2) + ")"
                     : "-";
@@ -1594,10 +1610,13 @@ public class ReportWriter {
                     + " (" + HtmlFormatter.formatPercent(row.totalReturnPct, 2) + ")";
             String dayChangeCell = formatDayChangeCell(row.dayChangePct, row.hasDayChangePct);
             String holdingsDayChangeValueCell = formatHoldingDayChangeValueCell(row);
+                    String rowAttributes = "data-asset-group=\"" + escapeHtml(normalizeAssetBoundaryGroup(row.assetType)) + "\"";
+                    String tickerToggle = "<button class=\"details-link-btn\" data-target=\"" + detailsRowId + "\" onclick=\"toggleOverviewDetails('" + detailsRowId + "', null)\"><span class=\"ticker-scroll\">" + escapeHtml(row.tickerText) + "</span></button>";
+                    String securityToggle = "<button class=\"details-link-btn\" data-target=\"" + detailsRowId + "\" onclick=\"toggleOverviewDetails('" + detailsRowId + "', null)\"><span class=\"security-scroll\">" + escapeHtml(row.securityDisplayName) + "</span></button>";
 
-            ReportTemplateHelper.writeHtmlRowWithClassAndAttributes(writer, rowClass, null,
-                    "<span class=\"ticker-scroll\">" + escapeHtml(row.tickerText) + "</span>",
-                    "<span class=\"security-scroll\">" + escapeHtml(row.securityDisplayName) + "</span>",
+                    ReportTemplateHelper.writeHtmlRowWithClassAndAttributes(writer, rowClass, rowAttributes,
+                        tickerToggle,
+                        securityToggle,
                     dayChangeCell,
                     holdingsDayChangeValueCell,
                     HtmlFormatter.formatUnits(row.units),
@@ -1610,7 +1629,14 @@ public class ReportWriter {
                     HtmlFormatter.formatMoney(row.dividends, row.currencyCode, 2),
                     totalReturnCombined);
 
+                    writer.write("<tr id=\"" + detailsRowId + "\" class=\"details-row\" data-group=\"holdings-details\">\n");
+                    writer.write("    <td class=\"details-cell\" colspan=\"13\">\n");
+                    writer.write(buildHoldingDetailsTableHtml(security, row));
+                    writer.write("    </td>\n");
+                    writer.write("</tr>\n");
+
             previousAssetType = row.assetType;
+                    holdingsDetailsIndex++;
         }
 
         writer.write("<tr class=\"total-row\">\n");
@@ -1633,11 +1659,27 @@ public class ReportWriter {
         previousAssetType = null;
         for (OverviewRow row : rows) {
             String rowClass = isStockFundBoundary(previousAssetType, row.assetType) ? "asset-split" : null;
+            Security.FundamentalsSnapshot fundamentals = fundamentalsByKey.get(row.securityKey);
+            double fundamentalsLastPrice = fundamentals != null ? fundamentals.lastPrice : 0.0;
+            String lastPriceCell = fundamentalsLastPrice > EPSILON
+                ? HtmlFormatter.formatMoney(fundamentalsLastPrice, row.currencyCode, 2)
+                : (row.latestPrice > EPSILON ? HtmlFormatter.formatMoney(row.latestPrice, row.currencyCode, 2) : "-");
             ReportTemplateHelper.writeHtmlRowWithClassAndAttributes(writer, rowClass, null,
                     "<span class=\"ticker-scroll\">" + escapeHtml(row.tickerText) + "</span>",
                     "<span class=\"security-scroll\">" + escapeHtml(row.securityDisplayName) + "</span>",
-                    row.latestPrice > 0 ? HtmlFormatter.formatMoney(row.latestPrice, row.currencyCode, 2) : "-",
-                    "-", "-", "-", "-", "-", "-", "-", "-", "-", "-", "-", "-");
+                lastPriceCell,
+                formatCompactMetric(fundamentals != null ? fundamentals.marketCap : 0.0),
+                formatCompactMetric(fundamentals != null ? fundamentals.averageVolume3Month : 0.0),
+                formatFundamentalsDecimal(fundamentals != null ? fundamentals.epsEstimateNextYear : 0.0, 2),
+                formatFundamentalsDecimal(fundamentals != null ? fundamentals.forwardPe : 0.0, 2),
+                formatFundamentalsDate(fundamentals != null ? fundamentals.dividendPaymentDateEpochSeconds : 0L),
+                formatFundamentalsDate(fundamentals != null ? fundamentals.exDividendDateEpochSeconds : 0L),
+                formatFundamentalsMoney(fundamentals != null ? fundamentals.dividendPerShare : 0.0, row.currencyCode, 2),
+                formatFundamentalsMoney(fundamentals != null ? fundamentals.forwardAnnualDividendRate : 0.0, row.currencyCode, 2),
+                formatFundamentalsPercent(fundamentals != null ? fundamentals.forwardAnnualDividendYield : 0.0),
+                formatFundamentalsMoney(fundamentals != null ? fundamentals.trailingAnnualDividendRate : 0.0, row.currencyCode, 2),
+                formatFundamentalsPercent(fundamentals != null ? fundamentals.trailingAnnualDividendYield : 0.0),
+                formatFundamentalsDecimal(fundamentals != null ? fundamentals.priceToBook : 0.0, 2));
             previousAssetType = row.assetType;
         }
 
@@ -1728,6 +1770,108 @@ public class ReportWriter {
         return "<span class=\"js-row-day-chart\" data-ticker=\"" + escapeHtml(row.tickerText)
             + "\" data-fallback-series=\"" + escapeHtml(fallbackSeries) + "\">"
             + "</span>";
+    }
+
+    private static String format52WeekRangeCell(OverviewRow row, Security.FundamentalsSnapshot fundamentals) {
+        if (row == null || fundamentals == null || !fundamentals.hasRangeData()) {
+            return "-";
+        }
+
+        double low = fundamentals.fiftyTwoWeekLow;
+        double high = fundamentals.fiftyTwoWeekHigh;
+        double current = fundamentals.lastPrice > EPSILON ? fundamentals.lastPrice : row.latestPrice;
+        if (current <= EPSILON) {
+            current = low;
+        }
+
+        double ratio = (current - low) / Math.max(EPSILON, high - low);
+        double clamped = Math.max(0.0, Math.min(1.0, ratio));
+        String markerPct = String.format(Locale.US, "%.2f", clamped * 100.0);
+        String lowLabel = HtmlFormatter.formatMoney(low, row.currencyCode, 2);
+        String highLabel = HtmlFormatter.formatMoney(high, row.currencyCode, 2);
+        String currentLabel = HtmlFormatter.formatMoney(current, row.currencyCode, 2);
+
+        return "<div class=\"wk-range-cell\" title=\"" + escapeHtml(currentLabel) + "\">"
+                + "<div class=\"wk-range-track\"><span class=\"wk-range-marker\" style=\"left:" + markerPct + "%;\"></span></div>"
+                + "<div class=\"wk-range-labels\"><span>" + escapeHtml(lowLabel) + "</span><span>" + escapeHtml(highLabel) + "</span></div>"
+                + "</div>";
+    }
+
+    private static String formatFundamentalsMoney(double value, String currencyCode, int decimals) {
+        if (!Double.isFinite(value) || Math.abs(value) <= EPSILON) {
+            return "-";
+        }
+        return HtmlFormatter.formatMoney(value, currencyCode, decimals);
+    }
+
+    private static String formatFundamentalsPercent(double value) {
+        if (!Double.isFinite(value) || Math.abs(value) <= EPSILON) {
+            return "-";
+        }
+
+        double percent = Math.abs(value) <= 1.0 ? value * 100.0 : value;
+        return HtmlFormatter.formatPercent(percent, 2);
+    }
+
+    private static String formatFundamentalsDecimal(double value, int decimals) {
+        if (!Double.isFinite(value) || Math.abs(value) <= EPSILON) {
+            return "-";
+        }
+
+        String pattern = "%1$." + Math.max(0, decimals) + "f";
+        String formatted = String.format(Locale.US, pattern, value);
+        return trimTrailingZeros(formatted);
+    }
+
+    private static String formatFundamentalsDate(long epochSeconds) {
+        if (epochSeconds <= 0L) {
+            return "-";
+        }
+
+        try {
+            LocalDate date = Instant.ofEpochSecond(epochSeconds).atZone(ZoneOffset.UTC).toLocalDate();
+            return date.format(DETAIL_DATE_FORMATTER);
+        } catch (Exception ignored) {
+            return "-";
+        }
+    }
+
+    private static String formatCompactMetric(double value) {
+        if (!Double.isFinite(value) || value <= 0.0) {
+            return "-";
+        }
+
+        double abs = Math.abs(value);
+        double divisor = 1.0;
+        String suffix = "";
+        if (abs >= 1_000_000_000_000.0) {
+            divisor = 1_000_000_000_000.0;
+            suffix = "T";
+        } else if (abs >= 1_000_000_000.0) {
+            divisor = 1_000_000_000.0;
+            suffix = "B";
+        } else if (abs >= 1_000_000.0) {
+            divisor = 1_000_000.0;
+            suffix = "M";
+        } else if (abs >= 1_000.0) {
+            divisor = 1_000.0;
+            suffix = "K";
+        }
+
+        double scaled = value / divisor;
+        int decimals = Math.abs(scaled) >= 100.0 ? 0 : (Math.abs(scaled) >= 10.0 ? 1 : 2);
+        String pattern = "%1$." + decimals + "f";
+        return trimTrailingZeros(String.format(Locale.US, pattern, scaled)) + suffix;
+    }
+
+    private static String trimTrailingZeros(String value) {
+        if (value == null) {
+            return "";
+        }
+        if (!value.contains(".")) {
+            return value;
+        }
+        return value.replaceAll("0+$", "").replaceAll("\\.$", "");
     }
 
     private static void writeRealizedSummaryTableHtml(FileWriter writer, TransactionStore store, Map<String, Double> ratesToNok) throws IOException {

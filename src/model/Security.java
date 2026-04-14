@@ -31,6 +31,7 @@ public class Security {
     private static final Map<String, LinkedHashMap<String, Double>> FUND_SECTOR_WEIGHT_CACHE = new LinkedHashMap<>();
     private static final Map<String, LinkedHashMap<String, Double>> FUND_REGION_WEIGHT_CACHE = new LinkedHashMap<>();
     private static final Map<String, String> HOLDING_SYMBOL_REGION_CACHE = new LinkedHashMap<>();
+    private static final Map<String, FundamentalsSnapshot> FUNDAMENTALS_SNAPSHOT_CACHE = new LinkedHashMap<>();
 
     private static String yahooAuthCookieHeader = "";
     private static String yahooAuthCrumb = "";
@@ -200,6 +201,61 @@ public class Security {
         public double getReturnPct() { return returnPct; }
     }
 
+    public static final class FundamentalsSnapshot {
+        public final double lastPrice;
+        public final double marketCap;
+        public final double averageVolume3Month;
+        public final double epsEstimateNextYear;
+        public final double forwardPe;
+        public final long dividendPaymentDateEpochSeconds;
+        public final long exDividendDateEpochSeconds;
+        public final double dividendPerShare;
+        public final double forwardAnnualDividendRate;
+        public final double forwardAnnualDividendYield;
+        public final double trailingAnnualDividendRate;
+        public final double trailingAnnualDividendYield;
+        public final double priceToBook;
+        public final double fiftyTwoWeekLow;
+        public final double fiftyTwoWeekHigh;
+
+        FundamentalsSnapshot(
+                double lastPrice,
+                double marketCap,
+                double averageVolume3Month,
+                double epsEstimateNextYear,
+                double forwardPe,
+                long dividendPaymentDateEpochSeconds,
+                long exDividendDateEpochSeconds,
+                double dividendPerShare,
+                double forwardAnnualDividendRate,
+                double forwardAnnualDividendYield,
+                double trailingAnnualDividendRate,
+                double trailingAnnualDividendYield,
+                double priceToBook,
+                double fiftyTwoWeekLow,
+                double fiftyTwoWeekHigh) {
+            this.lastPrice = lastPrice;
+            this.marketCap = marketCap;
+            this.averageVolume3Month = averageVolume3Month;
+            this.epsEstimateNextYear = epsEstimateNextYear;
+            this.forwardPe = forwardPe;
+            this.dividendPaymentDateEpochSeconds = dividendPaymentDateEpochSeconds;
+            this.exDividendDateEpochSeconds = exDividendDateEpochSeconds;
+            this.dividendPerShare = dividendPerShare;
+            this.forwardAnnualDividendRate = forwardAnnualDividendRate;
+            this.forwardAnnualDividendYield = forwardAnnualDividendYield;
+            this.trailingAnnualDividendRate = trailingAnnualDividendRate;
+            this.trailingAnnualDividendYield = trailingAnnualDividendYield;
+            this.priceToBook = priceToBook;
+            this.fiftyTwoWeekLow = fiftyTwoWeekLow;
+            this.fiftyTwoWeekHigh = fiftyTwoWeekHigh;
+        }
+
+        public boolean hasRangeData() {
+            return fiftyTwoWeekHigh > EPSILON && fiftyTwoWeekLow > EPSILON && fiftyTwoWeekHigh > fiftyTwoWeekLow;
+        }
+    }
+
     public Security(String n, String i) {
         name = n;
         isin = i;
@@ -274,6 +330,37 @@ public class Security {
     public double getLatestPrice() { return latestPrice; }
     public double getPreviousClose() { return previousClose; }
     public LocalDate getFirstHoldingDate() { return firstHoldingDate; }
+    public FundamentalsSnapshot getFundamentalsSnapshot() {
+        String symbol = ticker == null ? "" : ticker.trim().toUpperCase(Locale.ROOT);
+        if (symbol.isBlank() || "-".equals(symbol)) {
+            return new FundamentalsSnapshot(
+                    latestPrice,
+                    0.0,
+                    0.0,
+                    0.0,
+                    0.0,
+                    0L,
+                    0L,
+                    0.0,
+                    0.0,
+                    0.0,
+                    0.0,
+                    0.0,
+                    0.0,
+                    0.0,
+                    0.0
+            );
+        }
+
+        FundamentalsSnapshot cached = FUNDAMENTALS_SNAPSHOT_CACHE.get(symbol);
+        if (cached != null) {
+            return cached;
+        }
+
+        FundamentalsSnapshot fetched = fetchFundamentalsSnapshot(symbol);
+        FUNDAMENTALS_SNAPSHOT_CACHE.put(symbol, fetched);
+        return fetched;
+    }
     public boolean hasDayChangePct() {
         return previousClose > EPSILON && latestPrice > EPSILON;
     }
@@ -1882,6 +1969,135 @@ public class Security {
         return fetchLatestQuote(symbol).latestPrice;
     }
 
+    private FundamentalsSnapshot fetchFundamentalsSnapshot(String symbol) {
+        if (symbol == null || symbol.isBlank()) {
+            return new FundamentalsSnapshot(
+                    latestPrice,
+                    0.0,
+                    0.0,
+                    0.0,
+                    0.0,
+                    0L,
+                    0L,
+                    0.0,
+                    0.0,
+                    0.0,
+                    0.0,
+                    0.0,
+                    0.0,
+                    0.0,
+                    0.0
+            );
+        }
+
+        try {
+            String baseUrl = "https://query2.finance.yahoo.com/v10/finance/quoteSummary/"
+                    + URLEncoder.encode(symbol, "UTF-8")
+                    + "?modules=price,summaryDetail,defaultKeyStatistics,calendarEvents";
+
+            String response = fetchYahooQuoteSummaryWithAuth(baseUrl);
+            Object parsed = SimpleJson.parse(response);
+            Object resultNode = getAtPath(parsed, "quoteSummary", "result", 0);
+            if (!(resultNode instanceof Map<?, ?> resultMap)) {
+                return new FundamentalsSnapshot(
+                        latestPrice,
+                        0.0,
+                        0.0,
+                        0.0,
+                        0.0,
+                        0L,
+                        0L,
+                        0.0,
+                        0.0,
+                        0.0,
+                        0.0,
+                        0.0,
+                        0.0,
+                        0.0,
+                        0.0
+                );
+            }
+
+            double snapshotLastPrice = extractSectionRaw(resultMap, "price", "regularMarketPrice");
+            if (snapshotLastPrice <= EPSILON) {
+                snapshotLastPrice = extractSectionRaw(resultMap, "summaryDetail", "previousClose");
+            }
+            if (snapshotLastPrice <= EPSILON) {
+                snapshotLastPrice = latestPrice;
+            }
+
+            double marketCap = extractSectionRaw(resultMap, "price", "marketCap");
+            if (marketCap <= EPSILON) {
+                marketCap = extractSectionRaw(resultMap, "summaryDetail", "marketCap");
+            }
+
+            double avgVolume3Month = extractSectionRaw(resultMap, "summaryDetail", "averageVolume");
+            double epsEstimateNextYear = extractSectionRaw(resultMap, "defaultKeyStatistics", "forwardEps");
+            double forwardPe = extractSectionRaw(resultMap, "summaryDetail", "forwardPE");
+            if (forwardPe <= EPSILON) {
+                forwardPe = extractSectionRaw(resultMap, "defaultKeyStatistics", "forwardPE");
+            }
+
+            long dividendPaymentDate = toEpochSeconds(extractSectionRaw(resultMap, "calendarEvents", "dividendDate"));
+            if (dividendPaymentDate <= 0L) {
+                dividendPaymentDate = toEpochSeconds(extractSectionRaw(resultMap, "summaryDetail", "dividendDate"));
+            }
+
+            long exDividendDate = toEpochSeconds(extractSectionRaw(resultMap, "summaryDetail", "exDividendDate"));
+            if (exDividendDate <= 0L) {
+                exDividendDate = toEpochSeconds(extractSectionRaw(resultMap, "calendarEvents", "exDividendDate"));
+            }
+
+            double dividendRate = extractSectionRaw(resultMap, "summaryDetail", "dividendRate");
+            double dividendYield = extractSectionRaw(resultMap, "summaryDetail", "dividendYield");
+            double trailingDividendRate = extractSectionRaw(resultMap, "summaryDetail", "trailingAnnualDividendRate");
+            double trailingDividendYield = extractSectionRaw(resultMap, "summaryDetail", "trailingAnnualDividendYield");
+            double priceToBook = extractSectionRaw(resultMap, "defaultKeyStatistics", "priceToBook");
+            if (priceToBook <= EPSILON) {
+                priceToBook = extractSectionRaw(resultMap, "summaryDetail", "priceToBook");
+            }
+
+            double fiftyTwoWeekLow = extractSectionRaw(resultMap, "summaryDetail", "fiftyTwoWeekLow");
+            double fiftyTwoWeekHigh = extractSectionRaw(resultMap, "summaryDetail", "fiftyTwoWeekHigh");
+
+            return new FundamentalsSnapshot(
+                    snapshotLastPrice,
+                    marketCap,
+                    avgVolume3Month,
+                    epsEstimateNextYear,
+                    forwardPe,
+                    dividendPaymentDate,
+                    exDividendDate,
+                    dividendRate,
+                    dividendRate,
+                    dividendYield,
+                    trailingDividendRate,
+                    trailingDividendYield,
+                    priceToBook,
+                    fiftyTwoWeekLow,
+                    fiftyTwoWeekHigh
+            );
+        } catch (Exception ignored) {
+            return new FundamentalsSnapshot(
+                    latestPrice,
+                    0.0,
+                    0.0,
+                    0.0,
+                    0.0,
+                    0L,
+                    0L,
+                    0.0,
+                    0.0,
+                    0.0,
+                    0.0,
+                    0.0,
+                    0.0,
+                    0.0,
+                    0.0
+            );
+        }
+    }
+
     private LatestQuote fetchLatestQuote(String symbol) {
         if (symbol == null || symbol.isBlank()) {
             return new LatestQuote(0.0, 0.0);
@@ -2074,5 +2290,30 @@ public class Security {
         }
 
         return 0.0;
+    }
+
+    private static double extractSectionRaw(Map<?, ?> resultMap, String sectionKey, String fieldKey) {
+        if (resultMap == null || sectionKey == null || sectionKey.isBlank() || fieldKey == null || fieldKey.isBlank()) {
+            return 0.0;
+        }
+
+        Object section = resultMap.get(sectionKey);
+        if (!(section instanceof Map<?, ?> sectionMap)) {
+            return 0.0;
+        }
+
+        double raw = mapDoubleNested(sectionMap, fieldKey, "raw");
+        if (Double.isFinite(raw) && (Math.abs(raw) > EPSILON || sectionMap.containsKey(fieldKey))) {
+            return raw;
+        }
+
+        return mapDouble(sectionMap, fieldKey);
+    }
+
+    private static long toEpochSeconds(double rawValue) {
+        if (!Double.isFinite(rawValue) || rawValue <= 0.0) {
+            return 0L;
+        }
+        return Math.round(rawValue);
     }
 }
