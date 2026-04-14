@@ -1605,11 +1605,11 @@ public class ReportWriter {
     }
 
     private static String formatDayChangeValueCell(OverviewRow row) {
-        if (row == null || row.units <= 0.0 || row.latestPrice <= 0.0 || row.previousClose <= 0.0) {
+        if (row == null || row.latestPrice <= 0.0 || row.previousClose <= 0.0) {
             return "<span class=\"js-row-day-change-value\">-</span>";
         }
 
-        double changeValue = row.units * (row.latestPrice - row.previousClose);
+        double changeValue = row.latestPrice - row.previousClose;
         String cssClass = changeValue > 0.0
                 ? "positive"
                 : (changeValue < 0.0 ? "negative" : "");
@@ -2387,7 +2387,7 @@ public class ReportWriter {
         writer.write("  var totalReturn = unrealized + realized + dividends;\n");
         writer.write("  var totalReturnPct = historicalCostBasis > 0 ? (totalReturn / historicalCostBasis) * 100 : 0;\n");
         writer.write("  var hasDayChange = Number.isFinite(previousClose) && previousClose > 0;\n");
-        writer.write("  var dayChangeValue = hasDayChange ? (units * (nextPrice - previousClose)) : Number.NaN;\n");
+        writer.write("  var dayChangeValue = hasDayChange ? (nextPrice - previousClose) : Number.NaN;\n");
         writer.write("  var dayChangePct = hasDayChange ? ((nextPrice / previousClose) - 1) * 100 : Number.NaN;\n");
         writer.write("  row.setAttribute('data-latest-price', String(nextPrice));\n");
         writer.write("  row.setAttribute('data-market-value', String(marketValue));\n");
