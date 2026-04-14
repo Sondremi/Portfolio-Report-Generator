@@ -20,9 +20,8 @@ import java.net.URI;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLEncoder;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import java.util.Locale;
+import util.SimpleJson;
 
 public class Security {
     private static final DateTimeFormatter CSV_DATE_OUTPUT = DateTimeFormatter.ofPattern("dd.MM.yyyy");
@@ -1117,28 +1116,20 @@ public class Security {
         if (response == null || response.isBlank()) {
             return weights;
         }
-
-        Pattern holdingPattern = Pattern.compile(
-                "\\\"symbol\\\"\\s*:\\s*\\\"([^\\\"]+)\\\".*?\\\"holdingPercent\\\"\\s*:\\s*\\{\\s*\\\"raw\\\"\\s*:\\s*(-?\\d+(?:\\.\\d+)?(?:[Ee][+-]?\\d+)?)",
-                Pattern.DOTALL
-        );
-
-        Matcher matcher = holdingPattern.matcher(response);
+        Object parsed = SimpleJson.parse(response);
+        List<Object> holdings = getListAtPath(parsed, "quoteSummary", "result", 0, "topHoldings", "holdings");
         double total = 0.0;
-        while (matcher.find()) {
-            String holdingSymbol = matcher.group(1);
-            String rawWeightText = matcher.group(2);
+        for (Object holdingEntry : holdings) {
+            if (!(holdingEntry instanceof Map<?, ?> holding)) {
+                continue;
+            }
+
+            String holdingSymbol = mapString(holding, "symbol");
             if (holdingSymbol == null || holdingSymbol.isBlank()) {
                 continue;
             }
 
-            double rawWeight;
-            try {
-                rawWeight = Double.parseDouble(rawWeightText);
-            } catch (NumberFormatException ignored) {
-                continue;
-            }
-
+            double rawWeight = mapDoubleNested(holding, "holdingPercent", "raw");
             if (!Double.isFinite(rawWeight) || rawWeight <= 0.0) {
                 continue;
             }
@@ -1298,30 +1289,19 @@ public class Security {
         if (response == null || response.isBlank()) {
             return weights;
         }
-
-        Pattern listPattern = Pattern.compile("\\\"sectorWeightings\\\"\\s*:\\s*\\[(.*?)]", Pattern.DOTALL);
-        Matcher listMatcher = listPattern.matcher(response);
-        if (!listMatcher.find()) {
-            return weights;
-        }
-
-        String listBody = listMatcher.group(1);
-        Pattern entryPattern = Pattern.compile(
-                "\\{\\s*\\\"([a-z_]+)\\\"\\s*:\\s*\\{\\s*\\\"raw\\\"\\s*:\\s*(-?\\d+(?:\\.\\d+)?(?:[Ee][+-]?\\d+)?)",
-                Pattern.DOTALL
-        );
-        Matcher entryMatcher = entryPattern.matcher(listBody);
-
+        Object parsed = SimpleJson.parse(response);
+        List<Object> sectorWeightings = getListAtPath(parsed, "quoteSummary", "result", 0, "topHoldings", "sectorWeightings");
         double total = 0.0;
-        while (entryMatcher.find()) {
-            String rawKey = entryMatcher.group(1);
-            String rawValueText = entryMatcher.group(2);
-            double rawValue;
-            try {
-                rawValue = Double.parseDouble(rawValueText);
-            } catch (NumberFormatException ignored) {
+        for (Object entryObj : sectorWeightings) {
+            if (!(entryObj instanceof Map<?, ?> entryMap) || entryMap.isEmpty()) {
                 continue;
             }
+            Map.Entry<?, ?> first = entryMap.entrySet().iterator().next();
+            String rawKey = first.getKey() == null ? "" : String.valueOf(first.getKey());
+            if (!(first.getValue() instanceof Map<?, ?> rawMap)) {
+                continue;
+            }
+            double rawValue = mapDouble(rawMap, "raw");
 
             if (!Double.isFinite(rawValue) || rawValue <= 0.0) {
                 continue;
@@ -1595,21 +1575,21 @@ public class Security {
         if (response == null || response.isBlank()) {
             return "";
         }
-
-        Pattern navPattern = Pattern.compile("\\\"navName\\\"\\s*:\\s*\\\"(.*?)\\\".*?\\\"navUrl\\\"\\s*:\\s*\\\"(.*?)\\\"", Pattern.DOTALL);
-        Matcher matcher = navPattern.matcher(response);
-        while (matcher.find()) {
-            String navName = matcher.group(1);
-            String navUrl = matcher.group(2);
+        Object parsed = SimpleJson.parse(response);
+        List<Object> navEntries = getListAtPath(parsed, "nav");
+        for (Object navObj : navEntries) {
+            if (!(navObj instanceof Map<?, ?> navMap)) {
+                continue;
+            }
+            String navName = mapString(navMap, "navName");
+            String navUrl = mapString(navMap, "navUrl");
             if (navName == null || navName.isBlank() || navUrl == null || navUrl.isBlank()) {
                 continue;
             }
-
             if (navUrl.contains("/sectors/")) {
                 return navName;
             }
         }
-
         return "";
     }
 
@@ -1790,107 +1770,40 @@ public class Security {
         if (response == null || response.isBlank()) {
             return candidates;
         }
+        Object parsed = SimpleJson.parse(response);
+        List<Object> quotes = getListAtPath(parsed, "quotes");
+        for (Object entry : quotes) {
+            if (!(entry instanceof Map<?, ?> quote)) {
+                continue;
+            }
+            String symbol = mapString(quote, "symbol");
+            if (symbol == null || symbol.isBlank()) {
+                continue;
+            }
 
-        String marker = "\"quotes\":";
-        int quotesIndex = response.indexOf(marker);
-        if (quotesIndex < 0) {
-            return candidates;
+            String sector = mapString(quote, "sectorDisp");
+            if (sector == null || sector.isBlank()) {
+                sector = mapString(quote, "sector");
+            }
+            String industry = mapString(quote, "industryDisp");
+            if (industry == null || industry.isBlank()) {
+                industry = mapString(quote, "industry");
+            }
+
+            candidates.add(new SearchCandidate(
+                    symbol,
+                    mapString(quote, "exchange"),
+                    mapString(quote, "exchDisp"),
+                    mapString(quote, "quoteType"),
+                    sector,
+                    industry,
+                    mapString(quote, "currency"),
+                    mapString(quote, "shortname"),
+                    mapString(quote, "longname"),
+                    mapDouble(quote, "regularMarketPrice")
+            ));
         }
-
-        int arrayStart = response.indexOf('[', quotesIndex + marker.length());
-        if (arrayStart < 0) {
-            return candidates;
-        }
-
-        int depth = 0;
-        int objectStart = -1;
-        boolean inString = false;
-        boolean escaped = false;
-
-        for (int i = arrayStart + 1; i < response.length(); i++) {
-            char ch = response.charAt(i);
-
-            if (inString) {
-                if (escaped) {
-                    escaped = false;
-                } else if (ch == '\\') {
-                    escaped = true;
-                } else if (ch == '"') {
-                    inString = false;
-                }
-                continue;
-            }
-
-            if (ch == '"') {
-                inString = true;
-                continue;
-            }
-
-            if (ch == '{') {
-                if (depth == 0) {
-                    objectStart = i;
-                }
-                depth++;
-                continue;
-            }
-
-            if (ch == '}') {
-                if (depth > 0) {
-                    depth--;
-                }
-                if (depth == 0 && objectStart >= 0) {
-                    String object = response.substring(objectStart, i + 1);
-                    SearchCandidate candidate = parseSearchCandidate(object);
-                    if (candidate != null) {
-                        candidates.add(candidate);
-                    }
-                    objectStart = -1;
-                }
-                continue;
-            }
-
-            if (ch == ']' && depth == 0) {
-                break;
-            }
-        }
-
         return candidates;
-    }
-
-    private SearchCandidate parseSearchCandidate(String quoteObject) {
-        String symbol = extractValue(quoteObject, "symbol");
-        if (symbol == null || symbol.isBlank()) {
-            return null;
-        }
-
-        String exchange = extractValue(quoteObject, "exchange");
-        String exchangeDisplay = extractValue(quoteObject, "exchDisp");
-        String quoteType = extractValue(quoteObject, "quoteType");
-        String sector = extractValue(quoteObject, "sectorDisp");
-        if (sector == null || sector.isBlank()) {
-            sector = extractValue(quoteObject, "sector");
-        }
-        String industry = extractValue(quoteObject, "industryDisp");
-        if (industry == null || industry.isBlank()) {
-            industry = extractValue(quoteObject, "industry");
-        }
-        String currency = extractValue(quoteObject, "currency");
-        String shortName = extractValue(quoteObject, "shortname");
-        String longName = extractValue(quoteObject, "longname");
-        double regularMarketPrice = extractNumericValue(quoteObject, "regularMarketPrice");
-
-        return new SearchCandidate(
-                symbol,
-                exchange,
-                exchangeDisplay,
-                quoteType,
-                sector,
-                industry,
-                currency,
-                shortName,
-                longName,
-                regularMarketPrice
-        );
     }
 
     private SearchCandidate chooseBestCandidate(ArrayList<SearchCandidate> candidates) {
@@ -2007,27 +1920,9 @@ public class Security {
         };
     }
 
-    private String extractValue(String json, String key) {
-        Pattern pattern = Pattern.compile("\\\"" + key + "\\\":\\\"?(.*?)(\\\"|,|})");
-        Matcher matcher = pattern.matcher(json);
-        if (matcher.find()) {
-            String value = matcher.group(1);
-            return value.equals("null") ? null : value;
-        }
-        return null;
-    }
-
     private double extractNumericValue(String json, String key) {
-        Pattern pattern = Pattern.compile("\\\"" + key + "\\\":(-?\\d+(?:\\.\\d+)?)");
-        Matcher matcher = pattern.matcher(json);
-        if (matcher.find()) {
-            try {
-                return Double.parseDouble(matcher.group(1));
-            } catch (NumberFormatException ignored) {
-                return 0.0;
-            }
-        }
-        return 0.0;
+        Object parsed = SimpleJson.parse(json);
+        return findFirstNumericByKey(parsed, key);
     }
 
     private String httpGetRequest(String urlString) throws Exception {
@@ -2068,5 +1963,116 @@ public class Security {
         }
         conn.disconnect();
         return response.toString();
+    }
+
+    @SuppressWarnings("unchecked")
+    private static List<Object> getListAtPath(Object root, Object... path) {
+        Object node = getAtPath(root, path);
+        if (node instanceof List<?> list) {
+            return (List<Object>) list;
+        }
+        return List.of();
+    }
+
+    @SuppressWarnings("unchecked")
+    private static Object getAtPath(Object root, Object... path) {
+        Object current = root;
+        for (Object part : path) {
+            if (current == null) {
+                return null;
+            }
+            if (part instanceof String key) {
+                if (!(current instanceof Map<?, ?> map)) {
+                    return null;
+                }
+                current = ((Map<String, Object>) map).get(key);
+                continue;
+            }
+            if (part instanceof Integer index) {
+                if (!(current instanceof List<?> list)) {
+                    return null;
+                }
+                if (index < 0 || index >= list.size()) {
+                    return null;
+                }
+                current = list.get(index);
+                continue;
+            }
+            return null;
+        }
+        return current;
+    }
+
+    private static String mapString(Map<?, ?> map, String key) {
+        if (map == null || key == null) {
+            return "";
+        }
+        Object value = map.get(key);
+        if (value == null) {
+            return "";
+        }
+        return String.valueOf(value);
+    }
+
+    private static double mapDouble(Map<?, ?> map, String key) {
+        if (map == null || key == null) {
+            return 0.0;
+        }
+        Object value = map.get(key);
+        if (value instanceof Number number) {
+            return number.doubleValue();
+        }
+        if (value == null) {
+            return 0.0;
+        }
+        try {
+            return Double.parseDouble(String.valueOf(value));
+        } catch (NumberFormatException ignored) {
+            return 0.0;
+        }
+    }
+
+    private static double mapDoubleNested(Map<?, ?> map, String key, String nestedKey) {
+        if (map == null || key == null || nestedKey == null) {
+            return 0.0;
+        }
+        Object nested = map.get(key);
+        if (!(nested instanceof Map<?, ?> nestedMap)) {
+            return 0.0;
+        }
+        return mapDouble(nestedMap, nestedKey);
+    }
+
+    private static double findFirstNumericByKey(Object node, String key) {
+        if (node == null || key == null || key.isBlank()) {
+            return 0.0;
+        }
+
+        if (node instanceof Map<?, ?> map) {
+            if (map.containsKey(key)) {
+                Object value = map.get(key);
+                if (value instanceof Number number) {
+                    return number.doubleValue();
+                }
+            }
+            for (Object child : map.values()) {
+                double found = findFirstNumericByKey(child, key);
+                if (Double.isFinite(found) && Math.abs(found) > 0.0) {
+                    return found;
+                }
+            }
+            return 0.0;
+        }
+
+        if (node instanceof List<?> list) {
+            for (Object child : list) {
+                double found = findFirstNumericByKey(child, key);
+                if (Double.isFinite(found) && Math.abs(found) > 0.0) {
+                    return found;
+                }
+            }
+        }
+
+        return 0.0;
     }
 }

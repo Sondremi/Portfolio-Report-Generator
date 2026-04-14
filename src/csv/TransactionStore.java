@@ -21,12 +21,28 @@ public class TransactionStore {
     private int loadedTransactionRowCount = 0;
 
     public Security getOrCreateSecurity(String name, String isin) {
-        String key = (isin == null || isin.isBlank()) ? name : isin;
+        String key;
+        if (isin == null || isin.isBlank()) {
+            String normalizedName = normalizeSecurityNameKey(name);
+            key = normalizedName.isBlank() ? "UNKNOWN_SECURITY" : "NAME:" + normalizedName;
+        } else {
+            key = isin.trim().toUpperCase(Locale.ROOT);
+        }
         return securitiesByKey.computeIfAbsent(key, k -> {
             Security security = new Security(name, isin);
             securities.add(security);
             return security;
         });
+    }
+
+    private static String normalizeSecurityNameKey(String name) {
+        if (name == null) {
+            return "";
+        }
+        return name
+                .trim()
+                .replaceAll("\\s+", " ")
+                .toUpperCase(Locale.ROOT);
     }
 
     public void addUnitEvent(Events.UnitEvent event) {
