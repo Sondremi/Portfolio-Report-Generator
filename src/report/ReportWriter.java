@@ -85,15 +85,16 @@ public class ReportWriter {
             writer.write("        .report-standard .overview-table tr > *:nth-child(2)  { width:8%; min-width:74px; max-width:96px; overflow:hidden !important; text-overflow:ellipsis !important; }\n");
             writer.write("        .report-standard .overview-table tr > *:nth-child(3)  { width:11%; min-width:104px; max-width:138px; overflow:hidden !important; text-overflow:ellipsis !important; }\n");
             writer.write("        .report-standard .overview-table tr > *:nth-child(4)  { width:7%; min-width:74px; }\n");
-            writer.write("        .report-standard .overview-table tr > *:nth-child(5)  { width:6%; }\n");
-            writer.write("        .report-standard .overview-table tr > *:nth-child(6)  { width:7%; }\n");
+            writer.write("        .report-standard .overview-table tr > *:nth-child(5)  { width:7%; }\n");
+            writer.write("        .report-standard .overview-table tr > *:nth-child(6)  { width:6%; }\n");
             writer.write("        .report-standard .overview-table tr > *:nth-child(7)  { width:7%; }\n");
-            writer.write("        .report-standard .overview-table tr > *:nth-child(8)  { width:8%; }\n");
+            writer.write("        .report-standard .overview-table tr > *:nth-child(8)  { width:7%; }\n");
             writer.write("        .report-standard .overview-table tr > *:nth-child(9)  { width:8%; }\n");
-            writer.write("        .report-standard .overview-table tr > *:nth-child(10) { width:10%; }\n");
-            writer.write("        .report-standard .overview-table tr > *:nth-child(11) { width:8%; }\n");
-            writer.write("        .report-standard .overview-table tr > *:nth-child(12) { width:7%; }\n");
+            writer.write("        .report-standard .overview-table tr > *:nth-child(10) { width:8%; }\n");
+            writer.write("        .report-standard .overview-table tr > *:nth-child(11) { width:10%; }\n");
+            writer.write("        .report-standard .overview-table tr > *:nth-child(12) { width:8%; }\n");
             writer.write("        .report-standard .overview-table tr > *:nth-child(13) { width:7%; }\n");
+            writer.write("        .report-standard .overview-table tr > *:nth-child(14) { width:7%; }\n");
             writer.write("        .report-standard .overview-table tr > *:nth-child(n+4) { overflow:visible !important; text-overflow:clip !important; }\n");
             writer.write("        .report-standard .ticker-scroll, .report-standard .security-scroll { display:block; position:relative; width:100%; max-width:100%; overflow-x:auto; overflow-y:hidden; white-space:nowrap; text-overflow:clip; scrollbar-width:none; -ms-overflow-style:none; padding-bottom:6px; cursor:grab; }\n");
             writer.write("        .report-standard .ticker-scroll { max-width:96px; }\n");
@@ -1458,7 +1459,7 @@ public class ReportWriter {
 
         writer.write("<div class=\"table-wrap\">\n<table class=\"overview-table\">\n");
         ReportTemplateHelper.writeHtmlRow(writer, true,
-            ReportTemplateHelper.buildDetailsHeaderCell("overview-details"), "Ticker", "Security", "Day Change %", "Units", "Avg Cost", "Last Price",
+            ReportTemplateHelper.buildDetailsHeaderCell("overview-details"), "Ticker", "Security", "Change %", "Change", "Units", "Avg Cost", "Last Price",
                 "Cost Basis", "Market Value", "Unrealized", "Realized", "Dividends", "Total Return");
 
         LinkedHashMap<String, Double> totalMarketValueBuckets = new LinkedHashMap<>();
@@ -1488,6 +1489,7 @@ public class ReportWriter {
             String totalReturnCombined = HtmlFormatter.formatMoney(row.totalReturn, row.currencyCode, 2)
                 + " (" + HtmlFormatter.formatPercent(row.totalReturnPct, 2) + ")";
             String dayChangeCell = formatDayChangeCell(row.dayChangePct, row.hasDayChangePct);
+            String dayChangeValueCell = formatDayChangeValueCell(row);
 
             String rowAttributes = "data-overview-row=\"1\""
                 + " data-ticker=\"" + escapeHtml(row.tickerText) + "\""
@@ -1506,6 +1508,7 @@ public class ReportWriter {
                     "<span class=\"ticker-scroll\">" + escapeHtml(row.tickerText) + "</span>",
                     "<span class=\"security-scroll\">" + escapeHtml(row.securityDisplayName) + "</span>",
                     dayChangeCell,
+                    dayChangeValueCell,
                     HtmlFormatter.formatUnits(row.units),
                     HtmlFormatter.formatMoney(row.averageCost, row.currencyCode, 2),
                     "<span class=\"js-row-last-price\">" + (row.latestPrice > 0 ? HtmlFormatter.formatMoney(row.latestPrice, row.currencyCode, 2) : "-") + "</span>",
@@ -1517,7 +1520,7 @@ public class ReportWriter {
                     "<span class=\"js-row-total-return\">" + totalReturnCombined + "</span>");
 
                     writer.write("<tr id=\"" + detailsRowId + "\" class=\"details-row\" data-group=\"overview-details\">\n");
-                    writer.write("    <td class=\"details-cell\" colspan=\"13\">\n");
+                    writer.write("    <td class=\"details-cell\" colspan=\"14\">\n");
                     writer.write(buildHoldingDetailsTableHtml(security, row));
                     writer.write("    </td>\n");
                     writer.write("</tr>\n");
@@ -1539,7 +1542,7 @@ public class ReportWriter {
         double totalRealizedPct = totalCostBasisForPct > 0 ? (totalRealizedForPct / totalCostBasisForPct) * 100.0 : 0.0;
 
         writer.write("<tr class=\"total-row\">\n");
-        writer.write("    <td></td><td></td><td><strong>TOTAL</strong></td><td></td><td></td><td></td><td></td>\n");
+        writer.write("    <td></td><td></td><td><strong>TOTAL</strong></td><td></td><td></td><td></td><td></td><td></td>\n");
         writer.write("    <td>" + renderConvertibleMoneyCellWithId("overview-total-cost-basis", totalCostBasisBuckets, 2, ratesToNok) + "</td>\n");
         writer.write("    <td>" + renderConvertibleMoneyCellWithId("overview-total-market-value", totalMarketValueBuckets, 2, ratesToNok) + "</td>\n");
         writer.write("    <td>" + renderConvertibleMoneyCellWithId("overview-total-unrealized", totalUnrealizedBuckets, 2, ratesToNok) + " (<span id=\"overview-total-unrealized-pct\">" + HtmlFormatter.formatPercent(totalUnrealizedPct, 2) + "</span>)</td>\n");
@@ -1591,6 +1594,22 @@ public class ReportWriter {
             return "<span class=\"js-row-day-change " + cssClass + "\">" + escapeHtml(valueText) + "</span>";
         }
         return "<span class=\"js-row-day-change\">" + escapeHtml(valueText) + "</span>";
+    }
+
+    private static String formatDayChangeValueCell(OverviewRow row) {
+        if (row == null || row.units <= 0.0 || row.latestPrice <= 0.0 || row.previousClose <= 0.0) {
+            return "<span class=\"js-row-day-change-value\">-</span>";
+        }
+
+        double changeValue = row.units * (row.latestPrice - row.previousClose);
+        String cssClass = changeValue > 0.0
+                ? "positive"
+                : (changeValue < 0.0 ? "negative" : "");
+        String valueText = HtmlFormatter.formatMoney(changeValue, row.currencyCode, 2);
+        if (!cssClass.isBlank()) {
+            return "<span class=\"js-row-day-change-value " + cssClass + "\">" + escapeHtml(valueText) + "</span>";
+        }
+        return "<span class=\"js-row-day-change-value\">" + escapeHtml(valueText) + "</span>";
     }
 
     private static void writeRealizedSummaryTableHtml(FileWriter writer, TransactionStore store, Map<String, Double> ratesToNok) throws IOException {
@@ -2297,6 +2316,7 @@ public class ReportWriter {
         writer.write("  var totalReturn = unrealized + realized + dividends;\n");
         writer.write("  var totalReturnPct = historicalCostBasis > 0 ? (totalReturn / historicalCostBasis) * 100 : 0;\n");
         writer.write("  var hasDayChange = Number.isFinite(previousClose) && previousClose > 0;\n");
+        writer.write("  var dayChangeValue = hasDayChange ? (units * (nextPrice - previousClose)) : Number.NaN;\n");
         writer.write("  var dayChangePct = hasDayChange ? ((nextPrice / previousClose) - 1) * 100 : Number.NaN;\n");
         writer.write("  row.setAttribute('data-latest-price', String(nextPrice));\n");
         writer.write("  row.setAttribute('data-market-value', String(marketValue));\n");
@@ -2307,6 +2327,7 @@ public class ReportWriter {
         writer.write("  var unrealizedCell = row.querySelector('.js-row-unrealized');\n");
         writer.write("  var totalReturnCell = row.querySelector('.js-row-total-return');\n");
         writer.write("  var dayChangeCell = row.querySelector('.js-row-day-change');\n");
+        writer.write("  var dayChangeValueCell = row.querySelector('.js-row-day-change-value');\n");
         writer.write("  if (priceCell) priceCell.textContent = formatMoneyValue(nextPrice, currency, 2);\n");
         writer.write("  if (marketCell) marketCell.textContent = formatMoneyValue(marketValue, currency, 2);\n");
         writer.write("  if (unrealizedCell) unrealizedCell.textContent = formatMoneyValue(unrealized, currency, 2) + ' (' + formatPercentValue(unrealizedPct, 2) + ')';\n");
@@ -2320,6 +2341,17 @@ public class ReportWriter {
         writer.write("    } else {\n");
         writer.write("      dayChangeCell.textContent = '-';\n");
         writer.write("      dayChangeCell.classList.remove('positive', 'negative');\n");
+        writer.write("    }\n");
+        writer.write("  }\n");
+        writer.write("  if (dayChangeValueCell) {\n");
+        writer.write("    if (hasDayChange && Number.isFinite(dayChangeValue)) {\n");
+        writer.write("      dayChangeValueCell.textContent = formatMoneyValue(dayChangeValue, currency, 2);\n");
+        writer.write("      dayChangeValueCell.classList.remove('positive', 'negative');\n");
+        writer.write("      if (dayChangeValue > 0) dayChangeValueCell.classList.add('positive');\n");
+        writer.write("      else if (dayChangeValue < 0) dayChangeValueCell.classList.add('negative');\n");
+        writer.write("    } else {\n");
+        writer.write("      dayChangeValueCell.textContent = '-';\n");
+        writer.write("      dayChangeValueCell.classList.remove('positive', 'negative');\n");
         writer.write("    }\n");
         writer.write("  }\n");
         writer.write("  return true;\n");
