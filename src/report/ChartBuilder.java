@@ -45,10 +45,15 @@ public class ChartBuilder {
         final double height = 450.0;
         final double left = percentChart ? 68.0 : 92.0;
         final double right = percentChart ? 22.0 : 38.0;
-        final double top = 14.0;
-        final double bottom = 118.0;
+        final double top = 16.0;
+        final double bottom = 120.0;
         final double plotWidth = width - left - right;
         final double plotHeight = height - top - bottom;
+
+        final String gradientSuffix = percentChart ? "pct" : "money";
+        final String positiveGradientId = "tr-bar-pos-" + gradientSuffix;
+        final String negativeGradientId = "tr-bar-neg-" + gradientSuffix;
+        final String shadowId = "tr-bar-shadow-" + gradientSuffix;
 
         double minValue = 0.0;
         double maxValue = 0.0;
@@ -76,6 +81,24 @@ public class ChartBuilder {
                 .append(svgNumber(height))
                 .append("\" xmlns=\"http://www.w3.org/2000/svg\" role=\"img\">\n");
 
+        svg.append("<defs>")
+            .append("<linearGradient id=\"").append(positiveGradientId).append("\" x1=\"0%\" y1=\"0%\" x2=\"0%\" y2=\"100%\">")
+            .append("<stop offset=\"0%\" stop-color=\"#31a05b\"/>")
+            .append("<stop offset=\"100%\" stop-color=\"#1f7a44\"/>")
+            .append("</linearGradient>")
+            .append("<linearGradient id=\"").append(negativeGradientId).append("\" x1=\"0%\" y1=\"0%\" x2=\"0%\" y2=\"100%\">")
+            .append("<stop offset=\"0%\" stop-color=\"#d45a52\"/>")
+            .append("<stop offset=\"100%\" stop-color=\"#a4352f\"/>")
+            .append("</linearGradient>")
+            .append("<filter id=\"").append(shadowId).append("\" x=\"-12%\" y=\"-12%\" width=\"124%\" height=\"124%\">")
+            .append("<feDropShadow dx=\"0\" dy=\"1.2\" stdDeviation=\"1.2\" flood-color=\"rgba(23,45,68,.28)\"/>")
+            .append("</filter>")
+            .append("</defs>\n");
+
+        svg.append("<rect x=\"").append(svgNumber(left)).append("\" y=\"").append(svgNumber(top))
+            .append("\" width=\"").append(svgNumber(plotWidth)).append("\" height=\"").append(svgNumber(plotHeight))
+            .append("\" rx=\"8\" fill=\"#f6fbff\" stroke=\"#d6e1ed\" stroke-width=\"1\"/>\n");
+
         int tickCount = percentChart ? 7 : 5;
         for (int i = 0; i <= tickCount; i++) {
             double tickValue = maxValue - ((valueRange / tickCount) * i);
@@ -83,17 +106,17 @@ public class ChartBuilder {
 
             svg.append("<line x1=\"").append(svgNumber(left)).append("\" y1=\"").append(svgNumber(y))
                     .append("\" x2=\"").append(svgNumber(left + plotWidth)).append("\" y2=\"").append(svgNumber(y))
-                    .append("\" stroke=\"#d2d8df\" stroke-width=\"1.3\"/>\n");
+                .append("\" stroke=\"#d8e3ee\" stroke-width=\"1.15\"/>\n");
 
                 if (percentChart) {
                 svg.append("<text x=\"").append(svgNumber(left - 8.0)).append("\" y=\"").append(svgNumber(y + 4.0))
-                    .append("\" text-anchor=\"end\" font-size=\"12\" font-weight=\"600\" fill=\"#4a5563\">")
+                    .append("\" text-anchor=\"end\" font-size=\"12\" font-weight=\"600\" fill=\"#496077\">")
                     .append(escapeHtml(formatChartValue(tickValue, true, true)))
                     .append("</text>\n");
                 } else {
                 svg.append("<text class=\"js-chart-money\" data-value-nok=\"").append(svgNumber(tickValue)).append("\" data-decimals=\"0\"")
                     .append(" x=\"").append(svgNumber(left - 8.0)).append("\" y=\"").append(svgNumber(y + 4.0))
-                    .append("\" text-anchor=\"end\" font-size=\"12\" font-weight=\"600\" fill=\"#4a5563\">")
+                    .append("\" text-anchor=\"end\" font-size=\"12\" font-weight=\"600\" fill=\"#496077\">")
                     .append(escapeHtml(formatNumber(tickValue, 0) + " NOK"))
                     .append("</text>\n");
                 }
@@ -101,7 +124,7 @@ public class ChartBuilder {
 
         svg.append("<rect x=\"").append(svgNumber(left)).append("\" y=\"").append(svgNumber(top))
                 .append("\" width=\"").append(svgNumber(plotWidth)).append("\" height=\"").append(svgNumber(plotHeight))
-                .append("\" fill=\"none\" stroke=\"#b8c0ca\" stroke-width=\"1.3\"/>\n");
+                .append("\" fill=\"none\" stroke=\"#b9c8d7\" stroke-width=\"1.2\"/>\n");
 
         double slotWidth = rows.isEmpty() ? plotWidth : plotWidth / rows.size();
         double barWidth = Math.max(8.0, slotWidth * 0.62);
@@ -121,7 +144,7 @@ public class ChartBuilder {
                 barHeight = 1.0;
             }
 
-            String barColor = value >= 0.0 ? "#2b8a3e" : "#b23a31";
+            String barColor = value >= 0.0 ? "url(#" + positiveGradientId + ")" : "url(#" + negativeGradientId + ")";
             String barBorderColor = value >= 0.0 ? "#1f6f31" : "#8f2b24";
             String label = getOverviewRowLabel(row);
             String compactLabel = getCompactOverviewLabel(row);
@@ -129,7 +152,7 @@ public class ChartBuilder {
                 svg.append("<rect class=\"chart-hover-target chart-hover-bar\" x=\"").append(svgNumber(x)).append("\" y=\"").append(svgNumber(barY))
                     .append("\" width=\"").append(svgNumber(barWidth)).append("\" height=\"").append(svgNumber(barHeight))
                     .append("\" fill=\"").append(barColor).append("\" stroke=\"").append(barBorderColor)
-                    .append("\" stroke-width=\"1.1\" rx=\"1\">\n");
+                    .append("\" stroke-width=\"1.05\" rx=\"3.5\" filter=\"url(#").append(shadowId).append(")\">\n");
                 if (percentChart) {
                 svg.append("<title>")
                     .append(escapeHtml(label + ": " + formatChartValue(value, true, false)))
@@ -154,10 +177,10 @@ public class ChartBuilder {
 
         svg.append("<line x1=\"").append(svgNumber(left)).append("\" y1=\"").append(svgNumber(chartZeroY))
                 .append("\" x2=\"").append(svgNumber(left + plotWidth)).append("\" y2=\"").append(svgNumber(chartZeroY))
-                .append("\" stroke=\"#4f5d6c\" stroke-width=\"1.8\"/>\n");
+            .append("\" stroke=\"#4d6073\" stroke-width=\"1.65\"/>\n");
         svg.append("<line x1=\"").append(svgNumber(left)).append("\" y1=\"").append(svgNumber(top))
                 .append("\" x2=\"").append(svgNumber(left)).append("\" y2=\"").append(svgNumber(top + plotHeight))
-                .append("\" stroke=\"#4f5d6c\" stroke-width=\"1.8\"/>\n");
+            .append("\" stroke=\"#4d6073\" stroke-width=\"1.65\"/>\n");
 
         svg.append("</svg>\n");
         return svg.toString();

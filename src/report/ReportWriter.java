@@ -289,6 +289,9 @@ public class ReportWriter {
             writer.write("        .report-standard .annual-graph-card { min-height:410px; }\n");
             writer.write("        .annual-graph-card.full-span { grid-column:1 / -1; }\n");
             writer.write("        .annual-graph-card h3 { margin:0 0 6px; font-size:.84rem; font-weight:600; text-transform:uppercase; letter-spacing:.3px; color:#41576d; }\n");
+            writer.write("        .total-return-graphs-section { background:linear-gradient(180deg,#f7fbff 0%,#eef5fc 100%); border-color:#c7d6e6; }\n");
+            writer.write("        .total-return-chart { min-height:426px; }\n");
+            writer.write("        .total-return-chart .chart-svg { background:linear-gradient(180deg,#fbfdff 0%,#f1f7ff 100%); border-color:#c5d5e5; border-radius:10px; }\n");
             writer.write("        .annual-graph-note { margin:0 0 10px; font-size:.78rem; color:#5f7488; }\n");
             writer.write("        .annual-graph-content { flex:1; display:flex; flex-direction:column; justify-content:flex-start; min-height:0; }\n");
             writer.write("        .annual-graph-content > svg { display:block; width:100%; margin-top:auto; }\n");
@@ -364,6 +367,8 @@ public class ReportWriter {
             writer.write("        body.theme-dark .annual-graphs-section .timeline-info-btn { border-color:#4d6a87; background:#21374e; color:#d7e8f8; }\n");
             writer.write("        body.theme-dark .annual-graphs-section .timeline-info-btn:hover { background:#2a4663; }\n");
             writer.write("        body.theme-dark .annual-graph-card { border-color:#2e4258; background:#1a2d42; box-shadow:none; }\n");
+            writer.write("        body.theme-dark .total-return-graphs-section { background:linear-gradient(180deg,#15283b 0%,#122131 100%); border-color:#2e435a; }\n");
+            writer.write("        body.theme-dark .total-return-chart .chart-svg { background:linear-gradient(180deg,#132436 0%,#122131 100%); border-color:#30495f; }\n");
             writer.write("        body.theme-dark .annual-graph-card h3 { color:#bdd1e4; }\n");
             writer.write("        body.theme-dark .annual-graph-note { color:#bad0e5; }\n");
             writer.write("        body.theme-dark .sparkline-metric-btn, body.theme-dark .sparkline-range-btn { border-color:#45627f; background:#22374d; color:#cfe0f2; }\n");
