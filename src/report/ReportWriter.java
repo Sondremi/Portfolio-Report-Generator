@@ -1245,7 +1245,22 @@ public class ReportWriter {
         double totalReturnPct = totalHistoricalCostInDefaultCurrency > 0.0
             ? (totalReturnInDefaultCurrency / totalHistoricalCostInDefaultCurrency) * 100.0
             : 0.0;
+        LinkedHashMap<String, Double> dayChangeBuckets = new LinkedHashMap<>();
+        LinkedHashMap<String, Double> previousDayValueBuckets = new LinkedHashMap<>();
+        for (OverviewRow row : overviewRows) {
+            if (row == null || row.units <= 0.0 || row.latestPrice <= 0.0 || row.previousClose <= 0.0) {
+                continue;
+            }
+            double changeAmount = row.units * (row.latestPrice - row.previousClose);
+            double previousDayValue = row.units * row.previousClose;
+            addToCurrencyBuckets(dayChangeBuckets, row.currencyCode, changeAmount);
+            addToCurrencyBuckets(previousDayValueBuckets, row.currencyCode, previousDayValue);
+        }
+        double dayChangeNok = convertBucketsToTarget(dayChangeBuckets, DEFAULT_TOTAL_CURRENCY, ratesToNok);
+        double previousDayValueNok = convertBucketsToTarget(previousDayValueBuckets, DEFAULT_TOTAL_CURRENCY, ratesToNok);
+        double dayChangePct = previousDayValueNok > 0.0 ? (dayChangeNok / previousDayValueNok) * 100.0 : 0.0;
         String totalClass = totalReturnInDefaultCurrency >= 0 ? "positive" : "negative";
+        String dayChangeClass = dayChangeNok >= 0 ? "positive" : "negative";
 
         writer.write("<article class=\"kpi-card\"><div class=\"kpi-label\">Total Market Value</div><div id=\"hero-total-market-value\" class=\"kpi-value js-convert-money\" data-buckets=\""
             + escapeHtml(toBucketsJson(totalMarketBuckets)) + "\" data-decimals=\"0\">"
@@ -1269,6 +1284,12 @@ public class ReportWriter {
             + "\" data-decimals=\"0\">"
             + formatBucketsInTarget(totalDividendsBuckets, DEFAULT_TOTAL_CURRENCY, 0, ratesToNok)
             + "</div></article>\n");
+
+        writer.write("<article class=\"kpi-card\"><div class=\"kpi-label\">Day Change</div><div id=\"hero-day-change-value\" class=\"kpi-value js-convert-money " + dayChangeClass + "\" data-buckets=\""
+            + escapeHtml(toBucketsJson(dayChangeBuckets))
+            + "\" data-decimals=\"0\">"
+            + formatBucketsInTarget(dayChangeBuckets, DEFAULT_TOTAL_CURRENCY, 0, ratesToNok)
+            + "</div><div id=\"hero-day-change-pct\" class=\"kpi-label " + dayChangeClass + "\">" + HtmlFormatter.formatPercent(dayChangePct) + "</div></article>\n");
 
         writer.write("<article id=\"cash-holdings-card\" class=\"kpi-card\"><div class=\"cash-holdings-header\"><div class=\"kpi-label\">Cash Holdings</div><button id=\"cash-holdings-add-btn\" class=\"cash-holdings-add-btn\" type=\"button\">Add</button></div><div id=\"cash-holdings-total\" class=\"kpi-value js-convert-money\" data-buckets=\""
             + escapeHtml(toBucketsJson(cashBuckets)) + "\" data-base-buckets=\"" + escapeHtml(toBucketsJson(cashBuckets)) + "\" data-decimals=\"0\">"
@@ -2287,9 +2308,12 @@ public class ReportWriter {
         writer.write("  var totalDividendsBuckets = {};\n");
         writer.write("  var totalHistoricalBuckets = {};\n");
         writer.write("  var activeTotalReturnBuckets = {};\n");
+        writer.write("  var dayChangeBuckets = {};\n");
+        writer.write("  var previousDayValueBuckets = {};\n");
         writer.write("  rows.forEach(function(row) {\n");
         writer.write("    var currency = normalizeCurrencyCodeInput(row.getAttribute('data-currency') || 'NOK');\n");
         writer.write("    var latestPrice = Number(row.getAttribute('data-latest-price') || 0);\n");
+        writer.write("    var previousClose = Number(row.getAttribute('data-previous-close') || 0);\n");
         writer.write("    var units = Number(row.getAttribute('data-units') || 0);\n");
         writer.write("    var positionCostBasis = Number(row.getAttribute('data-position-cost-basis') || 0);\n");
         writer.write("    var realized = Number(row.getAttribute('data-realized') || 0);\n");
@@ -2306,6 +2330,10 @@ public class ReportWriter {
         writer.write("    addBucketValue(totalDividendsBuckets, currency, dividends);\n");
         writer.write("    addBucketValue(totalHistoricalBuckets, currency, historicalCostBasis);\n");
         writer.write("    addBucketValue(activeTotalReturnBuckets, currency, totalReturn);\n");
+        writer.write("    if (hasPrice && Number.isFinite(previousClose) && previousClose > 0) {\n");
+        writer.write("      addBucketValue(dayChangeBuckets, currency, units * (latestPrice - previousClose));\n");
+        writer.write("      addBucketValue(previousDayValueBuckets, currency, units * previousClose);\n");
+        writer.write("    }\n");
         writer.write("  });\n");
         writer.write("  var totalReturnBuckets = mergeBuckets(totalUnrealizedBuckets, mergeBuckets(totalRealizedBuckets, totalDividendsBuckets));\n");
         writer.write("  var totalCostBasisNok = Number(convertBucketsToCurrency(totalCostBasisBuckets, 'NOK') || 0);\n");
@@ -2313,9 +2341,12 @@ public class ReportWriter {
         writer.write("  var totalRealizedNok = Number(convertBucketsToCurrency(totalRealizedBuckets, 'NOK') || 0);\n");
         writer.write("  var totalReturnNok = Number(convertBucketsToCurrency(totalReturnBuckets, 'NOK') || 0);\n");
         writer.write("  var totalHistoricalNok = Number(convertBucketsToCurrency(totalHistoricalBuckets, 'NOK') || 0);\n");
+        writer.write("  var dayChangeNok = Number(convertBucketsToCurrency(dayChangeBuckets, 'NOK') || 0);\n");
+        writer.write("  var previousDayValueNok = Number(convertBucketsToCurrency(previousDayValueBuckets, 'NOK') || 0);\n");
         writer.write("  var unrealizedPct = totalCostBasisNok > 0 ? (totalUnrealizedNok / totalCostBasisNok) * 100 : 0;\n");
         writer.write("  var realizedPct = totalCostBasisNok > 0 ? (totalRealizedNok / totalCostBasisNok) * 100 : 0;\n");
         writer.write("  var totalReturnPct = totalHistoricalNok > 0 ? (totalReturnNok / totalHistoricalNok) * 100 : 0;\n");
+        writer.write("  var dayChangePct = previousDayValueNok > 0 ? (dayChangeNok / previousDayValueNok) * 100 : 0;\n");
         writer.write("  var mapping = [\n");
         writer.write("    ['overview-total-cost-basis', totalCostBasisBuckets],\n");
         writer.write("    ['overview-total-market-value', totalMarketBuckets],\n");
@@ -2323,7 +2354,8 @@ public class ReportWriter {
         writer.write("    ['overview-total-realized', totalRealizedBuckets],\n");
         writer.write("    ['overview-total-dividends', totalDividendsBuckets],\n");
         writer.write("    ['overview-total-return', totalReturnBuckets],\n");
-        writer.write("    ['hero-total-market-value', totalMarketBuckets]\n");
+        writer.write("    ['hero-total-market-value', totalMarketBuckets],\n");
+        writer.write("    ['hero-day-change-value', dayChangeBuckets]\n");
         writer.write("  ];\n");
         writer.write("  mapping.forEach(function(entry) {\n");
         writer.write("    var node = document.getElementById(entry[0]);\n");
@@ -2360,6 +2392,17 @@ public class ReportWriter {
         writer.write("    var soldOnlyDividendsBuckets = parseBucketsJson(heroDividends.getAttribute('data-sold-only-dividends-buckets'));\n");
         writer.write("    var fullDividendsBuckets = mergeBuckets(soldOnlyDividendsBuckets, totalDividendsBuckets);\n");
         writer.write("    heroDividends.setAttribute('data-buckets', JSON.stringify(fullDividendsBuckets));\n");
+        writer.write("  }\n");
+        writer.write("  var heroDayChangeValue = document.getElementById('hero-day-change-value');\n");
+        writer.write("  var heroDayChangePct = document.getElementById('hero-day-change-pct');\n");
+        writer.write("  if (heroDayChangeValue) {\n");
+        writer.write("    heroDayChangeValue.classList.remove('positive', 'negative');\n");
+        writer.write("    heroDayChangeValue.classList.add(dayChangeNok >= 0 ? 'positive' : 'negative');\n");
+        writer.write("  }\n");
+        writer.write("  if (heroDayChangePct) {\n");
+        writer.write("    heroDayChangePct.textContent = formatPercentValue(dayChangePct, 2);\n");
+        writer.write("    heroDayChangePct.classList.remove('positive', 'negative');\n");
+        writer.write("    heroDayChangePct.classList.add(dayChangeNok >= 0 ? 'positive' : 'negative');\n");
         writer.write("  }\n");
         writer.write("  refreshPortfolioValueBuckets();\n");
         writer.write("  var activeCurrency = getActiveReportCurrency();\n");
