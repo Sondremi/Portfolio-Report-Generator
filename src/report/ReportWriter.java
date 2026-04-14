@@ -1534,6 +1534,8 @@ public class ReportWriter {
         LinkedHashMap<String, Double> totalRealizedBuckets = new LinkedHashMap<>();
         LinkedHashMap<String, Double> totalDividendsBuckets = new LinkedHashMap<>();
         LinkedHashMap<String, Double> totalHistoricalCostBuckets = new LinkedHashMap<>();
+        LinkedHashMap<String, Double> totalDayChangeBuckets = new LinkedHashMap<>();
+        LinkedHashMap<String, Double> totalPrevCloseValueBuckets = new LinkedHashMap<>();
         String previousAssetType = null;
 
         int detailsIndex = 0;
@@ -1544,6 +1546,12 @@ public class ReportWriter {
             addToCurrencyBuckets(totalRealizedBuckets, row.currencyCode, row.realized);
             addToCurrencyBuckets(totalDividendsBuckets, row.currencyCode, row.dividends);
             addToCurrencyBuckets(totalHistoricalCostBuckets, row.currencyCode, row.historicalCostBasis);
+            if (row.latestPrice > 0.0 && row.previousClose > 0.0 && row.units > 0.0) {
+                double rowDayChangeValue = (row.latestPrice - row.previousClose) * row.units;
+                double rowPrevCloseValue = row.previousClose * row.units;
+                addToCurrencyBuckets(totalDayChangeBuckets, row.currencyCode, rowDayChangeValue);
+                addToCurrencyBuckets(totalPrevCloseValueBuckets, row.currencyCode, rowPrevCloseValue);
+            }
             String rowClass = isStockFundBoundary(previousAssetType, row.assetType) ? "asset-split" : null;
             String detailsRowId = "overview-details-" + detailsIndex;
             Security security = securityByKey.get(row.securityKey);
@@ -1600,6 +1608,23 @@ public class ReportWriter {
         double totalReturnPct = totalHistoricalCostForPct > 0 ? (totalReturnForPct / totalHistoricalCostForPct) * 100.0 : 0.0;
         double totalUnrealizedPct = totalCostBasisForPct > 0 ? (totalUnrealizedForPct / totalCostBasisForPct) * 100.0 : 0.0;
         double totalRealizedPct = totalCostBasisForPct > 0 ? (totalRealizedForPct / totalCostBasisForPct) * 100.0 : 0.0;
+        double totalDayChangeForPct = convertBucketsToTarget(totalDayChangeBuckets, DEFAULT_TOTAL_CURRENCY, ratesToNok);
+        double totalPrevCloseForPct = convertBucketsToTarget(totalPrevCloseValueBuckets, DEFAULT_TOTAL_CURRENCY, ratesToNok);
+        double totalDayChangePct = totalPrevCloseForPct > 0.0 ? (totalDayChangeForPct / totalPrevCloseForPct) * 100.0 : 0.0;
+
+        String totalDayChangePctCell = "-";
+        if (!totalDayChangeBuckets.isEmpty() && totalPrevCloseForPct > 0.0) {
+            String pctClass = totalDayChangePct > 0.0
+                ? "positive"
+                : (totalDayChangePct < 0.0 ? "negative" : "");
+            String pctText = HtmlFormatter.formatPercent(totalDayChangePct, 2);
+            totalDayChangePctCell = pctClass.isBlank()
+                ? escapeHtml(pctText)
+                : "<span class=\"" + pctClass + "\">" + escapeHtml(pctText) + "</span>";
+        }
+        String totalDayChangeValueCell = totalDayChangeBuckets.isEmpty()
+            ? "-"
+            : renderConvertibleMoneyCell(totalDayChangeBuckets, 2, ratesToNok);
 
         writer.write("<tr class=\"total-row\">\n");
         writer.write("    <td></td><td><strong>TOTAL</strong></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>\n");
@@ -1659,7 +1684,7 @@ public class ReportWriter {
         }
 
         writer.write("<tr class=\"total-row\">\n");
-        writer.write("    <td></td><td><strong>TOTAL</strong></td><td></td><td></td><td></td><td></td><td></td>\n");
+        writer.write("    <td></td><td><strong>TOTAL</strong></td><td>" + totalDayChangePctCell + "</td><td>" + totalDayChangeValueCell + "</td><td></td><td></td><td></td>\n");
         writer.write("    <td>" + renderConvertibleMoneyCell(totalCostBasisBuckets, 2, ratesToNok) + "</td>\n");
         writer.write("    <td>" + renderConvertibleMoneyCell(totalMarketValueBuckets, 2, ratesToNok) + "</td>\n");
         writer.write("    <td>" + renderConvertibleMoneyCell(totalUnrealizedBuckets, 2, ratesToNok) + " (" + HtmlFormatter.formatPercent(totalUnrealizedPct, 2) + ")</td>\n");
