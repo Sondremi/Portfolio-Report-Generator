@@ -1592,7 +1592,7 @@ public class ReportWriter {
 
         writer.write("<div class=\"table-wrap overview-table-wrap js-overview-mode-panel\" data-overview-mode-panel=\"holdings\" hidden>\n<table class=\"overview-table overview-holdings-table\">\n");
         ReportTemplateHelper.writeHtmlRow(writer, true,
-            "Ticker", "Security", "Change %", "Change", "Shares", "Avg Cost", "Last Price",
+            ReportTemplateHelper.buildTickerHeaderCell("holdings-details"), "Security", "Change %", "Change", "Shares", "Avg Cost", "Last Price",
                 "Cost Basis", "Market Value", "Unrealized", "Realized", "Dividends", "Total Return");
 
         previousAssetType = null;
