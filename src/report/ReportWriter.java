@@ -1356,10 +1356,15 @@ public class ReportWriter {
         double dayChangeNok = convertBucketsToTarget(dayChangeBuckets, DEFAULT_TOTAL_CURRENCY, ratesToNok);
         double previousDayValueNok = convertBucketsToTarget(previousDayValueBuckets, DEFAULT_TOTAL_CURRENCY, ratesToNok);
         double dayChangePct = previousDayValueNok > 0.0 ? (dayChangeNok / previousDayValueNok) * 100.0 : 0.0;
+        PortfolioCalculator.OneYearChangeSummary oneYearChangeSummary = PortfolioCalculator.buildStandardTrailingOneYearChangeSummary(store, ratesToNok);
+        LinkedHashMap<String, Double> oneYearChangeBuckets = oneYearChangeSummary.hasData
+            ? singleCurrencyBuckets(DEFAULT_TOTAL_CURRENCY, oneYearChangeSummary.returnNok)
+            : new LinkedHashMap<>();
         String totalClass = signedClass(totalReturnInDefaultCurrency);
         String unrealizedClass = signedClass(totalUnrealizedInDefaultCurrency);
         String realizedClass = signedClass(totalRealizedInDefaultCurrency);
         String dayChangeClass = signedClass(dayChangeNok);
+        String oneYearChangeClass = oneYearChangeSummary.hasData ? signedClass(oneYearChangeSummary.returnNok) : "";
 
         writer.write("<article class=\"kpi-card\"><div class=\"kpi-label\">Total Market Value</div><div id=\"hero-total-market-value\" class=\"kpi-value js-convert-money\" data-buckets=\""
             + escapeHtml(toBucketsJson(totalMarketBuckets)) + "\" data-decimals=\"0\">"
@@ -1401,6 +1406,16 @@ public class ReportWriter {
             + "\" data-decimals=\"0\">"
             + formatBucketsInTarget(dayChangeBuckets, DEFAULT_TOTAL_CURRENCY, 0, ratesToNok)
             + "</div><div id=\"hero-day-change-pct\" class=\"kpi-label " + dayChangeClass + "\">" + HtmlFormatter.formatPercent(dayChangePct) + "</div></article>\n");
+
+        if (oneYearChangeSummary.hasData) {
+            writer.write("<article class=\"kpi-card\"><div class=\"kpi-label\">One year change</div><div id=\"hero-one-year-change-value\" class=\"kpi-value js-convert-money " + oneYearChangeClass + "\" data-buckets=\""
+                + escapeHtml(toBucketsJson(oneYearChangeBuckets))
+                + "\" data-decimals=\"0\">"
+                + formatBucketsInTarget(oneYearChangeBuckets, DEFAULT_TOTAL_CURRENCY, 0, ratesToNok)
+                + "</div><div id=\"hero-one-year-change-pct\" class=\"kpi-label " + oneYearChangeClass + "\">" + HtmlFormatter.formatPercent(oneYearChangeSummary.returnPct, 2) + "</div></article>\n");
+        } else {
+            writer.write("<article class=\"kpi-card\"><div class=\"kpi-label\">One year change</div><div class=\"kpi-value\">-</div><div class=\"kpi-label\">-</div></article>\n");
+        }
 
         writer.write("<article id=\"cash-holdings-card\" class=\"kpi-card\"><div class=\"cash-holdings-header\"><div class=\"kpi-label\">Cash Holdings</div><button id=\"cash-holdings-add-btn\" class=\"cash-holdings-add-btn\" type=\"button\">Add</button></div><div id=\"cash-holdings-total\" class=\"kpi-value js-convert-money\" data-buckets=\""
             + escapeHtml(toBucketsJson(cashBuckets)) + "\" data-base-buckets=\"" + escapeHtml(toBucketsJson(cashBuckets)) + "\" data-decimals=\"0\">"

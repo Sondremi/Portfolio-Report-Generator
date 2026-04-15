@@ -155,6 +155,27 @@ public class PortfolioCalculator {
         }
     }
 
+    public static final class OneYearChangeSummary {
+        public final boolean hasData;
+        public final double returnNok;
+        public final double returnPct;
+        public final LocalDate fromDate;
+        public final LocalDate toDate;
+
+        private OneYearChangeSummary(
+                boolean hasData,
+                double returnNok,
+                double returnPct,
+                LocalDate fromDate,
+                LocalDate toDate) {
+            this.hasData = hasData;
+            this.returnNok = returnNok;
+            this.returnPct = returnPct;
+            this.fromDate = fromDate;
+            this.toDate = toDate;
+        }
+    }
+
     private enum SparklineMetric {
         VALUE,
         RETURN_NOK,
@@ -2040,6 +2061,70 @@ public class PortfolioCalculator {
 
         html.append("</div>\n");
         return html.toString();
+    }
+
+    public static OneYearChangeSummary buildStandardTrailingOneYearChangeSummary(
+            TransactionStore store,
+            Map<String, Double> ratesToNok) {
+
+        ArrayList<PortfolioValuePoint> timelinePoints = buildPortfolioValueTimeline(store, ratesToNok, 60);
+        if (timelinePoints.size() < 2) {
+            return new OneYearChangeSummary(false, 0.0, 0.0, null, null);
+        }
+
+        PortfolioValuePoint end = timelinePoints.get(timelinePoints.size() - 1);
+        LocalDate targetStart = end.monthEnd.minusYears(1);
+        PortfolioValuePoint start = findClosestPointToDate(timelinePoints, targetStart);
+        if (start == null || start == end) {
+            return new OneYearChangeSummary(false, 0.0, 0.0, null, null);
+        }
+
+        long spanDays = Math.abs(ChronoUnit.DAYS.between(start.monthEnd, end.monthEnd));
+        if (spanDays < 330) {
+            return new OneYearChangeSummary(false, 0.0, 0.0, null, null);
+        }
+
+        double startValue = start.value;
+        double startFactor = 1.0 + (start.twrCumulativeReturnPct / 100.0);
+        double endFactor = 1.0 + (end.twrCumulativeReturnPct / 100.0);
+        if (!Double.isFinite(startValue) || startValue <= 0.0
+                || !Double.isFinite(startFactor) || Math.abs(startFactor) < 1e-12
+                || !Double.isFinite(endFactor)) {
+            return new OneYearChangeSummary(false, 0.0, 0.0, null, null);
+        }
+
+        double twrFactor = (endFactor / startFactor) - 1.0;
+        if (!Double.isFinite(twrFactor)) {
+            return new OneYearChangeSummary(false, 0.0, 0.0, null, null);
+        }
+
+        double returnNok = startValue * twrFactor;
+        double returnPct = twrFactor * 100.0;
+        return new OneYearChangeSummary(true, returnNok, returnPct, start.monthEnd, end.monthEnd);
+    }
+
+    private static PortfolioValuePoint findClosestPointToDate(ArrayList<PortfolioValuePoint> points, LocalDate targetDate) {
+        if (points == null || points.isEmpty() || targetDate == null) {
+            return null;
+        }
+
+        PortfolioValuePoint best = null;
+        long bestDistance = Long.MAX_VALUE;
+        for (PortfolioValuePoint point : points) {
+            if (point == null || point.monthEnd == null) {
+                continue;
+            }
+            long distance = Math.abs(ChronoUnit.DAYS.between(point.monthEnd, targetDate));
+            if (best == null || distance < bestDistance) {
+                best = point;
+                bestDistance = distance;
+                continue;
+            }
+            if (distance == bestDistance && point.monthEnd.isBefore(best.monthEnd)) {
+                best = point;
+            }
+        }
+        return best;
     }
 
     public static double resolvePriceAtDate(
