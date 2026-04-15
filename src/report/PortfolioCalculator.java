@@ -439,6 +439,8 @@ public class PortfolioCalculator {
         final String gridColor = "var(--spark-grid,#cfdbe6)";
         final String lineColor = "var(--spark-line,#223c55)";
         final String pointColor = "var(--spark-point,#223c55)";
+        final String returnPointPositiveColor = "var(--spark-point-positive,#1f8b4d)";
+        final String returnPointNegativeColor = "var(--spark-point-negative,#b23a31)";
         final String areaColor = "var(--spark-area,rgba(34,60,85,.22))";
         final String areaPositiveColor = "var(--spark-area-positive,rgba(36,131,87,.24))";
         final String areaNegativeColor = "var(--spark-area-negative,rgba(178,58,49,.22))";
@@ -607,8 +609,12 @@ public class PortfolioCalculator {
         int labelStep = Math.max(1, (int) Math.ceil(n / 10.0));
         for (int i = 0; i < n; i++) {
             String monthLabel = points.get(i).monthEnd.format(axisMonthFormat);
+            String currentPointColor = pointColor;
+            if (metric != SparklineMetric.VALUE) {
+                currentPointColor = displayValues[i] >= 0.0 ? returnPointPositiveColor : returnPointNegativeColor;
+            }
             svg.append("<circle class=\"chart-hover-target chart-hover-point\" cx=\"").append(svgNumber(xValues[i])).append("\" cy=\"").append(svgNumber(yValues[i]))
-                .append("\" r=\"2.4\" fill=\"").append(pointColor).append("\">");
+                .append("\" r=\"2.4\" fill=\"").append(currentPointColor).append("\">");
             if (metric == SparklineMetric.RETURN_PCT) {
                 svg.append("<title>")
                     .append(monthLabel).append(": ").append(formatSparklineTooltipValue(metric, displayValues[i]))
