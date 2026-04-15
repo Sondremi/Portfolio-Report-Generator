@@ -29,7 +29,11 @@ final class ReportScriptHelper {
         writer.write("    if (rowButton) rowButton.textContent = open ? 'Hide' : 'Show';\n");
         writer.write("  });\n");
         writer.write("  window.__detailGroupNextAction[groupName] = open ? 'close' : 'open';\n");
-        writer.write("  if (button) button.textContent = open ? '▾' : '▸';\n");
+        writer.write("  if (button) {\n");
+        writer.write("    var label = button.getAttribute('data-detail-label');\n");
+        writer.write("    if (label) button.textContent = label + ' ' + (open ? '▾' : '▸');\n");
+        writer.write("    else button.textContent = open ? '▾' : '▸';\n");
+        writer.write("  }\n");
         writer.write("}\n");
     }
 }

@@ -85,10 +85,13 @@ public class ReportWriter {
             writer.write("        .overview-mode-btn:first-child { border-top-left-radius:10px; }\n");
             writer.write("        .overview-mode-btn:last-child { border-top-right-radius:10px; }\n");
             writer.write("        .overview-mode-btn.is-active { background:var(--card); color:var(--ink); }\n");
+            writer.write("        .overview-details-toggle-btn { margin-left:8px; border-left:1px solid var(--line) !important; background:#eef4fb; }\n");
+            writer.write("        .overview-details-toggle-btn:disabled { opacity:.55; cursor:not-allowed; }\n");
             writer.write("        body.theme-dark .overview-mode-btn { background:#1f3347; color:#d8e7f5; border-color:#2f445a; }\n");
             writer.write("        body.theme-dark .overview-mode-btn.is-active { background:#162231; color:#edf5ff; }\n");
+            writer.write("        body.theme-dark .overview-details-toggle-btn { border-left-color:#2f445a !important; background:#22384e; }\n");
             writer.write("        .report-standard .overview-table-wrap { width:100%; max-width:100%; overflow-x:auto; }\n");
-            writer.write("        .report-standard .overview-table { table-layout:fixed; width:100%; max-width:none; }\n");
+            writer.write("        .report-standard .overview-table { table-layout:fixed; width:100%; }\n");
             writer.write("        .report-standard .overview-table th, .report-standard .overview-table td { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; font-size:.67rem; padding:4px 4px; }\n");
             writer.write("        .report-standard .overview-table tr > * { min-width:0; }\n");
             writer.write("        .report-standard .overview-summary-table tr > *:nth-child(1)  { width:5%; min-width:80px; max-width:100px; overflow:hidden !important; text-overflow:ellipsis !important; }\n");
@@ -102,33 +105,22 @@ public class ReportWriter {
             writer.write("        .report-standard .overview-summary-table tr > *:nth-child(9)  { width:8%; }\n");
             writer.write("        .report-standard .overview-summary-table tr > *:nth-child(10) { width:9%; }\n");
             writer.write("        .report-standard .overview-summary-table tr > *:nth-child(11) { width:10%; }\n");
-            writer.write("        .report-standard .overview-holdings-table tr > *:nth-child(1)  { width:2%; min-width:40px; max-width:70px; overflow:hidden !important; text-overflow:ellipsis !important; }\n");
-            writer.write("        .report-standard .overview-holdings-table tr > *:nth-child(2)  { width:5%; min-width:50px; max-width:130px; overflow:hidden !important; text-overflow:ellipsis !important; }\n");
-            writer.write("        .report-standard .overview-holdings-table tr > *:nth-child(3)  { width:2.5%; }\n");
-            writer.write("        .report-standard .overview-holdings-table tr > *:nth-child(4)  { width:3%; }\n");
-            writer.write("        .report-standard .overview-holdings-table tr > *:nth-child(5)  { width:3%; }\n");
-            writer.write("        .report-standard .overview-holdings-table tr > *:nth-child(6)  { width:4%; }\n");
-            writer.write("        .report-standard .overview-holdings-table tr > *:nth-child(7)  { width:4%; }\n");
-            writer.write("        .report-standard .overview-holdings-table tr > *:nth-child(8)  { width:5%; }\n");
-            writer.write("        .report-standard .overview-holdings-table tr > *:nth-child(9)  { width:5%; }\n");
-            writer.write("        .report-standard .overview-holdings-table tr > *:nth-child(10) { width:5%; }\n");
-            writer.write("        .report-standard .overview-holdings-table tr > *:nth-child(11) { width:5%; }\n");
-            writer.write("        .report-standard .overview-holdings-table tr > *:nth-child(12) { width:5%; }\n");
-            writer.write("        .report-standard .overview-holdings-table tr > *:nth-child(13) { width:5%; }\n");
+            writer.write("        .report-standard .overview-holdings-table tr > *:nth-child(1)  { width:1%; min-width:40px; max-width:70px; overflow:hidden !important; text-overflow:ellipsis !important; }\n");
+            writer.write("        .report-standard .overview-holdings-table tr > *:nth-child(2)  { width:1.5%; min-width:50px; max-width:130px; overflow:hidden !important; text-overflow:ellipsis !important; }\n");
+            writer.write("        .report-standard .overview-holdings-table tr > *:nth-child(3), .report-standard .overview-holdings-table tr > *:nth-child(4), .report-standard .overview-holdings-table tr > *:nth-child(5), .report-standard .overview-holdings-table tr > *:nth-child(6), .report-standard .overview-holdings-table tr > *:nth-child(7), .report-standard .overview-holdings-table tr > *:nth-child(8), .report-standard .overview-holdings-table tr > *:nth-child(9), .report-standard .overview-holdings-table tr > *:nth-child(10), .report-standard .overview-holdings-table tr > *:nth-child(11), .report-standard .overview-holdings-table tr > *:nth-child(12), .report-standard .overview-holdings-table tr > *:nth-child(13) { width:auto; min-width:max-content; max-width:none; }\n");
             writer.write("        .report-standard .overview-table tr > *:nth-child(n+3) { overflow:hidden !important; text-overflow:ellipsis !important; }\n");
-            writer.write("        .report-standard .overview-holdings-table th, .report-standard .overview-holdings-table td { overflow:hidden !important; text-overflow:ellipsis !important; }\n");
-            writer.write("        .report-standard .overview-holdings-table { table-layout:fixed; width:100%; min-width:2220px; }\n");
-            writer.write("        .report-standard .overview-holdings-table tr > *:nth-child(8), .report-standard .overview-holdings-table tr > *:nth-child(9) { min-width:158px; }\n");
-            writer.write("        .report-standard .overview-holdings-table tr > *:nth-child(10), .report-standard .overview-holdings-table tr > *:nth-child(11) { min-width:208px; }\n");
-            writer.write("        .report-standard .overview-holdings-table tr > *:nth-child(12) { min-width:116px; }\n");
-            writer.write("        .report-standard .overview-holdings-table tr > *:nth-child(13) { min-width:208px; }\n");
-            writer.write("        .report-standard .overview-holdings-table tr.total-row td { overflow:hidden !important; text-overflow:clip !important; white-space:nowrap !important; font-variant-numeric:tabular-nums; padding-right:10px; }\n");
-            writer.write("        .report-standard .overview-fundamentals-table { table-layout:fixed; width:100%; min-width:1860px; }\n");
-            writer.write("        .report-standard .overview-fundamentals-table tr > *:nth-child(1)  { width:5%; min-width:80px; max-width:100px; overflow:hidden !important; text-overflow:ellipsis !important; }\n");
-            writer.write("        .report-standard .overview-fundamentals-table tr > *:nth-child(2)  { width:11%; min-width:188px; max-width:280px; overflow:hidden !important; text-overflow:ellipsis !important; }\n");
-            writer.write("        .report-standard .overview-fundamentals-table tr > *:nth-child(n+3) { min-width:110px; }\n");
-            writer.write("        .report-standard .overview-fundamentals-table th { white-space:normal !important; overflow:visible !important; text-overflow:clip !important; line-height:1.08; vertical-align:bottom; }\n");
-            writer.write("        .report-standard .overview-fundamentals-table td { overflow:hidden !important; text-overflow:ellipsis !important; white-space:nowrap; }\n");
+            writer.write("        .report-standard .overview-holdings-table th, .report-standard .overview-holdings-table td { white-space:nowrap; overflow:visible !important; text-overflow:clip !important; }\n");
+            writer.write("        .report-standard .overview-holdings-table tr > *:nth-child(1), .report-standard .overview-holdings-table tr > *:nth-child(2) { overflow:hidden !important; text-overflow:ellipsis !important; }\n");
+            writer.write("        .report-standard .overview-holdings-table tr > *:nth-child(n+3) { overflow:visible !important; text-overflow:clip !important; }\n");
+            writer.write("        .report-standard .overview-holdings-table { table-layout:auto; width:max-content; min-width:100%; }\n");
+            writer.write("        .report-standard .overview-holdings-table tr.total-row td { overflow:visible !important; text-overflow:clip !important; white-space:nowrap !important; font-variant-numeric:tabular-nums; padding-right:10px; }\n");
+            writer.write("        .report-standard .overview-fundamentals-table { table-layout:auto; width:max-content; min-width:100%; }\n");
+            writer.write("        .report-standard .overview-fundamentals-table tr > *:nth-child(1)  { width:1%; min-width:40px; max-width:70px; overflow:hidden !important; text-overflow:ellipsis !important; }\n");
+            writer.write("        .report-standard .overview-fundamentals-table tr > *:nth-child(2)  { width:1.5%; min-width:50px; max-width:130px; overflow:hidden !important; text-overflow:ellipsis !important; }\n");
+            writer.write("        .report-standard .overview-fundamentals-table tr > *:nth-child(n+3) { width:auto; min-width:max-content; max-width:none; }\n");
+            writer.write("        .report-standard .overview-fundamentals-table th, .report-standard .overview-fundamentals-table td { white-space:nowrap; overflow:visible !important; text-overflow:clip !important; }\n");
+            writer.write("        .report-standard .overview-fundamentals-table tr > *:nth-child(1), .report-standard .overview-fundamentals-table tr > *:nth-child(2) { overflow:hidden !important; text-overflow:ellipsis !important; }\n");
+            writer.write("        .report-standard .overview-fundamentals-table tr > *:nth-child(n+3) { overflow:visible !important; text-overflow:clip !important; }\n");
             writer.write("        .wk-range-cell { min-width:118px; }\n");
             writer.write("        .wk-range-track { position:relative; height:4px; border-radius:999px; background:#c7d3df; margin:0 2px 6px; }\n");
             writer.write("        .wk-range-marker { position:absolute; top:50%; width:10px; height:10px; border-radius:50%; background:#2b67bc; transform:translate(-50%, -50%); box-shadow:0 0 0 1px rgba(255,255,255,.85); }\n");
@@ -156,6 +148,8 @@ public class ReportWriter {
             writer.write("        .report-standard .ticker-scroll::after, .report-standard .security-scroll::after { content:''; position:absolute; left:5px; right:5px; bottom:1px; height:4px; border-radius:999px; background:rgba(140,160,178,.18); opacity:.28; transition:opacity .12s ease, background .12s ease; }\n");
             writer.write("        .report-standard .ticker-scroll:hover::after, .report-standard .security-scroll:hover::after { opacity:.5; background:rgba(140,160,178,.28); }\n");
             writer.write("        @media (max-width:1060px) { .report-standard .overview-table tr > *:nth-child(n+3), .report-standard .realized-table tr > *:nth-child(n+3) { overflow:hidden !important; text-overflow:ellipsis !important; white-space:nowrap !important; } }\n");
+            writer.write("        @media (max-width:1060px) { .report-standard .overview-holdings-table tr > *:nth-child(n+3) { overflow:visible !important; text-overflow:clip !important; white-space:nowrap !important; } }\n");
+            writer.write("        @media (max-width:1060px) { .report-standard .overview-fundamentals-table tr > *:nth-child(n+3) { overflow:visible !important; text-overflow:clip !important; white-space:nowrap !important; } }\n");
             writer.write("        .report-annual .realized-table { table-layout:auto; }\n");
             writer.write("        .report-annual .realized-table tr > *:nth-child(1) { width:106px; max-width:106px; min-width:106px; overflow:visible; text-overflow:clip; }\n");
             writer.write("        .report-annual .realized-table tr > *:nth-child(2) { width:auto; min-width:9ch; max-width:none; overflow:visible; text-overflow:clip; }\n");
@@ -1586,10 +1580,11 @@ public class ReportWriter {
         writer.write("<button type=\"button\" class=\"overview-mode-btn is-active\" data-overview-mode=\"summary\">Summary</button>\n");
         writer.write("<button type=\"button\" class=\"overview-mode-btn\" data-overview-mode=\"holdings\">Holdings</button>\n");
         writer.write("<button type=\"button\" class=\"overview-mode-btn\" data-overview-mode=\"fundamentals\">Fundamentals</button>\n");
+        writer.write("<button type=\"button\" id=\"overview-details-toggle\" class=\"overview-mode-btn overview-details-toggle-btn\" data-detail-label=\"Open all details\" data-detail-group=\"overview-details\">Open all details ▸</button>\n");
         writer.write("</div>\n");
         writer.write("<div class=\"table-wrap overview-table-wrap js-overview-mode-panel\" data-overview-mode-panel=\"summary\">\n<table class=\"overview-table overview-summary-table\">\n");
         ReportTemplateHelper.writeHtmlRow(writer, true,
-            ReportTemplateHelper.buildTickerHeaderCell("overview-details"), "Security", "Change %", "Change", "Day Chart", "52-Wk Range", "Shares", "Avg Cost", "Last Price",
+            "Ticker", "Security", "Change %", "Change", "Day Chart", "52-Wk Range", "Shares", "Avg Cost", "Last Price",
                 "Cost Basis", "Market Value");
 
         LinkedHashMap<String, Double> totalMarketValueBuckets = new LinkedHashMap<>();
@@ -1700,7 +1695,7 @@ public class ReportWriter {
 
         writer.write("<div class=\"table-wrap overview-table-wrap js-overview-mode-panel\" data-overview-mode-panel=\"holdings\" hidden>\n<table class=\"overview-table overview-holdings-table\">\n");
         ReportTemplateHelper.writeHtmlRow(writer, true,
-            ReportTemplateHelper.buildTickerHeaderCell("holdings-details"), "Security", "Change %", "Change", "Shares", "Avg Cost", "Last Price",
+            "Ticker", "Security", "Change %", "Change", "Shares", "Avg Cost", "Last Price",
                 "Cost Basis", "Market Value", "Unrealized", "Realized", "Dividends", "Total Return");
 
         previousAssetType = null;
@@ -3402,6 +3397,7 @@ public class ReportWriter {
         writer.write("function initOverviewModeSwitcher() {\n");
         writer.write("  var buttons = Array.prototype.slice.call(document.querySelectorAll('.overview-mode-btn[data-overview-mode]'));\n");
         writer.write("  var panels = Array.prototype.slice.call(document.querySelectorAll('.js-overview-mode-panel[data-overview-mode-panel]'));\n");
+        writer.write("  var detailsToggleBtn = document.getElementById('overview-details-toggle');\n");
         writer.write("  if (!buttons.length || !panels.length) return;\n");
         writer.write("  function activate(mode) {\n");
         writer.write("    buttons.forEach(function(btn) {\n");
@@ -3412,6 +3408,22 @@ public class ReportWriter {
         writer.write("    panels.forEach(function(panel) {\n");
         writer.write("      var visible = panel.getAttribute('data-overview-mode-panel') === mode;\n");
         writer.write("      panel.hidden = !visible;\n");
+        writer.write("    });\n");
+        writer.write("    if (detailsToggleBtn) {\n");
+        writer.write("      var groupName = mode === 'summary' ? 'overview-details' : (mode === 'holdings' ? 'holdings-details' : '');\n");
+        writer.write("      var baseLabel = detailsToggleBtn.getAttribute('data-detail-label') || 'Open all details';\n");
+        writer.write("      detailsToggleBtn.textContent = baseLabel + ' ▸';\n");
+        writer.write("      detailsToggleBtn.setAttribute('data-detail-group', groupName);\n");
+        writer.write("      detailsToggleBtn.disabled = !groupName;\n");
+        writer.write("      detailsToggleBtn.setAttribute('aria-disabled', groupName ? 'false' : 'true');\n");
+        writer.write("    }\n");
+        writer.write("  }\n");
+        writer.write("  if (detailsToggleBtn && detailsToggleBtn.dataset.bound !== '1') {\n");
+        writer.write("    detailsToggleBtn.dataset.bound = '1';\n");
+        writer.write("    detailsToggleBtn.addEventListener('click', function() {\n");
+        writer.write("      var groupName = detailsToggleBtn.getAttribute('data-detail-group') || '';\n");
+        writer.write("      if (!groupName) return;\n");
+        writer.write("      toggleDetailGroup(groupName, detailsToggleBtn);\n");
         writer.write("    });\n");
         writer.write("  }\n");
         writer.write("  buttons.forEach(function(btn) {\n");
