@@ -91,8 +91,8 @@ public class ReportWriter {
             writer.write("        .report-standard .overview-table { table-layout:fixed; width:100%; max-width:none; }\n");
             writer.write("        .report-standard .overview-table th, .report-standard .overview-table td { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; font-size:.67rem; padding:4px 4px; }\n");
             writer.write("        .report-standard .overview-table tr > * { min-width:0; }\n");
-            writer.write("        .report-standard .overview-summary-table tr > *:nth-child(1)  { width:8%; min-width:72px; max-width:94px; overflow:hidden !important; text-overflow:ellipsis !important; }\n");
-            writer.write("        .report-standard .overview-summary-table tr > *:nth-child(2)  { width:14%; min-width:112px; max-width:172px; overflow:hidden !important; text-overflow:ellipsis !important; }\n");
+            writer.write("        .report-standard .overview-summary-table tr > *:nth-child(1)  { width:9%; min-width:108px; max-width:136px; overflow:hidden !important; text-overflow:ellipsis !important; }\n");
+            writer.write("        .report-standard .overview-summary-table tr > *:nth-child(2)  { width:16%; min-width:188px; max-width:272px; overflow:hidden !important; text-overflow:ellipsis !important; }\n");
             writer.write("        .report-standard .overview-summary-table tr > *:nth-child(3)  { width:7%; }\n");
             writer.write("        .report-standard .overview-summary-table tr > *:nth-child(4)  { width:7%; }\n");
             writer.write("        .report-standard .overview-summary-table tr > *:nth-child(5)  { width:9%; }\n");
@@ -102,8 +102,8 @@ public class ReportWriter {
             writer.write("        .report-standard .overview-summary-table tr > *:nth-child(9)  { width:8%; }\n");
             writer.write("        .report-standard .overview-summary-table tr > *:nth-child(10) { width:9%; }\n");
             writer.write("        .report-standard .overview-summary-table tr > *:nth-child(11) { width:10%; }\n");
-            writer.write("        .report-standard .overview-holdings-table tr > *:nth-child(1)  { width:7%; min-width:72px; max-width:94px; overflow:hidden !important; text-overflow:ellipsis !important; }\n");
-            writer.write("        .report-standard .overview-holdings-table tr > *:nth-child(2)  { width:10%; min-width:96px; max-width:148px; overflow:hidden !important; text-overflow:ellipsis !important; }\n");
+            writer.write("        .report-standard .overview-holdings-table tr > *:nth-child(1)  { width:8%; min-width:108px; max-width:136px; overflow:hidden !important; text-overflow:ellipsis !important; }\n");
+            writer.write("        .report-standard .overview-holdings-table tr > *:nth-child(2)  { width:14%; min-width:188px; max-width:272px; overflow:hidden !important; text-overflow:ellipsis !important; }\n");
             writer.write("        .report-standard .overview-holdings-table tr > *:nth-child(3)  { width:6%; }\n");
             writer.write("        .report-standard .overview-holdings-table tr > *:nth-child(4)  { width:7%; }\n");
             writer.write("        .report-standard .overview-holdings-table tr > *:nth-child(5)  { width:6%; }\n");
@@ -124,8 +124,8 @@ public class ReportWriter {
             writer.write("        .report-standard .overview-holdings-table tr > *:nth-child(13) { min-width:228px; }\n");
             writer.write("        .report-standard .overview-holdings-table tr.total-row td { overflow:hidden !important; text-overflow:clip !important; white-space:nowrap !important; font-variant-numeric:tabular-nums; padding-right:10px; }\n");
             writer.write("        .report-standard .overview-fundamentals-table { table-layout:fixed; width:100%; min-width:1860px; }\n");
-            writer.write("        .report-standard .overview-fundamentals-table tr > *:nth-child(1)  { width:9%; min-width:110px; max-width:130px; overflow:hidden !important; text-overflow:ellipsis !important; }\n");
-            writer.write("        .report-standard .overview-fundamentals-table tr > *:nth-child(2)  { width:14%; min-width:150px; max-width:210px; overflow:hidden !important; text-overflow:ellipsis !important; }\n");
+            writer.write("        .report-standard .overview-fundamentals-table tr > *:nth-child(1)  { width:10%; min-width:120px; max-width:150px; overflow:hidden !important; text-overflow:ellipsis !important; }\n");
+            writer.write("        .report-standard .overview-fundamentals-table tr > *:nth-child(2)  { width:16%; min-width:190px; max-width:290px; overflow:hidden !important; text-overflow:ellipsis !important; }\n");
             writer.write("        .report-standard .overview-fundamentals-table tr > *:nth-child(n+3) { min-width:126px; }\n");
             writer.write("        .report-standard .overview-fundamentals-table th { white-space:normal !important; overflow:visible !important; text-overflow:clip !important; line-height:1.08; vertical-align:bottom; }\n");
             writer.write("        .report-standard .overview-fundamentals-table td { overflow:hidden !important; text-overflow:ellipsis !important; white-space:nowrap; }\n");
@@ -150,8 +150,8 @@ public class ReportWriter {
             writer.write("        body.theme-dark .mini-day-chart-area.positive { fill:#2a8f57; }\n");
             writer.write("        body.theme-dark .mini-day-chart-area.negative { fill:#a54640; }\n");
             writer.write("        .report-standard .ticker-scroll, .report-standard .security-scroll { display:block; position:relative; width:100%; max-width:100%; overflow-x:auto; overflow-y:hidden; white-space:nowrap; text-overflow:clip; scrollbar-width:none; -ms-overflow-style:none; padding-bottom:6px; cursor:grab; }\n");
-            writer.write("        .report-standard .ticker-scroll { max-width:96px; }\n");
-            writer.write("        .report-standard .security-scroll { max-width:138px; }\n");
+            writer.write("        .report-standard .ticker-scroll { max-width:126px; }\n");
+            writer.write("        .report-standard .security-scroll { max-width:236px; }\n");
             writer.write("        .report-standard .ticker-scroll::-webkit-scrollbar, .report-standard .security-scroll::-webkit-scrollbar { display:none; width:0; height:0; }\n");
             writer.write("        .report-standard .ticker-scroll::after, .report-standard .security-scroll::after { content:''; position:absolute; left:5px; right:5px; bottom:1px; height:4px; border-radius:999px; background:rgba(140,160,178,.18); opacity:.28; transition:opacity .12s ease, background .12s ease; }\n");
             writer.write("        .report-standard .ticker-scroll:hover::after, .report-standard .security-scroll:hover::after { opacity:.5; background:rgba(140,160,178,.28); }\n");
