@@ -163,8 +163,8 @@ public class ReportWriter {
             writer.write("        .report-annual .realized-table tr > *:nth-child(7) { width:160px; max-width:160px; }\n");
             writer.write("        .report-standard .realized-table { table-layout:auto; width:100%; }\n");
             writer.write("        .report-standard .realized-table th, .report-standard .realized-table td { white-space:nowrap; overflow:visible; text-overflow:clip; }\n");
-            writer.write("        .report-standard .realized-table tr > *:nth-child(1)  { width:108px; min-width:108px; max-width:108px; overflow:hidden !important; text-overflow:ellipsis !important; }\n");
-            writer.write("        .report-standard .realized-table tr > *:nth-child(2)  { width:178px; min-width:178px; max-width:178px; overflow:hidden !important; text-overflow:ellipsis !important; }\n");
+            writer.write("        .report-standard .realized-table tr > *:nth-child(1)  { width:auto; min-width:108px; max-width:108px; overflow:hidden !important; text-overflow:ellipsis !important; }\n");
+            writer.write("        .report-standard .realized-table tr > *:nth-child(2)  { width:auto; max-width:250px; overflow:hidden !important; text-overflow:ellipsis !important; }\n");
             writer.write("        .ticker-scroll { display:block; width:100%; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; padding-bottom:0; }\n");
             writer.write("        .security-scroll { display:block; position:relative; width:100%; max-width:100%; overflow-x:auto; overflow-y:hidden; white-space:nowrap; text-overflow:clip; scrollbar-width:none; -ms-overflow-style:none; padding-bottom:6px; cursor:grab; }\n");
             writer.write("        .security-scroll::-webkit-scrollbar { display:none; width:0; height:0; }\n");
