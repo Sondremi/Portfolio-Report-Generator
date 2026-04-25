@@ -244,6 +244,7 @@ public class ReportWriter {
             writer.write("        .annual-headline-grid .kpi-card { min-height:116px; }\n");
             writer.write("        .kpi-label { color:#c8d9eb; font-size:.8rem; text-transform:uppercase; }\n");
             writer.write("        .kpi-value { margin-top:2px; font-size:1.02rem; font-weight:700; color:#fff; }\n");
+            writer.write("        .kpi-help { margin-top:4px; font-size:.72rem; line-height:1.35; color:#b6c9dc; text-transform:none; letter-spacing:0; }\n");
             writer.write("        .performer { margin-top:6px; font-size:.84rem; color:#dce8f3; }\n");
             writer.write("        .performer strong { display:block; font-size:.9rem; margin-bottom:2px; }\n");
             writer.write("        .report-standard .kpi-card-bestworst .performer strong { white-space:nowrap; overflow-x:auto; overflow-y:hidden; text-overflow:clip; scrollbar-width:none; -ms-overflow-style:none; }\n");
@@ -421,6 +422,7 @@ public class ReportWriter {
             writer.write("        body.theme-dark .sparkline-return-summary { color:#cfe0f2; }\n");
             writer.write("        body.theme-dark .sparkline-return-summary.positive { color:var(--good); }\n");
             writer.write("        body.theme-dark .sparkline-return-summary.negative { color:var(--bad); }\n");
+            writer.write("        body.theme-dark .kpi-help { color:#b6c9dc; }\n");
             writer.write("        body.theme-dark .chart-title-row > h3, body.theme-dark .chart-title-row > h4, body.theme-dark .chart-title-row > .hero-side-title { color:#dce8f5; }\n");
             writer.write("        body.theme-dark .chart-svg { background:#162231; border-color:#2b3a4d; }\n");
             writer.write("        body.theme-dark .chart-svg text { fill:#d4e1ee !important; }\n");
@@ -1392,7 +1394,7 @@ public class ReportWriter {
 
         writer.write("<article class=\"kpi-card\"><div class=\"kpi-label\">Portfolio Value</div><div id=\"hero-portfolio-value\" class=\"kpi-value js-convert-money\" data-buckets=\""
             + escapeHtml(toBucketsJson(portfolioValueBuckets)) + "\" data-decimals=\"0\">"
-            + formatBucketsInTarget(portfolioValueBuckets, DEFAULT_TOTAL_CURRENCY, 0, ratesToNok) + "</div></article>\n");
+            + formatBucketsInTarget(portfolioValueBuckets, DEFAULT_TOTAL_CURRENCY, 0, ratesToNok) + "</div><div class=\"kpi-help\">Market value + cash holdings</div></article>\n");
 
         writer.write("<article class=\"kpi-card\"><div class=\"kpi-label\">Total Return</div><div id=\"hero-total-return-value\" class=\"kpi-value js-convert-money " + totalClass
             + "\" data-buckets=\"" + escapeHtml(toBucketsJson(totalReturnBuckets))
