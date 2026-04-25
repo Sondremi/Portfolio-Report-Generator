@@ -260,8 +260,6 @@ public class ChartBuilder {
 
         double slotWidth = plotWidth / rowsWithValue.size();
         double barWidth = Math.max(10.0, slotWidth * 0.92);
-        String[] colors = {"#0b7285", "#2f9e44", "#f08c00", "#7048e8", "#c92a2a", "#1c7ed6"};
-
         for (int i = 0; i < rowsWithValue.size(); i++) {
             OverviewRow row = rowsWithValue.get(i);
             double marketValueNok = marketValuesNok.get(i);
@@ -269,7 +267,7 @@ public class ChartBuilder {
             double y = mapValueToY(marketValueNok, 0.0, maxValue, top, plotHeight);
             double barHeight = (top + plotHeight) - y;
 
-            String color = colors[i % colors.length];
+            String color = getAllocationColor(i);
             String label = getCompactBarLabel(row);
 
                 svg.append("<rect class=\"chart-hover-target chart-hover-bar\" x=\"").append(svgNumber(x)).append("\" y=\"").append(svgNumber(y))
@@ -895,7 +893,7 @@ public class ChartBuilder {
 
     private static String getAllocationColor(int index) {
         String[] palette = new String[] {
-                "#0b7285", "#2f9e44", "#f08c00", "#7048e8", "#c92a2a", "#1c7ed6", "#5f3dc4", "#2b8a3e", "#e67700", "#0ca678"
+                "#0a5a8f", "#1f7a3f", "#d97706", "#b42318", "#0f766e", "#1d4ed8", "#9a3412", "#0e7490", "#4d7c0f", "#7c2d12"
         };
         return palette[index % palette.length];
     }
