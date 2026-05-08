@@ -21,13 +21,17 @@ public class ChartBuilder {
 
     private static final class AllocationLegendEntry {
         private final String label;
+        private final String drilldownLabel;
         private final double pct;
         private final String color;
+        private final boolean drilldownDisabled;
 
-        private AllocationLegendEntry(String label, double pct, String color) {
+        private AllocationLegendEntry(String label, String drilldownLabel, double pct, String color, boolean drilldownDisabled) {
             this.label = label;
+            this.drilldownLabel = drilldownLabel;
             this.pct = pct;
             this.color = color;
+            this.drilldownDisabled = drilldownDisabled;
         }
     }
 
@@ -576,19 +580,19 @@ public class ChartBuilder {
         List<AllocationLegendEntry> legendEntries = new ArrayList<>();
 
         if (stockCount > 0) {
-            legendEntries.add(new AllocationLegendEntry("Stocks: " + stockCount, stockPct, "#1c7ed6"));
+            legendEntries.add(new AllocationLegendEntry("Stocks: " + stockCount, "Stocks", stockPct, "#1c7ed6", false));
         }
         if (fundCount > 0) {
-            legendEntries.add(new AllocationLegendEntry("Funds: " + fundCount, fundPct, "#2f9e44"));
+            legendEntries.add(new AllocationLegendEntry("Funds: " + fundCount, "Funds", fundPct, "#2f9e44", false));
         }
         if (cashCount > 0) {
-            legendEntries.add(new AllocationLegendEntry("Cash", cashPct, "#f59f00"));
+            legendEntries.add(new AllocationLegendEntry("Cash", "Cash", cashPct, "#f59f00", true));
         }
         if (cashDebtCount > 0) {
-            legendEntries.add(new AllocationLegendEntry("Cash (Debt)", cashDebtPct, "#e03131"));
+            legendEntries.add(new AllocationLegendEntry("Cash (Debt)", "Cash (Debt)", cashDebtPct, "#e03131", true));
         }
         if (otherCount > 0) {
-            legendEntries.add(new AllocationLegendEntry("Other: " + otherCount, otherPct, "#868e96"));
+            legendEntries.add(new AllocationLegendEntry("Other: " + otherCount, "Other", otherPct, "#868e96", false));
         }
         appendAllocationLegend(svg, legendEntries, width, height, summaryY, 4, 14, 24);
 
@@ -744,7 +748,7 @@ public class ChartBuilder {
             AllocationBucket bucket = buckets.get(i);
             double pct = (bucket.value / totalMarketValue) * 100.0;
             String color = getAllocationColor(i, buckets.size());
-            legendEntries.add(new AllocationLegendEntry(bucket.label, pct, color));
+            legendEntries.add(new AllocationLegendEntry(bucket.label, bucket.label, pct, color, false));
         }
         appendAllocationLegend(svg, legendEntries, width, height, summaryY, 6, 22, 36);
 
@@ -885,14 +889,17 @@ public class ChartBuilder {
                     ? (columnIndex == 0 ? 214.0 : (width - 16.0))
                     : (width - 16.0);
             String displayLabel = abbreviateLegendLabel(entry.label, useTwoColumns ? twoColumnMaxChars : oneColumnMaxChars);
+            String interactiveAttrs = " class=\"allocation-legend-default chart-hover-target chart-hover-legend\" data-allocation-label=\""
+                    + escapeHtml(entry.drilldownLabel) + "\""
+                    + (entry.drilldownDisabled ? " data-drilldown-disabled=\"1\"" : "");
 
-            svg.append("<circle class=\"allocation-legend-default\" cx=\"").append(svgNumber(dotX)).append("\" cy=\"").append(svgNumber(y - 3.0))
+            svg.append("<circle").append(interactiveAttrs).append(" cx=\"").append(svgNumber(dotX)).append("\" cy=\"").append(svgNumber(y - 3.0))
                     .append("\" r=\"3.7\" fill=\"").append(entry.color).append("\"/>\n");
-            svg.append("<text class=\"allocation-legend-default\" x=\"").append(svgNumber(labelX)).append("\" y=\"").append(svgNumber(y))
+            svg.append("<text").append(interactiveAttrs).append(" x=\"").append(svgNumber(labelX)).append("\" y=\"").append(svgNumber(y))
                     .append("\" text-anchor=\"start\" font-size=\"12\" fill=\"#2f2f2f\">")
                     .append(escapeHtml(displayLabel))
                     .append("</text>\n");
-            svg.append("<text class=\"allocation-legend-default\" x=\"").append(svgNumber(pctX)).append("\" y=\"").append(svgNumber(y))
+            svg.append("<text").append(interactiveAttrs).append(" x=\"").append(svgNumber(pctX)).append("\" y=\"").append(svgNumber(y))
                     .append("\" text-anchor=\"end\" font-size=\"12\" fill=\"#4a4a4a\">")
                     .append(escapeHtml(formatNumber(entry.pct, 1) + "%"))
                     .append("</text>\n");
