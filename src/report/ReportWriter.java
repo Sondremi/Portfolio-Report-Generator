@@ -52,7 +52,7 @@ public class ReportWriter {
         List<AnnualSnapshotRow> annualSnapshotRows = new ArrayList<>();
         if (REPORT_TYPE_ANNUAL.equals(reportConfig.reportType)) {
             int snapshotYear = Math.max(2000, Math.min(2100, reportConfig.reportYear));
-            annualSnapshotRows = buildAnnualSnapshotRows(store, LocalDate.of(snapshotYear, 12, 31));
+            annualSnapshotRows = buildAnnualSnapshotRows(store, resolveYearSnapshotDate(snapshotYear));
         }
 
         try (FileWriter writer = new FileWriter(outputFile)) {
@@ -717,7 +717,7 @@ public class ReportWriter {
 
         writer.write("<article class=\"annual-graph-card\">\n");
         writer.write("<h3>Portfolio Value</h3>\n");
-        writer.write("<p class=\"annual-graph-note\">Month-end portfolio value in selected year.</p>\n");
+        writer.write("<p class=\"annual-graph-note\">Month-end portfolio value in selected year (latest available date for current month).</p>\n");
         writer.write("<div class=\"annual-graph-content\">\n");
         if (valueChartSvg == null || valueChartSvg.isBlank()) {
             writer.write("<div class=\"app-shell-note\">Timeline data is not available for the selected year.</div>\n");
@@ -729,7 +729,7 @@ public class ReportWriter {
 
         writer.write("<article class=\"annual-graph-card\">\n");
         writer.write("<h3>Portfolio Return</h3>\n");
-        writer.write("<p class=\"annual-graph-note\">Month-end portfolio return in selected year.</p>\n");
+        writer.write("<p class=\"annual-graph-note\">Month-end portfolio return in selected year (latest available date for current month).</p>\n");
         writer.write("<div class=\"annual-graph-content\">\n");
         if (returnChartSvg == null || returnChartSvg.isBlank()) {
             writer.write("<div class=\"app-shell-note\">Return timeline is not available for the selected year.</div>\n");
@@ -748,7 +748,7 @@ public class ReportWriter {
             Map<String, Double> ratesToNok,
             int reportYear) {
 
-        LocalDate snapshotDate = LocalDate.of(reportYear, 12, 31);
+        LocalDate snapshotDate = resolveYearSnapshotDate(reportYear);
         List<AnnualSnapshotRow> snapshotRows = buildAnnualSnapshotRows(store, snapshotDate);
         int holdingsCount = snapshotRows.size();
         int transactionCount = countAnnualTransactions(store, reportYear);
@@ -849,6 +849,16 @@ public class ReportWriter {
         }
 
         return unitEventCount + externalCashCount + dividendCount;
+    }
+
+    private static LocalDate resolveYearSnapshotDate(int year) {
+        int safeYear = Math.max(2000, Math.min(2100, year));
+        LocalDate yearEnd = LocalDate.of(safeYear, 12, 31);
+        LocalDate today = LocalDate.now();
+        if (today.getYear() == safeYear && today.isBefore(yearEnd)) {
+            return today;
+        }
+        return yearEnd;
     }
 
     private static double computeCashHoldingsAtDate(TransactionStore store, LocalDate snapshotDate) {

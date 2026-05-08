@@ -807,8 +807,14 @@ public class PortfolioCalculator {
         YearMonth startMonth = endMonth.minusMonths(monthCount - 1L);
 
         ArrayList<LocalDate> monthEnds = new ArrayList<>(monthCount);
+        LocalDate today = LocalDate.now();
         for (int monthOffset = 0; monthOffset < monthCount; monthOffset++) {
-            monthEnds.add(startMonth.plusMonths(monthOffset).atEndOfMonth());
+            YearMonth month = startMonth.plusMonths(monthOffset);
+            LocalDate pointDate = month.atEndOfMonth();
+            if (month.equals(endMonth) && today.isBefore(pointDate)) {
+                pointDate = today;
+            }
+            monthEnds.add(pointDate);
         }
 
         LocalDate startDate = startMonth.atDay(1);
@@ -1529,7 +1535,7 @@ public class PortfolioCalculator {
         double benchmarkReturnPct = 0.0;
 
         LocalDate from = LocalDate.of(safeYear, 1, 1);
-        LocalDate to = LocalDate.of(safeYear, 12, 31);
+        LocalDate to = resolveYearEvaluationEndDate(safeYear);
         String resolvedBenchmarkTicker = safeBenchmarkTicker;
         for (String candidateTicker : buildBenchmarkTickerCandidates(safeBenchmarkTicker)) {
             NavigableMap<LocalDate, Double> benchmarkSeries = fetchHistoricalCloseSeries(
@@ -2259,6 +2265,16 @@ public class PortfolioCalculator {
             case "FUND" -> 1;
             default -> 2;
         };
+    }
+
+    private static LocalDate resolveYearEvaluationEndDate(int year) {
+        int safeYear = Math.max(2000, Math.min(2100, year));
+        LocalDate yearEnd = LocalDate.of(safeYear, 12, 31);
+        LocalDate today = LocalDate.now();
+        if (today.getYear() == safeYear && today.isBefore(yearEnd)) {
+            return today;
+        }
+        return yearEnd;
     }
 
     private static double resolveBoundaryValue(
